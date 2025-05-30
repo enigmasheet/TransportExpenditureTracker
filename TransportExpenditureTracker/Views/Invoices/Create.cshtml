@@ -26,6 +26,7 @@
                 <label asp-for="PartyId" class="control-label"></label>
                 <select asp-for="PartyId" class ="form-control" asp-items="ViewBag.PartyId"></select>
             </div>
+            <button class="btn btn-primary" onclick="openAddPartyModal()">Add Party</button>
             <div class="form-group">
                 <label asp-for="Item" class="control-label"></label>
                 <input asp-for="Item" class="form-control" />

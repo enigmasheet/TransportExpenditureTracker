@@ -42,7 +42,10 @@ namespace TransportExpenditureTracker.Controllers
 
             return View(party);
         }
-
+        public IActionResult GetAddPartyPartial()
+        {
+            return PartialView("_AddPartyPartial", new Party());
+        }
         // GET: Parties/Create
         public IActionResult Create()
         {
@@ -54,16 +57,32 @@ namespace TransportExpenditureTracker.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PartyId,PartyName,Location,VatNo")] Party party)
+        public IActionResult Create([Bind("PartyId,PartyName,Location,VatNo")] Party party)
         {
             if (ModelState.IsValid)
             {
                 _context.Add(party);
-                await _context.SaveChangesAsync();
+                _context.SaveChanges();
+
+                // If AJAX, return success JSON
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = true, message = "Party created successfully." });
+                }
+
                 return RedirectToAction(nameof(Index));
             }
+
+            // If AJAX, return validation errors as JSON
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return Json(new { success = false, errors });
+            }
+
             return View(party);
         }
+
 
         // GET: Parties/Edit/5
         public async Task<IActionResult> Edit(int? id)

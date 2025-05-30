@@ -1,0 +1,31 @@
+﻿@model TransportExpenditureTracker.Models.Party
+
+<div id="partyFormMessages"></div>
+
+<form asp-action="Create" id="partyForm" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="form-group">
+        <label asp-for="PartyName" class="control-label"></label>
+        <input asp-for="PartyName" class="form-control" />
+        <span asp-validation-for="PartyName" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Location" class="control-label"></label>
+        <input asp-for="Location" class="form-control" />
+        <span asp-validation-for="Location" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="VatNo" class="control-label"></label>
+        <input asp-for="VatNo" class="form-control" />
+        <span asp-validation-for="VatNo" class="text-danger"></span>
+    </div>
+    <div class="form-group mt-3">
+        <button type="submit" class="btn btn-primary">Create</button>
+    </div>
+</form>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
