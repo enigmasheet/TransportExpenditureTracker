@@ -18,7 +18,9 @@ namespace TransportExpenditureTracker.Controllers
         // GET: Invoices
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Invoices.Include(i => i.Party);
+            var applicationDbContext = _context.Invoices
+                .Include(i => i.Party)
+                .Include(i=> i.Item);
             return View(await applicationDbContext.ToListAsync());
         }
 
@@ -32,6 +34,8 @@ namespace TransportExpenditureTracker.Controllers
 
             var invoice = await _context.Invoices
                 .Include(i => i.Party)
+                .Include(i => i.Item)
+
                 .FirstOrDefaultAsync(m => m.InvoiceId == id);
             if (invoice == null)
             {
@@ -64,7 +68,7 @@ namespace TransportExpenditureTracker.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName", invoice.PartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "Item", "PartyName", invoice.ItemId);
+            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "PartyName", invoice.ItemId);
             return View(invoice);
         }
 
@@ -82,7 +86,7 @@ namespace TransportExpenditureTracker.Controllers
                 return NotFound();
             }
             ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName", invoice.PartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "Item", "PartyName", invoice.ItemId);
+            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "PartyName", invoice.ItemId);
 
             return View(invoice);
         }
@@ -120,7 +124,7 @@ namespace TransportExpenditureTracker.Controllers
                 return RedirectToAction(nameof(Index));
             }
             ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName", invoice.PartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "Item", "ItemName", invoice.ItemId);
+            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName", invoice.ItemId);
 
             return View(invoice);
         }
