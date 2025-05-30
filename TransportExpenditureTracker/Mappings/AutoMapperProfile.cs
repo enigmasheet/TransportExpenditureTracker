@@ -8,11 +8,11 @@ namespace TransportExpenditureTracker.Mappings
     {
         public AutoMapperProfile()
         {
-            // Party
             CreateMap<Party, PartyViewModel>().ReverseMap();
 
-            // Invoice 
             CreateMap<Invoice, InvoiceViewModel>().ReverseMap();
+
+            CreateMap<Item, ItemViewModel>().ReverseMap();
         }
     }
 }
