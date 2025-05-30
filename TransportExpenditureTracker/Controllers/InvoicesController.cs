@@ -49,7 +49,7 @@ namespace TransportExpenditureTracker.Controllers
         public IActionResult Create()
         {
             ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName");
-            ViewData["ItemId"] = new SelectList(_context.Items, "Item", "ItemName");
+            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName");
 
             return View();
         }
