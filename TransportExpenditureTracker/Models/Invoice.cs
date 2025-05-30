@@ -6,30 +6,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TransportExpenditureTracker.Models
 {
-    public class Party
-    {
-        public Party()
-        {
-            Invoices = new HashSet<Invoice>();
-        }
-
-        [Key]
-        public int PartyId { get; set; }
-
-        [Required]
-        [MaxLength(100)]
-        public string PartyName { get; set; } = null!;
-
-        [MaxLength(200)]
-        public string? Location { get; set; }
-
-        [MaxLength(50)]
-        public string? VatNo { get; set; }
-
-        // Navigation property: One party can have many invoices
-        public ICollection<Invoice> Invoices { get; set; }
-    }
-
     public class Invoice
     {
         [Key]
@@ -46,10 +22,6 @@ namespace TransportExpenditureTracker.Models
         [ForeignKey(nameof(Party))]
         public int PartyId { get; set; }
        
-        [ValidateNever] 
-        public Party Party { get; set; } = null!;
-
-        // InvoiceItem properties merged here:
         [Required]
         [MaxLength(200)]
         public string Item { get; set; } = null!;
@@ -77,8 +49,11 @@ namespace TransportExpenditureTracker.Models
         [Range(0, double.MaxValue)]
         public decimal TotalInvoiceAmount { get; set; }  // optional, you can store or compute this
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } 
+        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        [ValidateNever]
+        public Party Party { get; set; } = null!;
     }
 
 }

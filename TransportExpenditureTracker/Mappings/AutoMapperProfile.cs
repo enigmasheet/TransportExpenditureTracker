@@ -11,7 +11,7 @@ namespace TransportExpenditureTracker.Mappings
             // Party
             CreateMap<Party, PartyViewModel>().ReverseMap();
 
-            // Invoice (including merged InvoiceItem properties)
+            // Invoice 
             CreateMap<Invoice, InvoiceViewModel>().ReverseMap();
         }
     }
