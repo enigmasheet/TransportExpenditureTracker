@@ -8,7 +8,7 @@ using TransportExpenditureTracker.Data;
 
 #nullable disable
 
-namespace TransportExpenditureTracker.Data.Migrations
+namespace TransportExpenditureTracker.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -240,10 +240,8 @@ namespace TransportExpenditureTracker.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Item")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("Miti")
                         .HasColumnType("datetime2");
@@ -271,9 +269,29 @@ namespace TransportExpenditureTracker.Data.Migrations
 
                     b.HasKey("InvoiceId");
 
+                    b.HasIndex("ItemId");
+
                     b.HasIndex("PartyId");
 
                     b.ToTable("Invoices");
+                });
+
+            modelBuilder.Entity("TransportExpenditureTracker.Models.Item", b =>
+                {
+                    b.Property<int>("ItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ItemId"));
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("ItemId");
+
+                    b.ToTable("Items");
                 });
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.Party", b =>
@@ -355,13 +373,26 @@ namespace TransportExpenditureTracker.Data.Migrations
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.Invoice", b =>
                 {
+                    b.HasOne("TransportExpenditureTracker.Models.Item", "Item")
+                        .WithMany("Invoices")
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("TransportExpenditureTracker.Models.Party", "Party")
                         .WithMany("Invoices")
                         .HasForeignKey("PartyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Item");
+
                     b.Navigation("Party");
+                });
+
+            modelBuilder.Entity("TransportExpenditureTracker.Models.Item", b =>
+                {
+                    b.Navigation("Invoices");
                 });
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.Party", b =>

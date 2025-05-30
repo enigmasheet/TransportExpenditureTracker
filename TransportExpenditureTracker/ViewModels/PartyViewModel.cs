@@ -8,7 +8,7 @@ namespace TransportExpenditureTracker.ViewModels
 
         [Required]
         [Display(Name = "Party Name")]
-        public string PartyName { get; set; }
+        public string PartyName { get; set; }= null!;
 
         [Display(Name = "Location")]
         public string? Location { get; set; }

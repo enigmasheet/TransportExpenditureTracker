@@ -22,9 +22,8 @@ namespace TransportExpenditureTracker.Models
         [ForeignKey(nameof(Party))]
         public int PartyId { get; set; }
        
-        [Required]
-        [MaxLength(200)]
-        public string Item { get; set; } = null!;
+        [ForeignKey(nameof(Item))]
+        public int ItemId { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
@@ -54,6 +53,9 @@ namespace TransportExpenditureTracker.Models
 
         [ValidateNever]
         public Party Party { get; set; } = null!;
+
+        [ValidateNever]
+        public Item Item { get; set; } = null!;
     }
 
 }

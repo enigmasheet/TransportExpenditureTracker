@@ -10,6 +10,7 @@ namespace TransportExpenditureTracker.Data
             : base(options) { }
         public DbSet<Party> Parties { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<Item> Items { get; set; }
 
     }
 }
