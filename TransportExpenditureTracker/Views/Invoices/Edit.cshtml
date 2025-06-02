@@ -14,6 +14,21 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="InvoiceId" />
             <div class="form-group">
+                <label asp-for="FiscalYear" class="control-label"></label>
+                <select asp-for="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears">
+                    <option value="">-- Select Fiscal Year --</option>
+                </select>
+                <span asp-validation-for="FiscalYear" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="FiscalMonth" class="control-label"></label>
+                <select asp-for="FiscalMonth" class="form-control" asp-items="ViewBag.FiscalMonths">
+                    <option value="">-- Select Fiscal Month --</option>
+                </select>
+                <span asp-validation-for="FiscalMonth" class="text-danger"></span>
+            </div>
+            <div class="form-group">
                 <label asp-for="InvoiceNo" class="control-label"></label>
                 <input asp-for="InvoiceNo" class="form-control" />
                 <span asp-validation-for="InvoiceNo" class="text-danger"></span>
@@ -30,44 +45,37 @@
             </div>
             <div class="form-group">
                 <label asp-for="ItemId" class="control-label"></label>
-                <select asp-for="ItemId" class="form-control"  asp-items="ViewBag.ItemId"></select>
+                <select asp-for="ItemId" class="form-control" asp-items="ViewBag.ItemId"></select>
                 <span asp-validation-for="ItemId" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="Quantity" class="control-label"></label>
-                <input asp-for="Quantity" class="form-control" />
+                <input asp-for="Quantity" class="form-control" id="Quantity" />
                 <span asp-validation-for="Quantity" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="Rate" class="control-label"></label>
-                <input asp-for="Rate" class="form-control" />
+                <input asp-for="Rate" class="form-control" id="Rate" />
                 <span asp-validation-for="Rate" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="TaxableAmount" class="control-label"></label>
-                <input asp-for="TaxableAmount" class="form-control" />
+                <input asp-for="TaxableAmount" class="form-control" id="TaxableAmount" />
                 <span asp-validation-for="TaxableAmount" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="VatAmount" class="control-label"></label>
-                <input asp-for="VatAmount" class="form-control" />
+                <input asp-for="VatAmount" class="form-control" id="VatAmount" readonly />
                 <span asp-validation-for="VatAmount" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="TotalInvoiceAmount" class="control-label"></label>
-                <input asp-for="TotalInvoiceAmount" class="form-control" />
+                <input asp-for="TotalInvoiceAmount" class="form-control" id="TotalInvoiceAmount" readonly />
                 <span asp-validation-for="TotalInvoiceAmount" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedAt" class="control-label"></label>
-                <input asp-for="UpdatedAt" class="form-control" />
-                <span asp-validation-for="UpdatedAt" class="text-danger"></span>
-            </div>
+            <input asp-for="CreatedAt" type="hidden" />
+            <input asp-for="UpdatedAt" type="hidden" />
+
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />
             </div>
@@ -80,5 +88,38 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            function calculateInvoiceAmounts() {
+                const quantity = parseFloat($("#Quantity").val()) || 0;
+                const rate = parseFloat($("#Rate").val()) || 0;
+                const taxableInput = $("#TaxableAmount");
+                let taxableAmount = 0;
+
+                if (rate > 0) {
+                    taxableAmount = quantity * rate;
+                    taxableInput.val(taxableAmount.toFixed(2));
+                    taxableInput.prop('readonly', true);
+                } else {
+                    taxableAmount = parseFloat(taxableInput.val()) || 0;
+                    taxableInput.prop('readonly', false);
+                }
+
+                const vatAmount = taxableAmount * 0.13;
+                const totalAmount = taxableAmount + vatAmount;
+
+                $("#VatAmount").val(vatAmount.toFixed(2));
+                $("#TotalInvoiceAmount").val(totalAmount.toFixed(2));
+            }
+
+            $("#Quantity, #Rate, #TaxableAmount").on("input", calculateInvoiceAmounts);
+
+            // Initial calculation on page load (in case data is pre-filled)
+            calculateInvoiceAmounts();
+        });
+    </script>
 }

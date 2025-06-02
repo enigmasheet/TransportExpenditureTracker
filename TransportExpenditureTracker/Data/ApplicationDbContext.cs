@@ -11,6 +11,8 @@ namespace TransportExpenditureTracker.Data
         public DbSet<Party> Parties { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Item> Items { get; set; }
+        public DbSet<FiscalYear> FiscalYears { get; set; }
+
 
     }
 }

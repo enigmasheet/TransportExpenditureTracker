@@ -44,6 +44,10 @@ namespace TransportExpenditureTracker.Models
         [NotMapped]
         public decimal TotalAmount => TaxableAmount + VatAmount;
 
+        public string FiscalYear { get; set; }   // e.g. "2079/80"
+        public string FiscalMonth { get; set; }  // e.g. "Shrawan"
+
+
         [Column(TypeName = "decimal(18,2)")]
         [Range(0, double.MaxValue)]
         public decimal TotalInvoiceAmount { get; set; }  // optional, you can store or compute this

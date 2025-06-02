@@ -1,4 +1,4 @@
-@model TransportExpenditureTracker.Models.Invoice
+﻿@model TransportExpenditureTracker.Models.Invoice
 
 @{
     ViewData["Title"] = "Create";
@@ -13,6 +13,21 @@
         <form asp-action="Create">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
+                <label asp-for="FiscalYear" class="control-label"></label>
+                <select asp-for="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears">
+                    <option value="">-- Select Fiscal Year --</option>
+                </select>
+                <span asp-validation-for="FiscalYear" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="FiscalMonth" class="control-label"></label>
+                <select asp-for="FiscalMonth" class="form-control" asp-items="ViewBag.FiscalMonths">
+                    <option value="">-- Select Fiscal Month --</option>
+                </select>
+                <span asp-validation-for="FiscalMonth" class="text-danger"></span>
+            </div>
+            <div class="form-group">
                 <label asp-for="InvoiceNo" class="control-label"></label>
                 <input asp-for="InvoiceNo" class="form-control" />
                 <span asp-validation-for="InvoiceNo" class="text-danger"></span>
@@ -24,9 +39,12 @@
             </div>
             <div class="form-group">
                 <label asp-for="PartyId" class="control-label"></label>
-                <select asp-for="PartyId" class ="form-control" asp-items="ViewBag.PartyId"></select>
+                <select asp-for="PartyId" class="form-control" asp-items="ViewBag.PartyId" id="party-select">                    
+                    <option value="">-- Select Party --</option>
+                </select>
+                <span asp-validation-for="PartyId" class="text-danger"></span>
             </div>
-            <button class="btn btn-primary" onclick="openAddPartyModal()">Add Party</button>
+            <button type="button" class="btn btn-primary" onclick="openAddPartyModal()">Add Party</button>
             <div class="form-group">
                 <label asp-for="ItemId" class="control-label"></label>
                 <select asp-for="ItemId" class="form-control" asp-items="ViewBag.ItemId"></select>
@@ -57,15 +75,9 @@
                 <span asp-validation-for="TotalInvoiceAmount" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="CreatedAt" class="control-label"></label>
-                <input asp-for="CreatedAt" class="form-control" />
-                <span asp-validation-for="CreatedAt" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedAt" class="control-label"></label>
-                <input asp-for="UpdatedAt" class="form-control" />
-                <span asp-validation-for="UpdatedAt" class="text-danger"></span>
-            </div>
+                <input asp-for="CreatedAt" type="hidden" />
+                <input asp-for="UpdatedAt" type="hidden" />
+            </div
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
@@ -79,37 +91,47 @@
 
 @section Scripts {
     <script>
-        function calculateInvoiceAmounts() {
-            const quantity = parseFloat(document.getElementById("Quantity").value) || 0;
-            const rate = parseFloat(document.getElementById("Rate").value) || 0;
+        $(document).ready(function () {
+            // Initialize Select2 on the Party dropdown
+            $('#party-select').select2({
+                placeholder: "Search by VAT No or Party Name",
+                width: '100%',
+                allowClear: true
+            });
 
-            const taxableInput = document.getElementById("TaxableAmount");
-            let taxableAmount = 0;
+            // Function to calculate amounts
+            function calculateInvoiceAmounts() {
+                const quantity = parseFloat(document.getElementById("Quantity").value) || 0;
+                const rate = parseFloat(document.getElementById("Rate").value) || 0;
 
-            if (rate > 0) {
-                taxableAmount = quantity * rate;
-                taxableInput.value = taxableAmount.toFixed(2);
-                taxableInput.readOnly = true;
-            } else {
-                taxableAmount = parseFloat(taxableInput.value) || 0;
-                taxableInput.readOnly = false;
+                const taxableInput = document.getElementById("TaxableAmount");
+                let taxableAmount = 0;
+
+                if (rate > 0) {
+                    taxableAmount = quantity * rate;
+                    taxableInput.value = taxableAmount.toFixed(2);
+                    taxableInput.readOnly = true;
+                } else {
+                    taxableAmount = parseFloat(taxableInput.value) || 0;
+                    taxableInput.readOnly = false;
+                }
+
+                const vatAmount = taxableAmount * 0.13;
+                const totalAmount = taxableAmount + vatAmount;
+
+                document.getElementById("VatAmount").value = vatAmount.toFixed(2);
+                document.getElementById("TotalInvoiceAmount").value = totalAmount.toFixed(2);
             }
 
-            const vatAmount = taxableAmount * 0.13;
-            const totalAmount = taxableAmount + vatAmount;
-
-            document.getElementById("VatAmount").value = vatAmount.toFixed(2);
-            document.getElementById("TotalInvoiceAmount").value = totalAmount.toFixed(2);
-
-
-        }
-
-        document.getElementById("Quantity").addEventListener("input", calculateInvoiceAmounts);
-        document.getElementById("Rate").addEventListener("input", calculateInvoiceAmounts);
-        document.getElementById("TaxableAmount").addEventListener("input", calculateInvoiceAmounts);
+            // Attach event listeners
+            document.getElementById("Quantity").addEventListener("input", calculateInvoiceAmounts);
+            document.getElementById("Rate").addEventListener("input", calculateInvoiceAmounts);
+            document.getElementById("TaxableAmount").addEventListener("input", calculateInvoiceAmounts);
+        }); // <-- ✅ Properly closed document.ready function
     </script>
-    @{
+@{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 }
+
 

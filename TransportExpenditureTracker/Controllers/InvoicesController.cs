@@ -15,32 +15,52 @@ namespace TransportExpenditureTracker.Controllers
             _context = context;
         }
 
+        private void LoadFiscalYearAndMonths()
+        {
+            ViewBag.FiscalYears = new SelectList(_context.FiscalYears.OrderByDescending(f => f.Name), "Name", "Name");
+
+            var months = new[] {
+                "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush",
+                "Magh", "Falgun", "Chaitra", "Baisakh", "Jestha", "Ashadh"
+            };
+            ViewBag.FiscalMonths = new SelectList(months);
+        }
+
+        private void LoadDropdowns(int? selectedPartyId = null, int? selectedItemId = null)
+        {
+            var parties = _context.Parties
+                .Select(p => new
+                {
+                    p.PartyId,
+                    DisplayText = p.VatNo + " - " + p.PartyName
+                })
+                .ToList();
+
+            ViewData["PartyId"] = new SelectList(parties, "PartyId", "DisplayText", selectedPartyId);
+            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName", selectedItemId);
+        }
+
         // GET: Invoices
         public async Task<IActionResult> Index()
         {
             var applicationDbContext = _context.Invoices
                 .Include(i => i.Party)
-                .Include(i=> i.Item);
+                .Include(i => i.Item);
+
             return View(await applicationDbContext.ToListAsync());
         }
 
         // GET: Invoices/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var invoice = await _context.Invoices
                 .Include(i => i.Party)
                 .Include(i => i.Item)
-
                 .FirstOrDefaultAsync(m => m.InvoiceId == id);
-            if (invoice == null)
-            {
-                return NotFound();
-            }
+
+            if (invoice == null) return NotFound();
 
             return View(invoice);
         }
@@ -48,102 +68,91 @@ namespace TransportExpenditureTracker.Controllers
         // GET: Invoices/Create
         public IActionResult Create()
         {
-            ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName");
-            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName");
-
+            LoadDropdowns();
+            LoadFiscalYearAndMonths();
             return View();
         }
 
         // POST: Invoices/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("InvoiceId,InvoiceNo,Miti,PartyId,Item,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,CreatedAt,UpdatedAt")] Invoice invoice)
+        public async Task<IActionResult> Create([Bind("InvoiceId,InvoiceNo,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice invoice)
         {
             if (ModelState.IsValid)
             {
+                invoice.CreatedAt = DateTime.UtcNow;
+                invoice.UpdatedAt = DateTime.UtcNow;
+
                 _context.Add(invoice);
                 await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName", invoice.PartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "PartyName", invoice.ItemId);
+
+            LoadDropdowns(invoice.PartyId, invoice.ItemId);
+            LoadFiscalYearAndMonths();
             return View(invoice);
         }
 
         // GET: Invoices/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var invoice = await _context.Invoices.FindAsync(id);
-            if (invoice == null)
-            {
-                return NotFound();
-            }
-            ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName", invoice.PartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "PartyName", invoice.ItemId);
+            if (invoice == null) return NotFound();
+
+            LoadDropdowns(invoice.PartyId, invoice.ItemId);
+            LoadFiscalYearAndMonths();
 
             return View(invoice);
         }
 
         // POST: Invoices/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("InvoiceId,InvoiceNo,Miti,PartyId,Item,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,CreatedAt,UpdatedAt")] Invoice invoice)
+        public async Task<IActionResult> Edit(int id, [Bind("InvoiceId,InvoiceNo,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice updatedInvoice)
         {
-            if (id != invoice.InvoiceId)
-            {
-                return NotFound();
-            }
+            if (id != updatedInvoice.InvoiceId) return NotFound();
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(invoice);
+                    var existingInvoice = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.InvoiceId == id);
+                    if (existingInvoice == null) return NotFound();
+
+                    // Preserve created date, update updated date
+                    updatedInvoice.CreatedAt = existingInvoice.CreatedAt;
+                    updatedInvoice.UpdatedAt = DateTime.UtcNow;
+
+                    _context.Update(updatedInvoice);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!InvoiceExists(invoice.InvoiceId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    if (!InvoiceExists(updatedInvoice.InvoiceId)) return NotFound();
+                    else throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["PartyId"] = new SelectList(_context.Parties, "PartyId", "PartyName", invoice.PartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName", invoice.ItemId);
 
-            return View(invoice);
+            LoadDropdowns(updatedInvoice.PartyId, updatedInvoice.ItemId);
+            LoadFiscalYearAndMonths();
+            return View(updatedInvoice);
         }
 
         // GET: Invoices/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var invoice = await _context.Invoices
                 .Include(i => i.Party)
+                .Include(i => i.Item)
                 .FirstOrDefaultAsync(m => m.InvoiceId == id);
-            if (invoice == null)
-            {
-                return NotFound();
-            }
+
+            if (invoice == null) return NotFound();
 
             return View(invoice);
         }
@@ -157,9 +166,8 @@ namespace TransportExpenditureTracker.Controllers
             if (invoice != null)
             {
                 _context.Invoices.Remove(invoice);
+                await _context.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
