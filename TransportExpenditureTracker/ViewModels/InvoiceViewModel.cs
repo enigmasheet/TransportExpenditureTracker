@@ -15,16 +15,19 @@ namespace TransportExpenditureTracker.ViewModels
         [DataType(DataType.Date)]
         public DateTime Miti { get; set; }
 
+        [Required]
+        [Display(Name = "Party")]
         public int PartyId { get; set; }
 
         [Required]
-        [MaxLength(200)]
-        public string Item { get; set; } = null!;
+        [Display(Name = "Item")]
+        public int ItemId { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
         public int Quantity { get; set; }
 
+        [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Rate must be positive")]
         public decimal Rate { get; set; }
 
@@ -34,8 +37,18 @@ namespace TransportExpenditureTracker.ViewModels
         [Range(0, double.MaxValue)]
         public decimal VatAmount { get; set; }
 
-        // You may or may not want this on the view model,
-        // since it is computed or stored separately.
+        public decimal TotalAmount => TaxableAmount + VatAmount;
+
+        [Display(Name = "Fiscal Year")]
+        public string? FiscalYear { get; set; }
+
+        [Display(Name = "Fiscal Month")]
+        public string? FiscalMonth { get; set; }
+
         public decimal TotalInvoiceAmount { get; set; }
+
+        // Optional: For dropdowns (e.g., SelectList in View)
+        public string? PartyName { get; set; }
+        public string? ItemName { get; set; }
     }
 }

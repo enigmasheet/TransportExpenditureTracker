@@ -1,0 +1,40 @@
+﻿@model TransportExpenditureTracker.Models.Invoice
+
+<tr>
+    <td>
+        <input asp-for="InvoiceNo" class="form-control" />
+        <span asp-validation-for="InvoiceNo" class="text-danger"></span>
+    </td>
+    <td>
+        <input asp-for="Miti" class="form-control" />
+        <span asp-validation-for="Miti" class="text-danger"></span>
+    </td>
+    <td>
+        <select asp-for="PartyId" asp-items="@(ViewData["PartyId"] as IEnumerable<SelectListItem>)" class="form-control party-select"></select>
+        <span asp-validation-for="PartyId" class="text-danger"></span>
+    </td>
+    <td>
+        <select asp-for="ItemId" asp-items="@(ViewData["ItemId"] as IEnumerable<SelectListItem>)" class="form-control"></select>
+        <span asp-validation-for="ItemId" class="text-danger"></span>
+    </td>
+    <td>
+        <input asp-for="Quantity" class="form-control quantity" />
+        <span asp-validation-for="Quantity" class="text-danger"></span>
+    </td>
+    <td>
+        <input asp-for="Rate" class="form-control rate" />
+    </td>
+    <td>
+        <input asp-for="TaxableAmount" class="form-control taxable-amount" readonly />
+    </td>
+    <td>
+        <input asp-for="VatAmount" class="form-control vat-amount" readonly />
+    </td>
+    <td>
+        <input asp-for="TotalInvoiceAmount" class="form-control total-amount" readonly />
+    </td>
+    <td>
+        <button type="button" class="btn btn-danger btn-sm remove-row">Remove</button>
+    </td>
+   
+</tr>

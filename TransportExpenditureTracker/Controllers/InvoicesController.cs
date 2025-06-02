@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Models;
+using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Controllers
 {
@@ -174,6 +175,49 @@ namespace TransportExpenditureTracker.Controllers
         private bool InvoiceExists(int id)
         {
             return _context.Invoices.Any(e => e.InvoiceId == id);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateMultiple(InvoiceMonthly model)
+        {
+            if (model.Invoices == null || !model.Invoices.Any())
+            {
+                ModelState.AddModelError("", "Please add at least one invoice.");
+                LoadDropdowns();
+                LoadFiscalYearAndMonths();
+                return View("CreateMultiple",model);
+            }
+
+        
+            if (ModelState.IsValid)
+            {
+                foreach (var invoice in model.Invoices)
+                {
+                    invoice.FiscalYear = model.FiscalYear;
+                    invoice.FiscalMonth = model.FiscalMonth;
+                    invoice.CreatedAt = DateTime.UtcNow;
+                    invoice.UpdatedAt = DateTime.UtcNow;
+                }
+                _context.Invoices.AddRange(model.Invoices);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+         
+
+            LoadDropdowns();
+            LoadFiscalYearAndMonths();
+            return View("CreateMultiple", model);
+        }
+        public IActionResult CreateMultiple()
+        {
+            LoadDropdowns();
+            LoadFiscalYearAndMonths();
+            var model = new InvoiceMonthly
+            {
+                Invoices = new List<Invoice> { new Invoice() }
+            };
+            return View(model);
         }
     }
 }

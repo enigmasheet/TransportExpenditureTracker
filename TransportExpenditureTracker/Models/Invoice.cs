@@ -31,7 +31,7 @@ namespace TransportExpenditureTracker.Models
 
         [Column(TypeName = "decimal(18,2)")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Rate must be positive")]
-        public decimal Rate { get; set; }
+        public decimal? Rate { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         [Range(0, double.MaxValue)]
@@ -44,16 +44,16 @@ namespace TransportExpenditureTracker.Models
         [NotMapped]
         public decimal TotalAmount => TaxableAmount + VatAmount;
 
-        public string FiscalYear { get; set; }   // e.g. "2079/80"
-        public string FiscalMonth { get; set; }  // e.g. "Shrawan"
+        public string? FiscalYear { get; set; } 
 
+        public string? FiscalMonth { get; set; } 
 
         [Column(TypeName = "decimal(18,2)")]
         [Range(0, double.MaxValue)]
         public decimal TotalInvoiceAmount { get; set; }  // optional, you can store or compute this
 
         public DateTime CreatedAt { get; set; } 
-        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
 
         [ValidateNever]
         public Party Party { get; set; } = null!;

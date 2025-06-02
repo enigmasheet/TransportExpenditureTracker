@@ -1,0 +1,205 @@
+﻿@model TransportExpenditureTracker.ViewModels.InvoiceMonthly
+
+
+<form asp-action="CreateMultiple" method="post">
+    <div class="form-group">
+        <label>Fiscal Year</label>
+        <select asp-for="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears" required>
+            <option value="">-- Select Fiscal Year --</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Fiscal Month</label>
+        <select asp-for="FiscalMonth" class="form-control" asp-items="ViewBag.FiscalMonths" required>
+            <option value="">-- Select Fiscal Month --</option>
+        </select>
+    </div>
+
+    <table class="table" id="invoices-table">
+        <thead>
+            <tr>
+                <th>Invoice No</th>
+                <th>Miti</th>
+                <th>Party</th>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Rate</th>
+                <th>Taxable Amount</th>
+                <th>Vat Amount</th>
+                <th>Total Amount</th>
+                <th>
+                    <button type="button" id="add-row" class="btn btn-success btn-sm">Add Row</button>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Invoices.Count; i++)
+            {
+                @Html.EditorFor(m => m.Invoices[i])
+                
+            }
+        </tbody>
+    </table>
+
+    <select id="party-options-template" style="display:none;">
+        @foreach (var party in ViewData["PartyId"] as IEnumerable<SelectListItem>)
+        {
+            <option value="@party.Value">@party.Text</option>
+        }
+    </select>
+
+    <select id="item-options-template" style="display:none;">
+        @foreach (var item in ViewData["ItemId"] as IEnumerable<SelectListItem>)
+        {
+            <option value="@item.Value">@item.Text</option>
+        }
+    </select>
+
+
+    <button type="submit" class="btn btn-primary">Save All Invoices</button>
+</form>
+
+@section Scripts {
+    <script>
+        function initSelect2() {
+            document.querySelectorAll("select.party-select").forEach(function (el) {
+                if (!$(el).hasClass("select2-hidden-accessible")) {
+                    $(el).select2({
+                        placeholder: "-- Select Party --",
+                        allowClear: true,
+                        width: '100%'
+                    });
+                }
+            });
+        }
+
+        function recalcAmounts(row) {
+            const qty = parseFloat(row.querySelector(".quantity").value) || 0;
+            const rateInput = row.querySelector(".rate");
+            const taxableInput = row.querySelector(".taxable-amount");
+            const vatInput = row.querySelector(".vat-amount");
+            const totalInput = row.querySelector(".total-amount");
+
+            const rate = parseFloat(rateInput.value);
+
+            if (!isNaN(rate) && rate > 0) {
+                const taxable = qty * rate;
+                taxableInput.value = taxable.toFixed(2);
+                taxableInput.readOnly = true;
+
+                const vat = taxable * 0.13;
+                vatInput.value = vat.toFixed(2);
+                totalInput.value = (taxable + vat).toFixed(2);
+            } else {
+                taxableInput.readOnly = false;
+
+                const taxable = parseFloat(taxableInput.value) || 0;
+                const vat = taxable * 0.13;
+                vatInput.value = vat.toFixed(2);
+                totalInput.value = (taxable + vat).toFixed(2);
+            }
+        }
+
+        document.querySelector("#invoices-table").addEventListener("input", function (e) {
+            if (e.target.classList.contains("quantity")
+                || e.target.classList.contains("rate")
+                || e.target.classList.contains("taxable-amount")) {
+                const row = e.target.closest("tr");
+                recalcAmounts(row);
+            }
+        });
+
+        document.getElementById("add-row").addEventListener("click", function () {
+            const tbody = document.querySelector("#invoices-table tbody");
+            const rowCount = tbody.rows.length;
+
+            // Destroy select2 instances on the first row BEFORE cloning
+            const firstRowPartySelect = tbody.rows[0].querySelector("select.party-select");
+            if ($(firstRowPartySelect).hasClass("select2-hidden-accessible")) {
+                $(firstRowPartySelect).select2('destroy');
+            }
+
+            const firstRowItemSelect = tbody.rows[0].querySelector("select[name*='ItemId']");
+            if ($(firstRowItemSelect).hasClass("select2-hidden-accessible")) {
+                $(firstRowItemSelect).select2('destroy');
+            }
+
+            const newRow = tbody.rows[0].cloneNode(true);
+
+            // Clear inputs/selects & update their names/ids
+            Array.from(newRow.querySelectorAll("input, select")).forEach(el => {
+                if (el.type === "checkbox" || el.type === "radio") {
+                    el.checked = false;
+                } else if (el.classList.contains("taxable-amount") || el.classList.contains("vat-amount") || el.classList.contains("total-amount")) {
+                    el.value = "";
+                    if (el.classList.contains("taxable-amount")) el.readOnly = false;
+                } else {
+                    el.value = "";
+                }
+
+                if (el.name) el.name = el.name.replace(/\d+/, rowCount);
+                if (el.id) el.id = el.id.replace(/\d+/, rowCount);
+            });
+
+                   const partySelect = newRow.querySelector("select.party-select");
+        if ($(partySelect).hasClass("select2-hidden-accessible")) {
+            $(partySelect).select2('destroy');
+        }
+        const partyOptions = document.getElementById("party-options-template").innerHTML;
+        partySelect.innerHTML = partyOptions;
+
+        const itemSelect = newRow.querySelector("select[name*='ItemId']");
+        const itemOptions = document.getElementById("item-options-template").innerHTML;
+        itemSelect.innerHTML = itemOptions;
+
+            // Set FiscalYear and FiscalMonth hidden inputs
+            const fiscalYearInput = newRow.querySelector("input[name*='FiscalYear']");
+            if (fiscalYearInput) {
+                fiscalYearInput.value = document.getElementById("FiscalYear").value;
+                if (fiscalYearInput.name) fiscalYearInput.name = fiscalYearInput.name.replace(/\d+/, rowCount);
+                if (fiscalYearInput.id) fiscalYearInput.id = fiscalYearInput.id.replace(/\d+/, rowCount);
+            }
+
+            const fiscalMonthInput = newRow.querySelector("input[name*='FiscalMonth']");
+            if (fiscalMonthInput) {
+                fiscalMonthInput.value = document.getElementById("FiscalMonth").value;
+                if (fiscalMonthInput.name) fiscalMonthInput.name = fiscalMonthInput.name.replace(/\d+/, rowCount);
+                if (fiscalMonthInput.id) fiscalMonthInput.id = fiscalMonthInput.id.replace(/\d+/, rowCount);
+            }
+
+            tbody.appendChild(newRow);
+
+            // Re-init select2 on new row only (or on all)
+            initSelect2();
+        });
+
+        document.querySelector("#invoices-table").addEventListener("click", function (e) {
+            if (e.target.classList.contains("remove-row")) {
+                const tbody = document.querySelector("#invoices-table tbody");
+                if (tbody.rows.length > 1) {
+                    e.target.closest("tr").remove();
+
+                    // Re-index names, ids, and labels after removal
+                    Array.from(tbody.rows).forEach((row, index) => {
+                        Array.from(row.querySelectorAll("input, select, label")).forEach(el => {
+                            if (el.name) el.name = el.name.replace(/\d+/, index);
+                            if (el.id) el.id = el.id.replace(/\d+/, index);
+                            if (el.htmlFor) el.htmlFor = el.htmlFor.replace(/\d+/, index);
+                        });
+                    });
+                } else {
+                    alert("At least one invoice row is required.");
+                }
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            initSelect2();
+        });
+    </script>
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
