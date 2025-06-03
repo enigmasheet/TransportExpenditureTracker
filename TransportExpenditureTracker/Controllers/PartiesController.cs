@@ -1,154 +1,119 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using TransportExpenditureTracker.Data;
-using TransportExpenditureTracker.Models;
+using TransportExpenditureTracker.Services.Interfaces;
+using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Controllers
 {
     public class PartiesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IPartyService _partyService;
 
-        public PartiesController(ApplicationDbContext context)
+        public PartiesController(IPartyService partyService)
         {
-            _context = context;
+            _partyService = partyService;
         }
 
         // GET: Parties
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchTerm)
         {
-            return View(await _context.Parties.ToListAsync());
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var allParties = await _partyService.GetAllPartiesAsync();
+                return View(allParties);
+            }
+            else
+            {
+                var filteredParties = await _partyService.SearchPartiesAsync(searchTerm);
+                return View(filteredParties);
+            }
         }
 
         // GET: Parties/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var party = await _context.Parties
-                .FirstOrDefaultAsync(m => m.PartyId == id);
+            var party = await _partyService.GetPartyByIdAsync(id.Value);
             if (party == null)
-            {
                 return NotFound();
-            }
 
             return View(party);
         }
+
         public IActionResult GetAddPartyPartial()
         {
-            return PartialView("_AddPartyPartial", new Party());
+            return PartialView("_AddPartyPartial", new PartyViewModel());
         }
+
         // GET: Parties/Create
         public IActionResult Create()
         {
-            return View();
+            return View(new PartyViewModel());
         }
 
         // POST: Parties/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create([Bind("PartyId,PartyName,Location,VatNo")] Party party)
+        public async Task<IActionResult> Create(PartyViewModel partyViewModel)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(party);
-                _context.SaveChanges();
-
-                // If AJAX, return success JSON
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
-                    return Json(new { success = true, message = "Party created successfully." });
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                    return Json(new { success = false, errors });
                 }
-
-                return RedirectToAction(nameof(Index));
+                return View(partyViewModel);
             }
 
-            // If AJAX, return validation errors as JSON
+            await _partyService.AddPartyAsync(partyViewModel);
+
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-                return Json(new { success = false, errors });
+                return Json(new { success = true, message = "Party created successfully." });
             }
 
-            return View(party);
+            return RedirectToAction(nameof(Index));
         }
-
 
         // GET: Parties/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var party = await _context.Parties.FindAsync(id);
+            var party = await _partyService.GetPartyByIdAsync(id.Value);
             if (party == null)
-            {
                 return NotFound();
-            }
+
             return View(party);
         }
 
         // POST: Parties/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("PartyId,PartyName,Location,VatNo")] Party party)
+        public async Task<IActionResult> Edit(int id, PartyViewModel partyViewModel)
         {
-            if (id != party.PartyId)
-            {
+            if (id != partyViewModel.PartyId)
                 return NotFound();
-            }
 
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(party);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PartyExists(party.PartyId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(party);
+            if (!ModelState.IsValid)
+                return View(partyViewModel);
+
+            await _partyService.UpdatePartyAsync(partyViewModel);
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Parties/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var party = await _context.Parties
-                .FirstOrDefaultAsync(m => m.PartyId == id);
+            var party = await _partyService.GetPartyByIdAsync(id.Value);
             if (party == null)
-            {
                 return NotFound();
-            }
 
             return View(party);
         }
@@ -158,19 +123,15 @@ namespace TransportExpenditureTracker.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var party = await _context.Parties.FindAsync(id);
-            if (party != null)
-            {
-                _context.Parties.Remove(party);
-            }
-
-            await _context.SaveChangesAsync();
+            await _partyService.DeletePartyAsync(id);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool PartyExists(int id)
+        // Optional: Search endpoint
+        public async Task<IActionResult> Search(string searchTerm)
         {
-            return _context.Parties.Any(e => e.PartyId == id);
+            var results = await _partyService.SearchPartiesAsync(searchTerm);
+            return View("Index", results);
         }
     }
 }

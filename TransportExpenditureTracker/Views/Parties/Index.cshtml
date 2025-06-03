@@ -1,49 +1,55 @@
-@model IEnumerable<TransportExpenditureTracker.Models.Party>
+@model IEnumerable<TransportExpenditureTracker.ViewModels.PartyViewModel>
 
 @{
     ViewData["Title"] = "Party List";
+    var sno = 1;  // Initialize the serial number here
 }
 
-<h1>Index</h1>
+<h1>Party List</h1>
 
-<p>
-  
-        <button class="btn btn-primary" onclick="openAddPartyModal()">Add Party</button>
-  
-</p>
-<table class="table">
-    <thead>
+@using (Html.BeginForm("Search", "Parties", FormMethod.Get))
+{
+    <div class="input-group mb-3">
+        <input type="text"
+               name="searchTerm"
+               class="form-control"
+               placeholder="Search Party..."
+               value="@(ViewContext.HttpContext.Request.Query["searchTerm"].ToString())" />
+        <button class="btn btn-outline-secondary" type="submit">Search</button>
+    </div>
+}
+
+<table class="table table-bordered table-hover">
+    <thead class="table-light">
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.PartyName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Location)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.VatNo)
-            </th>
-            <th></th>
+            <th>S.No</th>
+            <th>@Html.DisplayNameFor(model => model.PartyName)</th>
+            <th>@Html.DisplayNameFor(model => model.Location)</th>
+            <th>@Html.DisplayNameFor(model => model.VatNo)</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.PartyName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Location)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.VatNo)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.PartyId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.PartyId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.PartyId">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@sno</td>
+                <td>@Html.DisplayFor(modelItem => item.PartyName)</td>
+                <td>@Html.DisplayFor(modelItem => item.Location)</td>
+                <td>@Html.DisplayFor(modelItem => item.VatNo)</td>
+                <td class="d-flex gap-2">
+                    <a asp-action="Edit" asp-route-id="@item.PartyId" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" title="Edit">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <a asp-action="Details" asp-route-id="@item.PartyId" class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="Details">
+                        <i class="bi bi-info-circle"></i>
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@item.PartyId" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            sno++; 
+        }
     </tbody>
 </table>

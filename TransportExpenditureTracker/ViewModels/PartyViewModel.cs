@@ -14,6 +14,6 @@ namespace TransportExpenditureTracker.ViewModels
         public string? Location { get; set; }
 
         [Display(Name = "VAT Number")]
-        public string? VatNo { get; set; }
+        public  string? VatNo { get; set; }
     }
 }

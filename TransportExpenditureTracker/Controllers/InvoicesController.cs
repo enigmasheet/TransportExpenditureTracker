@@ -81,8 +81,8 @@ namespace TransportExpenditureTracker.Controllers
         {
             if (ModelState.IsValid)
             {
-                invoice.CreatedAt = DateTime.UtcNow;
-                invoice.UpdatedAt = DateTime.UtcNow;
+                invoice.CreatedAt = DateTime.Now;
+                invoice.UpdatedAt = DateTime.Now;
 
                 _context.Add(invoice);
                 await _context.SaveChangesAsync();
@@ -125,7 +125,7 @@ namespace TransportExpenditureTracker.Controllers
 
                     // Preserve created date, update updated date
                     updatedInvoice.CreatedAt = existingInvoice.CreatedAt;
-                    updatedInvoice.UpdatedAt = DateTime.UtcNow;
+                    updatedInvoice.UpdatedAt = DateTime.Now;
 
                     _context.Update(updatedInvoice);
                     await _context.SaveChangesAsync();
@@ -196,8 +196,8 @@ namespace TransportExpenditureTracker.Controllers
                 {
                     invoice.FiscalYear = model.FiscalYear;
                     invoice.FiscalMonth = model.FiscalMonth;
-                    invoice.CreatedAt = DateTime.UtcNow;
-                    invoice.UpdatedAt = DateTime.UtcNow;
+                    invoice.CreatedAt = DateTime.Now;
+                    invoice.UpdatedAt = DateTime.Now;
                 }
                 _context.Invoices.AddRange(model.Invoices);
                 await _context.SaveChangesAsync();

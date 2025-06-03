@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Data.Seed;
 using TransportExpenditureTracker.Mappings;
+using TransportExpenditureTracker.Services;
+using TransportExpenditureTracker.Services.Interfaces;
 
 namespace TransportExpenditureTracker
 {
@@ -29,6 +31,7 @@ namespace TransportExpenditureTracker
             .AddEntityFrameworkStores<ApplicationDbContext>();
            
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+            builder.Services.AddScoped<IPartyService, PartyService>();
 
             builder.Services.AddControllersWithViews();
 

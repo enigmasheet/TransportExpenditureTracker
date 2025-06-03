@@ -24,11 +24,20 @@
             <td>
                 @Html.DisplayFor(modelItem => item.ItemName)
             </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ItemId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.ItemId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.ItemId">Delete</a>
-            </td>
+                <td class="d-flex gap-2">
+                    <a asp-action="Edit" asp-route-id="@item.ItemId" class="btn btn-sm btn-primary"
+                       data-bs-toggle="tooltip" title="Edit">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <a asp-action="Details" asp-route-id="@item.ItemId" class="btn btn-sm btn-info"
+                       data-bs-toggle="tooltip" title="Details">
+                        <i class="bi bi-info-circle"></i>
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@item.ItemId" class="btn btn-sm btn-danger"
+                       data-bs-toggle="tooltip" title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>
         </tr>
 }
     </tbody>
