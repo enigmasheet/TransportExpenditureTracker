@@ -12,7 +12,7 @@ namespace TransportExpenditureTracker.Services
         {
             using (var memoryStream = new MemoryStream())
             {
-                var document = new Document(PageSize.A4, 20, 20, 40, 40);
+                var document = new Document(PageSize.A4, 20, 20, 20, 20);
                 var writer = PdfWriter.GetInstance(document, memoryStream);
 
                 writer.PageEvent = new PdfFooter();
