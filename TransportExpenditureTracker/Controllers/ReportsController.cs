@@ -14,15 +14,15 @@ namespace TransportExpenditureTracker.Controllers
     {
         private readonly IReportService _reportService;
         private readonly IPartyService _partyService;
+        private readonly IPdfGenerator _pdfGenerator; 
         private readonly ApplicationDbContext _context;
 
-        public ReportsController(IReportService reportService, IPartyService partyService, ApplicationDbContext context)
+        public ReportsController(IReportService reportService, IPartyService partyService, ApplicationDbContext context, IPdfGenerator pdfGenerator)
         {
             _reportService = reportService;
             _partyService = partyService;
             _context = context;
-
-
+            _pdfGenerator = pdfGenerator;
         }
         private void LoadFiscalYearAndMonths()
         {
@@ -70,6 +70,13 @@ namespace TransportExpenditureTracker.Controllers
             };
 
             return View(model);
+        }
+        [HttpGet]
+        public async Task<IActionResult> ExportVatInvoicePdf(ReportFilterViewModel filters)
+        {
+            var report = await _reportService.GetVatInvoiceReportAsync(filters);
+            var pdf = _pdfGenerator.GenerateVatInvoiceReport(report);
+            return File(pdf, "application/pdf", $"VAT_Report_{DateTime.Now:yyyyMMdd}.pdf");
         }
 
 

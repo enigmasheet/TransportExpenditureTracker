@@ -33,6 +33,7 @@ namespace TransportExpenditureTracker
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
             builder.Services.AddScoped<IPartyService, PartyService>();
             builder.Services.AddScoped<IReportService, ReportService>();
+            builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
 
             builder.Services.AddControllersWithViews();
 
@@ -58,7 +59,6 @@ namespace TransportExpenditureTracker
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
             app.UseRouting();
 
             app.UseAuthentication(); // Needed for login

@@ -55,6 +55,16 @@
         <a asp-action="VatInvoiceReport" class="btn btn-secondary">Reset</a>
     </div>
 </form>
+<form asp-controller="Reports" asp-action="ExportVatInvoicePdf" method="get">
+    <input type="hidden" name="FiscalYear" value="@Model.Filters.FiscalYear" />
+    <input type="hidden" name="FiscalMonth" value="@Model.Filters.FiscalMonth" />
+    <input type="hidden" name="FromDate" value="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" />
+    <input type="hidden" name="ToDate" value="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")" />
+    <input type="hidden" name="PartyId" value="@Model.Filters.PartyId" />
+    <input type="hidden" name="ItemId" value="@Model.Filters.ItemId" />
+    <input type="hidden" name="InvoiceNo" value="@Model.Filters.InvoiceNo" />
+    <button type="submit" class="btn btn-primary">Download PDF</button>
+</form>
 
 <table class="table table-bordered table-striped">
     <thead class="table-dark">
@@ -101,6 +111,19 @@
         </tr>
     </tfoot>
 </table>
+<nav>
+    <ul class="pagination">
+        <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+            <a class="page-link" href="?pageNumber=@(Model.PageNumber - 1)&pageSize=@Model.PageSize">Previous</a>
+        </li>
+        <li class="page-item">
+            <span class="page-link">Page @Model.PageNumber</span>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?pageNumber=@(Model.PageNumber + 1)&pageSize=@Model.PageSize">Next</a>
+        </li>
+    </ul>
+</nav>
 
 @section Scripts {
     <script>

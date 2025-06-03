@@ -44,16 +44,20 @@ namespace TransportExpenditureTracker.Services
             if (filters.ItemId.HasValue)  // Changed from ItemName to ItemId filtering
                 query = query.Where(i => i.ItemId == filters.ItemId.Value);
 
-            var invoices = await query.OrderBy(i => i.Miti).ToListAsync();
+            var pagedInvoices = await query
+                .OrderBy(i => i.Miti)
+                .Skip((filters.PageNumber - 1) * filters.PageSize)
+                .Take(filters.PageSize)
+                .ToListAsync();
 
-            var result = invoices.Select((invoice, index) => new ReportRowViewModel
+            var result = pagedInvoices.Select((invoice, index) => new ReportRowViewModel
             {
-                Sno = index + 1,
+                Sno = (filters.PageNumber - 1) * filters.PageSize + index + 1,
                 Miti = invoice.Miti.ToString("yyyy-MM-dd"),
                 InvoiceNo = invoice.InvoiceNo,
                 PartyName = invoice.Party.PartyName,
-                Location = invoice.Party.Location ?? "",
-                VatNo = invoice.Party.VatNo ?? "",
+                Location = invoice.Party.Location ?? string.Empty,
+                VatNo = invoice.Party.VatNo ?? string.Empty,
                 ItemName = invoice.Item.ItemName,
                 Quantity = invoice.Quantity,
                 Rate = invoice.Rate ?? 0,
