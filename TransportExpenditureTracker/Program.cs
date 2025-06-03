@@ -32,6 +32,7 @@ namespace TransportExpenditureTracker
            
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
             builder.Services.AddScoped<IPartyService, PartyService>();
+            builder.Services.AddScoped<IReportService, ReportService>();
 
             builder.Services.AddControllersWithViews();
 

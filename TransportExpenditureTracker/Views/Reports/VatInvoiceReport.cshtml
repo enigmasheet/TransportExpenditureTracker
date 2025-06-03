@@ -1,0 +1,126 @@
+﻿@model TransportExpenditureTracker.ViewModels.ReportPageViewModel
+
+@{
+    ViewData["Title"] = "VAT Invoice Report";
+    var totalTaxable = Model.Reports.Sum(x => x.TaxableAmount);
+    var totalVat = Model.Reports.Sum(x => x.VatAmount);
+    var totalAmount = Model.Reports.Sum(x => x.TotalAmount);
+}
+
+<h2 class="text-center mb-4">VAT Invoice Report</h2>
+
+<form method="get" asp-action="VatInvoiceReport" class="mb-4">
+    <div class="row g-3">
+        <div class="col-md-2">
+            <label asp-for="Filters.FromDate" class="form-label"></label>
+            <input asp-for="Filters.FromDate" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label asp-for="Filters.ToDate" class="form-label"></label>
+            <input asp-for="Filters.ToDate" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label asp-for="Filters.FiscalYear" class="form-label"></label>
+            <select asp-for="Filters.FiscalYear" asp-items="ViewBag.FiscalYears" class="form-select">
+                <option value="">-- Select Fiscal Year --</option>
+            </select>
+        </div>
+        <div class="col-md-2" id="fiscalMonthDiv" style="display:none;">
+            <label asp-for="Filters.FiscalMonth" class="form-label">Fiscal Month</label>
+            <select asp-for="Filters.FiscalMonth" asp-items="ViewBag.FiscalMonths" class="form-select" disabled>
+                <option value="">-- Select Fiscal Month --</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="Filters.InvoiceNo" class="form-label"></label>
+            <input asp-for="Filters.InvoiceNo" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label asp-for="Filters.ItemId" class="form-label">Item</label>
+            <select asp-for="Filters.ItemId" asp-items="@(ViewData["ItemId"] as SelectList)" class="form-select">
+                <option value="">-- Select Item --</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="Filters.PartyId" class="form-label">Party</label>
+            <select asp-for="Filters.PartyId" asp-items="@(ViewData["PartyId"] as SelectList)" class="form-select">
+                <option value="">-- Select Party --</option>
+            </select>
+        </div>
+
+    </div>
+
+    <div class="mt-3 text-end">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-action="VatInvoiceReport" class="btn btn-secondary">Reset</a>
+    </div>
+</form>
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Sno</th>
+            <th>Miti</th>
+            <th>Invoice No</th>
+            <th>Party</th>
+            <th>Location</th>
+            <th>Vat No</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Rate</th>
+            <th>Taxable Amount</th>
+            <th>VAT Amount</th>
+            <th>Total Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in Model.Reports)
+        {
+            <tr>
+                <td>@row.Sno</td>
+                <td>@row.Miti</td>
+                <td>@row.InvoiceNo</td>
+                <td>@row.PartyName</td>
+                <td>@row.Location</td>
+                <td>@row.VatNo</td>
+                <td>@row.ItemName</td>
+                <td>@row.Quantity</td>
+                <td>@row.Rate.ToString("N2")</td>
+                <td>@row.TaxableAmount.ToString("N2")</td>
+                <td>@row.VatAmount.ToString("N2")</td>
+                <td>@row.TotalAmount.ToString("N2")</td>
+            </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr class="fw-bold">
+            <td colspan="9" class="text-end">Total</td>
+            <td>@totalTaxable.ToString("N2")</td>
+            <td>@totalVat.ToString("N2")</td>
+            <td>@totalAmount.ToString("N2")</td>
+        </tr>
+    </tfoot>
+</table>
+
+@section Scripts {
+    <script>
+        function toggleFiscalMonth() {
+            var fiscalYear = document.getElementById("Filters_FiscalYear").value;
+            var monthSelect = document.getElementById("Filters_FiscalMonth");
+            var monthDiv = document.getElementById("fiscalMonthDiv");
+            if (fiscalYear) {
+                monthDiv.style.display = "block";
+                monthSelect.disabled = false;
+            } else {
+                monthDiv.style.display = "none";
+                monthSelect.value = "";
+                monthSelect.disabled = true;
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            toggleFiscalMonth();
+            document.getElementById("Filters_FiscalYear").addEventListener("change", toggleFiscalMonth);
+        });
+    </script>
+}

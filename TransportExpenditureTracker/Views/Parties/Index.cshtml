@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = "Party List";
-    var sno = 1;  // Initialize the serial number here
+    var sno = 1;
 }
 
 <h1>Party List</h1>
@@ -18,6 +18,12 @@
         <button class="btn btn-outline-secondary" type="submit">Search</button>
     </div>
 }
+
+<p>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createPartyModal">
+        <i class="bi bi-plus-lg"></i> Create New Party
+    </button>
+</p>
 
 <table class="table table-bordered table-hover">
     <thead class="table-light">
@@ -49,7 +55,100 @@
                     </a>
                 </td>
             </tr>
-            sno++; 
+            sno++;
         }
     </tbody>
 </table>
+
+<div class="modal fade" id="createPartyModal" tabindex="-1" aria-labelledby="createPartyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createPartyModalLabel">Create New Party</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="createPartyFormContainer">
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading form...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const createPartyModal = document.getElementById('createPartyModal');
+
+        createPartyModal.addEventListener('show.bs.modal', () => {
+            const container = document.getElementById('createPartyFormContainer');
+            container.innerHTML = `
+                <div class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading form...</p>
+                </div>`;
+
+            fetch('@Url.Action("GetAddPartyPartial", "Parties")')
+                .then(response => response.text())
+                .then(html => {
+                    container.innerHTML = html;
+                    $.validator.unobtrusive.parse(container);
+                    setupFormSubmit();
+                })
+                .catch(() => {
+                    container.innerHTML = '<div class="alert alert-danger">Failed to load form.</div>';
+                });
+        });
+
+        createPartyModal.addEventListener('hidden.bs.modal', () => {
+            const container = document.getElementById('createPartyFormContainer');
+            container.innerHTML = '';
+        });
+
+        function setupFormSubmit() {
+            const form = document.getElementById('partyForm');
+            if (!form) return;
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const messagesDiv = document.getElementById('partyFormMessages');
+
+                    if (data.success) {
+                        messagesDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+
+                        setTimeout(() => {
+                            bootstrap.Modal.getInstance(createPartyModal).hide();
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        messagesDiv.innerHTML = `<div class="alert alert-danger"><ul>${data.errors.map(e => `<li>${e}</li>`).join('')}</ul></div>`;
+                    }
+                })
+                .catch(() => alert('An error occurred while submitting the form.'))
+                .finally(() => submitBtn.disabled = false);
+            }, { once: true });
+        }
+    </script>
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
