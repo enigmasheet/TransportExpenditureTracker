@@ -8,14 +8,9 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Controllers
 {
-    public class InvoicesController : Controller
+    public class InvoicesController(ApplicationDbContext context) : Controller
     {
-        private readonly ApplicationDbContext _context;
-
-        public InvoicesController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
+        private readonly ApplicationDbContext _context = context;
 
         private void LoadFiscalYearAndMonths()
         {
