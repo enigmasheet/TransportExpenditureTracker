@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using NepDate;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.ViewModels;
@@ -112,10 +113,15 @@ namespace TransportExpenditureTracker.Controllers
         // POST: Invoices/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("InvoiceId,InvoiceNo,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice updatedInvoice)
+        public async Task<IActionResult> Edit(int id, [Bind("InvoiceId,InvoiceNo,NepaliMiti,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice updatedInvoice)
         {
             if (id != updatedInvoice.InvoiceId) return NotFound();
-
+            if (!string.IsNullOrWhiteSpace(updatedInvoice.NepaliMiti))
+            {
+                var cleanedMiti = ConvertToEnglishDigits(updatedInvoice.NepaliMiti.Replace('-', '/'));
+                updatedInvoice.NepaliMiti = cleanedMiti;
+                updatedInvoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+            }
             if (ModelState.IsValid)
             {
                 try
@@ -194,6 +200,9 @@ namespace TransportExpenditureTracker.Controllers
             {
                 foreach (var invoice in model.Invoices)
                 {
+                    var cleanedMiti = ConvertToEnglishDigits(invoice.NepaliMiti.Replace('-', '/'));
+                    invoice.NepaliMiti = cleanedMiti;
+                    invoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
                     invoice.FiscalYear = model.FiscalYear;
                     invoice.FiscalMonth = model.FiscalMonth;
                     invoice.CreatedAt = DateTime.Now;
@@ -219,5 +228,20 @@ namespace TransportExpenditureTracker.Controllers
             };
             return View(model);
         }
+        public static string ConvertToEnglishDigits(string nepaliNumber)
+        {
+            return nepaliNumber
+                .Replace('०', '0')
+                .Replace('१', '1')
+                .Replace('२', '2')
+                .Replace('३', '3')
+                .Replace('४', '4')
+                .Replace('५', '5')
+                .Replace('६', '6')
+                .Replace('७', '7')
+                .Replace('८', '8')
+                .Replace('९', '9');
+        }
+
     }
 }

@@ -6,8 +6,8 @@
         <span asp-validation-for="InvoiceNo" class="text-danger"></span>
     </td>
     <td>
-        <input asp-for="Miti" class="form-control" />
-        <span asp-validation-for="Miti" class="text-danger"></span>
+        <input asp-for="NepaliMiti" class="form-control nepali-datepicker" placeholder="2082/01/30" style="width:min-content"/>
+        <span asp-validation-for="NepaliMiti" class="text-danger"></span>
     </td>
     <td>
         <select asp-for="PartyId" asp-items="@(ViewData["PartyId"] as IEnumerable<SelectListItem>)" class="form-control party-select"></select>

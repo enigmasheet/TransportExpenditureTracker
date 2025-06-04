@@ -73,7 +73,15 @@
                 }
             });
         }
-
+         function initializeNepaliDatePickers() {
+            $('.nepali-datepicker').nepaliDatePicker({
+                dateFormat: "%y-%m-%d",
+                ndpYear: true,
+                ndpMonth: true,
+                ndpYearCount: 100,
+                EnableEnglishNumber: true
+            });
+        }
         function recalcAmounts(row) {
             const qty = parseFloat(row.querySelector(".quantity").value) || 0;
             const rateInput = row.querySelector(".rate");
@@ -172,6 +180,7 @@
 
             // Re-init select2 on new row only (or on all)
             initSelect2();
+            initializeNepaliDatePickers();
         });
 
         document.querySelector("#invoices-table").addEventListener("click", function (e) {
@@ -195,8 +204,12 @@
         });
 
         document.addEventListener("DOMContentLoaded", function () {
+            initializeNepaliDatePickers();
             initSelect2();
+
         });
+
+
     </script>
 
     @{

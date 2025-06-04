@@ -14,6 +14,11 @@ namespace TransportExpenditureTracker.Models
         [Required]
         [MaxLength(50)]
         public string InvoiceNo { get; set; } = null!;
+        
+        
+        [MaxLength(50)]
+        public string NepaliMiti { get; set; } = null!; // Nepali date in string format
+
 
         [Required]
         [DataType(DataType.Date)]

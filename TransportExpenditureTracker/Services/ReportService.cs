@@ -53,7 +53,7 @@ namespace TransportExpenditureTracker.Services
             var result = pagedInvoices.Select((invoice, index) => new ReportRowViewModel
             {
                 Sno = (filters.PageNumber - 1) * filters.PageSize + index + 1,
-                Miti = invoice.Miti.ToString("yyyy-MM-dd"),
+                Miti = invoice.NepaliMiti,
                 InvoiceNo = invoice.InvoiceNo,
                 PartyName = invoice.Party.PartyName,
                 Location = invoice.Party.Location ?? string.Empty,
