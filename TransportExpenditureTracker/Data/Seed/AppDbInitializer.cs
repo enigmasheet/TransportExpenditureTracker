@@ -17,7 +17,7 @@ namespace TransportExpenditureTracker.Data.Seed
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
             // 1. Seed Roles
-            string[] roles = { "Admin", "User" };
+            string[] roles = { "SuperAdmin", "Admin", "User" };
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
@@ -25,7 +25,39 @@ namespace TransportExpenditureTracker.Data.Seed
                     await roleManager.CreateAsync(new IdentityRole(role));
                 }
             }
+            // 2. Seed Super Admin User
 
+            var superAdminEmail = "superadmin@gmail.com";
+            var superAdminPassword = "Super@123";
+            var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
+            if (superAdminUser == null)
+            {
+                superAdminUser = new IdentityUser
+                {
+                    UserName = superAdminEmail,
+                    Email = superAdminEmail,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(superAdminUser, superAdminPassword);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(superAdminUser, "SuperAdmin");
+
+                    // Optional: Give SuperAdmin all roles
+                    foreach (var role in roles)
+                    {
+                        if (!await userManager.IsInRoleAsync(superAdminUser, role))
+                        {
+                            await userManager.AddToRoleAsync(superAdminUser, role);
+                        }
+                    }
+                }
+                else
+                {
+                    throw new Exception("Failed to create Super Admin user: " + string.Join(", ", result.Errors));
+                }
+            }
             // 2. Seed Admin User
             var adminEmail = "abhaymandal321@gmail.com";
             var adminPassword = "Admin@123";
@@ -80,9 +112,7 @@ namespace TransportExpenditureTracker.Data.Seed
             if (!await context.FiscalYears.AnyAsync())
             {
                 context.FiscalYears.AddRange(
-                    new FiscalYear { Name = "2079/80" },
-                    new FiscalYear { Name = "2080/81" },
-                    new FiscalYear { Name = "2081/82" }
+                  new FiscalYear { Name = "2081/82" }
                 );
                 await context.SaveChangesAsync();
             }

@@ -6,9 +6,14 @@
 
 <h1>Index</h1>
 
-<p>
-    <a asp-action="CreateMultiple">Create New</a>
-</p>
+@if (User.IsInRole("Admin") || User.IsInRole("User"))
+{
+    <p>
+        <a asp-action="CreateMultiple" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Create New
+        </a>
+    </p>
+}
 <table class="table">
     <thead>
         <tr>
@@ -39,12 +44,11 @@
             <th>
                 @Html.DisplayNameFor(model => model.TotalInvoiceAmount)
             </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UpdatedAt)
-            </th>
+           @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+        {
+            <th>@Html.DisplayNameFor(model => model.CreatedAt)</th>
+            <th>@Html.DisplayNameFor(model => model.UpdatedAt)</th>
+        }
             <th></th>
         </tr>
     </thead>
@@ -78,25 +82,31 @@
             <td>
                 @Html.DisplayFor(modelItem => item.TotalInvoiceAmount)
             </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CreatedAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UpdatedAt)
-            </td>
+            @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+        {
+            <td>@Html.DisplayFor(modelItem => item.CreatedAt)</td>
+            <td>@Html.DisplayFor(modelItem => item.UpdatedAt)</td>
+        }
                 <td class="d-flex gap-2">
-                    <a asp-action="Edit" asp-route-id="@item.InvoiceId" class="btn btn-sm btn-primary"
-                       data-bs-toggle="tooltip" title="Edit">
-                        <i class="bi bi-pencil-square"></i>
-                    </a>
+                   @* View Details button (visible to all authenticated users) *@
                     <a asp-action="Details" asp-route-id="@item.InvoiceId" class="btn btn-sm btn-info"
                        data-bs-toggle="tooltip" title="Details">
                         <i class="bi bi-info-circle"></i>
                     </a>
-                    <a asp-action="Delete" asp-route-id="@item.InvoiceId" class="btn btn-sm btn-danger"
-                       data-bs-toggle="tooltip" title="Delete">
-                        <i class="bi bi-trash"></i>
-                    </a>
+
+                    @* Edit/Delete buttons only visible to Admin *@
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@item.InvoiceId" class="btn btn-sm btn-primary"
+                           data-bs-toggle="tooltip" title="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+
+                        <a asp-action="Delete" asp-route-id="@item.InvoiceId" class="btn btn-sm btn-danger"
+                           data-bs-toggle="tooltip" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    }
                 </td>
         </tr>
 }

@@ -1,0 +1,37 @@
+﻿@model List<TransportExpenditureTracker.ViewModels.UserRolesViewModel>
+@{
+    ViewData["Title"] = "User Roles Management";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">User Roles Management</h2>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+                <tr>
+                    <td>@user.Email</td>
+                    <td>@string.Join(", ", user.Roles)</td>
+                    <td>
+                        <a asp-action="Manage" asp-route-userId="@user.UserId" class="btn btn-sm btn-primary">
+                            Manage Roles
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

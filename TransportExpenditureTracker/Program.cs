@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Data.Seed;
@@ -36,6 +36,11 @@ namespace TransportExpenditureTracker
             builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
 
             builder.Services.AddControllersWithViews();
+           
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("RequireSuperAdminRole", policy => policy.RequireRole("SuperAdmin"));
+            });
 
             var app = builder.Build();
 
@@ -66,7 +71,7 @@ namespace TransportExpenditureTracker
 
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+                pattern: "{controller=Invoices}/{action=CreateMultiple}/{id?}");
             app.MapRazorPages();
 
             app.Run();
