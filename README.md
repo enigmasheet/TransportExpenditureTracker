@@ -2,32 +2,32 @@
 
 **Live Demo**: [https://transportexpense.azurewebsites.net/](https://transportexpense.azurewebsites.net/)
 
-A web-based application designed to streamline the management of transport-related expenditures. Built using **ASP.NET Core MVC** and **Identity**, it offers robust features for invoice tracking, user management, and role-based access control.
+A web-based application designed to streamline the management of transport-related expenditures for the goods transport industry. Built with **ASP.NET Core MVC** and **Identity**, it offers robust features for invoice tracking, reporting, party and item management, and more.
 
 ---
 
 ## 📋 Features
 
 ### 🔐 User Authentication & Authorization
-- **ASP.NET Core Identity Integration**: Secure user registration and login.
-- **Role-Based Access Control**:
-  - **Admin**: Full access to invoices, users, roles, and system settings.
-  - **User**: Can create and view invoices only.
-- **Automatic Role Assignment**: New users are automatically assigned the `User` role.
+- **ASP.NET Core Identity**: Secure user registration and login.
+- **Role-Based Access**:
+  - **Admin**: Full control over invoices, users, roles, and system settings.
+  - **User**: Can create and view their invoices only.
+- **Automatic Role Assignment**: New users are assigned the `User` role by default.
 
 ### 🧾 Invoice Management
 - **Full CRUD**: Create, read, update, and delete invoices.
-- **Detailed Invoice Fields**:
+- **Comprehensive Invoice Fields**:
   - Invoice Number
   - Nepali Miti (Date)
   - Party Information
   - Item Details
   - Quantity and Rate
   - Taxable Amount, VAT, and Total
-  - Created and Updated Timestamps
+  - Created/Updated Timestamps
 - **Role-Based Restrictions**:
   - Admin: Full access
-  - User: Limited to create/view only
+  - User: Limited to create/view
 
 ### 🧑‍💼 Party & Item Management
 - Add, edit, and remove **Parties** and **Items**.
@@ -38,13 +38,13 @@ A web-based application designed to streamline the management of transport-relat
   - Date Range
   - Party
   - Item
-- **Export Options**: PDF and Excel (future enhancement).
+- **Export Options**: PDF and Excel (planned in future releases).
 
 ### 🌐 Localization
-- **Nepali Date Support**: Integrated Nepali Miti for date fields.
+- **Nepali Date Support**: Integrated Nepali Miti calendar for date fields.
 
 ### 🛠️ Admin Panel
-- View all users and assign/remove roles.
+- Manage all users and assign/remove roles.
 - Configure core settings from the admin dashboard.
 
 ---
@@ -52,8 +52,8 @@ A web-based application designed to streamline the management of transport-relat
 ## 🚀 Getting Started
 
 ### ✅ Prerequisites
-- [.NET 6.0 SDK](https://dotnet.microsoft.com/download/dotnet/6.0)
-- [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) (or use SQLite with minor changes)
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or above
+- [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) (or use SQLite with minor config changes)
 - [Visual Studio 2022+](https://visualstudio.microsoft.com/vs/) or [VS Code](https://code.visualstudio.com/)
 
 ---
@@ -66,22 +66,88 @@ A web-based application designed to streamline the management of transport-relat
 git clone https://github.com/enigmasheet/TransportExpenditureTracker.git
 cd TransportExpenditureTracker
 ```
-2. Configure the Database
-Open appsettings.json and set your SQL Server connection string:
+
+### 2. Configure the Database
+
+Edit `appsettings.json` and set your SQL Server connection string:
 
 ```json
 "ConnectionStrings": {
   "DefaultConnection": "Server=YOUR_SERVER;Database=TransportDB;Trusted_Connection=True;MultipleActiveResultSets=true"
 }
 ```
-3. Apply Migrations
+
+### 3. Apply Migrations
+
 ```bash
 dotnet ef database update
 ```
-This will create the database schema and seed roles (Admin, User) if implemented in the Startup.cs or through a seed method.
 
-4. Run the Application
+This will create the database schema and seed roles (`Admin`, `User`) if configured.
+
+### 4. Run the Application
+
 ```bash
 dotnet run
 ```
-5. Open in Browser
+
+### 5. Open in Browser
+
+Visit [http://localhost:5000](http://localhost:5000) (or the port shown in your terminal).
+
+---
+
+## 📂 Project Structure
+
+```
+TransportExpenditureTracker/
+├── Controllers/         # MVC Controllers
+├── Models/              # Data Models
+├── Data/                # Database context, migrations
+├── Services/            # Business logic/services
+├── ViewModels/          # View Models for UI
+├── Views/               # Razor views (UI)
+├── wwwroot/             # Static files (CSS, JS, images)
+└── ...
+```
+
+---
+
+## 🧪 Testing
+
+- Unit and integration tests are recommended for all business logic and controllers.
+- Run tests (if present) with:
+  ```bash
+  dotnet test
+  ```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## 🛡️ Security
+
+- Do not store sensitive credentials in source control.
+- All user input is validated and sanitized.
+- For vulnerabilities, please open an issue or contact the maintainers.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+## 🙋‍♂️ Support & Feedback
+
+- For questions, open an issue or discussion in the repository.
+- For bugs or feature requests, please file an issue with as much information as possible.
+
+---
+
+**Thank you for using and contributing to TransportExpenditureTracker!**
