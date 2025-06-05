@@ -44,15 +44,19 @@
                 <td>@Html.DisplayFor(modelItem => item.Location)</td>
                 <td>@Html.DisplayFor(modelItem => item.VatNo)</td>
                 <td class="d-flex gap-2">
+
                     <a asp-action="Edit" asp-route-id="@item.PartyId" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" title="Edit">
                         <i class="bi bi-pencil-square"></i>
                     </a>
                     <a asp-action="Details" asp-route-id="@item.PartyId" class="btn btn-sm btn-info" data-bs-toggle="tooltip" title="Details">
                         <i class="bi bi-info-circle"></i>
                     </a>
-                    <a asp-action="Delete" asp-route-id="@item.PartyId" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
-                        <i class="bi bi-trash"></i>
+                      @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        <a asp-action="Delete" asp-route-id="@item.PartyId" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="Delete">
+                            <i class="bi bi-trash"></i>
                     </a>
+                    }
                 </td>
             </tr>
             sno++;
