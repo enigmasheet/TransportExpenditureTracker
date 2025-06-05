@@ -1,0 +1,39 @@
+﻿@model List<TransportExpenditureTracker.ViewModels.ManageUserRolesViewModel>
+@{
+    ViewData["Title"] = "Manage User Roles";
+}
+
+<div class="container mt-4">
+    <h3 class="mb-3">Manage Roles for: <strong>@ViewBag.userEmail</strong></h3>
+
+    <form asp-action="Manage" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="userId" value="@ViewBag.userId" />
+
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Role</th>
+                    <th>Assigned</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Count; i++)
+                {
+                    <tr>
+                        <td>
+                            @Model[i].RoleName
+                            <input type="hidden" asp-for="@Model[i].RoleName" />
+                        </td>
+                        <td class="text-center">
+                            <input asp-for="@Model[i].Selected" type="checkbox" class="form-check-input" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-success mt-3">Update Roles</button>
+        <a asp-action="Index" class="btn btn-secondary mt-3 ms-2">Cancel</a>
+    </form>
+</div>
