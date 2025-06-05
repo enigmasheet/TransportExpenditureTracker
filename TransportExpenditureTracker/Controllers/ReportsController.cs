@@ -1,5 +1,6 @@
 ﻿// Controllers/ReportsController.cs
 using AspNetCoreGeneratedDocument;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Controllers
 {
+    [Authorize]
     public class ReportsController : Controller
     {
         private readonly IReportService _reportService;

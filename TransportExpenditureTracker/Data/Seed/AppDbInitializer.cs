@@ -29,7 +29,6 @@ namespace TransportExpenditureTracker.Data.Seed
             // 2. Seed Admin User
             var adminEmail = "abhaymandal321@gmail.com";
             var adminPassword = "Admin@123";
-
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
             if (adminUser == null)
             {
@@ -50,6 +49,32 @@ namespace TransportExpenditureTracker.Data.Seed
                     throw new Exception("Failed to create admin user: " + string.Join(", ", result.Errors));
                 }
             }
+
+            // 2b. Seed Normal User
+            var normalUserEmail = "user@gmail.com";
+            var normalUserPassword = "User@123";
+
+            var normalUser = await userManager.FindByEmailAsync(normalUserEmail);
+            if (normalUser == null)
+            {
+                normalUser = new IdentityUser
+                {
+                    UserName = normalUserEmail,
+                    Email = normalUserEmail,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(normalUser, normalUserPassword);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(normalUser, "User");
+                }
+                else
+                {
+                    throw new Exception("Failed to create normal user: " + string.Join(", ", result.Errors));
+                }
+            }
+
 
             // 3. Seed Fiscal Years
             if (!await context.FiscalYears.AnyAsync())

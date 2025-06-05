@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NepDate;
@@ -8,6 +9,7 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Controllers
 {
+    [Authorize]
     public class InvoicesController(ApplicationDbContext context) : Controller
     {
         private readonly ApplicationDbContext _context = context;
@@ -61,7 +63,8 @@ namespace TransportExpenditureTracker.Controllers
 
             return View(invoice);
         }
-
+        
+        [Authorize(Roles = "Admin,User")]
         // GET: Invoices/Create
         public IActionResult Create()
         {
@@ -71,6 +74,7 @@ namespace TransportExpenditureTracker.Controllers
         }
 
         // POST: Invoices/Create
+        [Authorize(Roles = "Admin,User")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("InvoiceId,InvoiceNo,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice invoice)
@@ -92,6 +96,7 @@ namespace TransportExpenditureTracker.Controllers
         }
 
         // GET: Invoices/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -108,6 +113,7 @@ namespace TransportExpenditureTracker.Controllers
         // POST: Invoices/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("InvoiceId,InvoiceNo,NepaliMiti,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice updatedInvoice)
         {
             if (id != updatedInvoice.InvoiceId) return NotFound();
@@ -145,6 +151,7 @@ namespace TransportExpenditureTracker.Controllers
         }
 
         // GET: Invoices/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -162,6 +169,7 @@ namespace TransportExpenditureTracker.Controllers
         // POST: Invoices/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var invoice = await _context.Invoices.FindAsync(id);
@@ -180,6 +188,7 @@ namespace TransportExpenditureTracker.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> CreateMultiple(InvoiceMonthly model)
         {
             if (model.Invoices == null || !model.Invoices.Any())
@@ -213,6 +222,7 @@ namespace TransportExpenditureTracker.Controllers
             LoadFiscalYearAndMonths();
             return View("CreateMultiple", model);
         }
+        [Authorize(Roles = "Admin,User")]
         public IActionResult CreateMultiple()
         {
             LoadDropdowns();

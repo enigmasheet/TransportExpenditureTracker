@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Controllers
 {
+    [Authorize]
     public class PartiesController : Controller
     {
         private readonly IPartyService _partyService;
@@ -104,7 +106,8 @@ namespace TransportExpenditureTracker.Controllers
             await _partyService.UpdatePartyAsync(partyViewModel);
             return RedirectToAction(nameof(Index));
         }
-
+       
+        [Authorize(Roles = "Admin")]
         // GET: Parties/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
@@ -117,7 +120,8 @@ namespace TransportExpenditureTracker.Controllers
 
             return View(party);
         }
-
+        
+        [Authorize(Roles = "Admin")]
         // POST: Parties/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
