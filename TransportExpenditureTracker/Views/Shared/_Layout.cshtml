@@ -1,6 +1,10 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @inject UserManager<IdentityUser> UserManager
 @inject SignInManager<IdentityUser> SignInManager
+@{
+    var companyVat = User.FindFirst("CompanyVat")?.Value;
+    var companyName = User.FindFirst("CompanyName")?.Value;
+}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -66,7 +70,15 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2025 - TransportExpenditureTracker - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            @if (!string.IsNullOrEmpty(companyName))
+            {
+                <div class="mt-1">
+                    Logged in Company: <strong>@companyName</strong> @if (!string.IsNullOrEmpty(companyVat)) {
+                    <span> | VAT: <strong>@companyVat</strong></span>
+                }
+            </div>
+
+            }
         </div>
     </footer>
     

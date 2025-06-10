@@ -10,7 +10,7 @@ namespace TransportExpenditureTracker.Data.Seed
 {
     public static class AppDbInitializer
     {
-        public static async Task SeedRolesAdminFiscalYearsAndItemsAsync(IServiceProvider serviceProvider)
+        public static async Task SeedRolesAdminFiscalYearsItemsAndCompaniesAsync(IServiceProvider serviceProvider)
         {
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
@@ -25,8 +25,8 @@ namespace TransportExpenditureTracker.Data.Seed
                     await roleManager.CreateAsync(new IdentityRole(role));
                 }
             }
-            // 2. Seed Super Admin User
 
+            // 2. Seed Super Admin User
             var superAdminEmail = "superadmin@gmail.com";
             var superAdminPassword = "Super@123";
             var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
@@ -58,7 +58,8 @@ namespace TransportExpenditureTracker.Data.Seed
                     throw new Exception("Failed to create Super Admin user: " + string.Join(", ", result.Errors));
                 }
             }
-            // 2. Seed Admin User
+
+            // 3. Seed Admin User
             var adminEmail = "abhaymandal321@gmail.com";
             var adminPassword = "Admin@123";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
@@ -82,7 +83,7 @@ namespace TransportExpenditureTracker.Data.Seed
                 }
             }
 
-            // 2b. Seed Normal User
+            // 4. Seed Normal User
             var normalUserEmail = "user@gmail.com";
             var normalUserPassword = "User@123";
 
@@ -107,17 +108,16 @@ namespace TransportExpenditureTracker.Data.Seed
                 }
             }
 
-
-            // 3. Seed Fiscal Years
+            // 5. Seed Fiscal Years
             if (!await context.FiscalYears.AnyAsync())
             {
                 context.FiscalYears.AddRange(
-                  new FiscalYear { Name = "2081/82" }
+                    new FiscalYear { Name = "2081/82" }
                 );
                 await context.SaveChangesAsync();
             }
 
-            // 4. Seed Items
+            // 6. Seed Items
             if (!await context.Items.AnyAsync())
             {
                 var items = new List<Item>
@@ -140,6 +140,19 @@ namespace TransportExpenditureTracker.Data.Seed
                 };
 
                 context.Items.AddRange(items);
+                await context.SaveChangesAsync();
+            }
+
+            // 7. Seed Companies (Important for VAT-based registration)
+            if (!await context.Companies.AnyAsync())
+            {
+                var companies = new List<Company>
+                {
+                    new Company { Name = "Sunya Technologies Pvt Ltd", VatNumber = "VAT123456" },
+                    new Company { Name = "Transport Expenditure Ltd", VatNumber = "VAT654321" }
+                };
+
+                context.Companies.AddRange(companies);
                 await context.SaveChangesAsync();
             }
         }

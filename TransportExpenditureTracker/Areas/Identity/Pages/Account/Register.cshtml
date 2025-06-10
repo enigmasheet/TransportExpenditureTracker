@@ -18,6 +18,11 @@
                 <span asp-validation-for="Input.Email" class="text-danger"></span>
             </div>
             <div class="form-floating mb-3">
+                <input asp-for="Input.VatNumber" class="form-control" placeholder="VAT Number" />
+                <label asp-for="Input.VatNumber">Company VAT Number</label>
+                <span asp-validation-for="Input.VatNumber" class="text-danger"></span>
+            </div>
+            <div class="form-floating mb-3">
                 <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label asp-for="Input.Password">Password</label>
                 <span asp-validation-for="Input.Password" class="text-danger"></span>
