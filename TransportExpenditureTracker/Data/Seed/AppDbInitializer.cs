@@ -148,8 +148,8 @@ namespace TransportExpenditureTracker.Data.Seed
             {
                 var companies = new List<Company>
                 {
-                    new Company { Name = "Sunya Technologies Pvt Ltd", VatNumber = "VAT123456" },
-                    new Company { Name = "Transport Expenditure Ltd", VatNumber = "VAT654321" }
+                    new Company { Name = "Sunya Technologies Pvt Ltd", VatNumber = "VAT123456",Location="Lalitpur",ContactNumber="9806886202" },
+                    new Company { Name = "Transport Expenditure Ltd", VatNumber = "VAT654321",Location="Kathmandu",ContactNumber="9800000000" }
                 };
 
                 context.Companies.AddRange(companies);
