@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SkiaSharp;
+using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.ViewModels;
 namespace TransportExpenditureTracker.Controllers
@@ -11,11 +13,13 @@ namespace TransportExpenditureTracker.Controllers
     {
         private readonly UserManager<IdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ApplicationDbContext _context;
 
-        public RoleManagementController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
+        public RoleManagementController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _context = context;
         }
 
         // List all users and their roles
@@ -89,6 +93,34 @@ namespace TransportExpenditureTracker.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+        public async Task<IActionResult> UserCompanies()
+        {
+            var users = await _userManager.Users.ToListAsync();
+            var userCompanyList = new List<UserCompanyListViewModel>();
+
+            foreach (var user in users)
+            {
+                var companyIds = await _context.UserCompanies
+                    .Where(uc => uc.UserId == user.Id)
+                    .Select(uc => uc.CompanyId)
+                    .ToListAsync();
+
+                var companyNames = await _context.Companies
+                    .Where(c => companyIds.Contains(c.Id))
+                    .Select(c => c.Name)
+                    .ToListAsync();
+
+                userCompanyList.Add(new UserCompanyListViewModel
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    CompanyNames = companyNames
+                });
+            }
+
+            return View(userCompanyList);
+        }
+
     }
 
 }
