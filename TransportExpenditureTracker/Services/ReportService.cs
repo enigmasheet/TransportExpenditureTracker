@@ -15,14 +15,14 @@ namespace TransportExpenditureTracker.Services
             _context = context;
         }
 
-        public async Task<List<ReportRowViewModel>> GetVatInvoiceReportAsync(ReportFilterViewModel filters)
+        public async Task<PagedResult<ReportRowViewModel>> GetVatInvoiceReportAsync(ReportFilterViewModel filters)
         {
             var query = _context.Invoices
+                .AsNoTracking()
                 .Include(i => i.Party)
                 .Include(i => i.Item)
                 .AsQueryable();
 
-            // Apply filters
             if (filters.FromDate.HasValue)
                 query = query.Where(i => i.Miti >= filters.FromDate.Value);
 
@@ -34,40 +34,54 @@ namespace TransportExpenditureTracker.Services
 
             if (!string.IsNullOrEmpty(filters.FiscalYear))
                 query = query.Where(i => i.FiscalYear == filters.FiscalYear);
-            
+
             if (!string.IsNullOrEmpty(filters.FiscalMonth))
                 query = query.Where(i => i.FiscalMonth == filters.FiscalMonth);
 
             if (!string.IsNullOrEmpty(filters.InvoiceNo))
                 query = query.Where(i => i.InvoiceNo.Contains(filters.InvoiceNo));
 
-            if (filters.ItemId.HasValue)  // Changed from ItemName to ItemId filtering
+            if (filters.ItemId.HasValue)
                 query = query.Where(i => i.ItemId == filters.ItemId.Value);
+
+            var totalRecords = await query.CountAsync();
 
             var pagedInvoices = await query
                 .OrderBy(i => i.Miti)
+                .ThenBy(i => i.InvoiceNo)
                 .Skip((filters.PageNumber - 1) * filters.PageSize)
                 .Take(filters.PageSize)
                 .ToListAsync();
 
-            var result = pagedInvoices.Select((invoice, index) => new ReportRowViewModel
+            var items = pagedInvoices.Select((invoice, index) => new ReportRowViewModel
             {
                 Sno = (filters.PageNumber - 1) * filters.PageSize + index + 1,
                 Miti = invoice.NepaliMiti,
                 InvoiceNo = invoice.InvoiceNo,
-                PartyName = invoice.Party.PartyName,
-                Location = invoice.Party.Location ?? string.Empty,
-                VatNo = invoice.Party.VatNo ?? string.Empty,
-                ItemName = invoice.Item.ItemName,
+                PartyName = invoice.Party?.PartyName ?? "",
+                Location = invoice.Party?.Location ?? "",
+                VatNo = invoice.Party?.VatNo ?? "",
+                ItemName = invoice.Item?.ItemName ?? "",
                 Quantity = invoice.Quantity,
                 Rate = invoice.Rate ?? 0,
                 TaxableAmount = invoice.TaxableAmount,
                 VatAmount = invoice.VatAmount,
             }).ToList();
 
-            return result;
+            return new PagedResult<ReportRowViewModel>
+            {
+                Items = items,
+                TotalRecords = totalRecords
+            };
         }
 
+
+
+        public class PagedResult<T>
+        {
+            public List<T> Items { get; set; } = new();
+            public int TotalRecords { get; set; }
+        }
 
     }
 }

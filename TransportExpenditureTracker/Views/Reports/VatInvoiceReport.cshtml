@@ -8,6 +8,12 @@
 }
 
 <h2 class="text-center mb-4">VAT Invoice Report</h2>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-warning">
+        @TempData["Error"]
+    </div>
+}
 
 <form method="get" asp-action="VatInvoiceReport" class="mb-4">
     <div class="row g-3">
@@ -56,18 +62,22 @@
     </div>
     
 </form>
-<div class="m-3 text-end">
-    <form asp-controller="Reports" asp-action="ExportVatInvoicePdf" method="get">
-        <input type="hidden" name="FiscalYear" value="@Model.Filters.FiscalYear" />
-        <input type="hidden" name="FiscalMonth" value="@Model.Filters.FiscalMonth" />
-        <input type="hidden" name="FromDate" value="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" />
-        <input type="hidden" name="ToDate" value="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")" />
-        <input type="hidden" name="PartyId" value="@Model.Filters.PartyId" />
-        <input type="hidden" name="ItemId" value="@Model.Filters.ItemId" />
-        <input type="hidden" name="InvoiceNo" value="@Model.Filters.InvoiceNo" />
-        <button type="submit" class="btn btn-primary">Download PDF</button>
-    </form>
-</div>
+@if (Model.Reports != null && Model.Reports.Any())
+{
+    <div class="m-3 text-end">
+        <form asp-controller="Reports" asp-action="ExportVatInvoicePdf" method="get">
+            <input type="hidden" name="FiscalYear" value="@Model.Filters.FiscalYear" />
+            <input type="hidden" name="FiscalMonth" value="@Model.Filters.FiscalMonth" />
+            <input type="hidden" name="FromDate" value="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="ToDate" value="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="PartyId" value="@Model.Filters.PartyId" />
+            <input type="hidden" name="ItemId" value="@Model.Filters.ItemId" />
+            <input type="hidden" name="InvoiceNo" value="@Model.Filters.InvoiceNo" />
+            <button type="submit" class="btn btn-primary">Download PDF</button>
+        </form>
+    </div>
+}
+
 
 
 <table class="table table-bordered table-striped">
@@ -115,19 +125,47 @@
         </tr>
     </tfoot>
 </table>
-<nav>
-    <ul class="pagination">
-        <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
-            <a class="page-link" href="?pageNumber=@(Model.PageNumber - 1)&pageSize=@Model.PageSize">Previous</a>
-        </li>
-        <li class="page-item">
-            <span class="page-link">Page @Model.PageNumber</span>
-        </li>
-        <li class="page-item">
-            <a class="page-link" href="?pageNumber=@(Model.PageNumber + 1)&pageSize=@Model.PageSize">Next</a>
-        </li>
-    </ul>
-</nav>
+@if (Model.Reports != null && Model.Reports.Any())
+{
+    @if (Model.TotalPages > 1)
+{
+    <nav>
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("VatInvoiceReport", new { pageNumber = 1, pageSize = Model.PageSize })">First</a>
+            </li>
+            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("VatInvoiceReport", new { pageNumber = Model.PageNumber - 1, pageSize = Model.PageSize })">Previous</a>
+            </li>
+
+            @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+            {
+                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("VatInvoiceReport", new { 
+                        pageNumber = i, 
+                        pageSize = Model.PageSize, 
+                        FiscalYear = Model.Filters.FiscalYear,
+                        FiscalMonth = Model.Filters.FiscalMonth,
+                        InvoiceNo = Model.Filters.InvoiceNo,
+                        ItemId = Model.Filters.ItemId,
+                        PartyId = Model.Filters.PartyId,
+                        FromDate = Model.Filters.FromDate?.ToString("yyyy-MM-dd"),
+                        ToDate = Model.Filters.ToDate?.ToString("yyyy-MM-dd")
+                    })">@i</a>
+                </li>
+            }
+
+            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("VatInvoiceReport", new { pageNumber = Model.PageNumber + 1, pageSize = Model.PageSize })">Next</a>
+            </li>
+            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("VatInvoiceReport", new { pageNumber = Model.TotalPages, pageSize = Model.PageSize })">Last</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+}
 
 @section Scripts {
     <script>

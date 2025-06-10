@@ -60,25 +60,59 @@ namespace TransportExpenditureTracker.Controllers
             LoadFiscalYearAndMonths();  
             LoadDropdowns(filters.PartyId, filters.ItemId);
 
-            var report = await _reportService.GetVatInvoiceReportAsync(filters);
+            var pagedResult = await _reportService.GetVatInvoiceReportAsync(filters);
             var parties = await _partyService.GetAllPartiesAsync();
 
             var model = new ReportPageViewModel
             {
-                Reports = report,
+                Reports = pagedResult.Items,
+                TotalRecords = pagedResult.TotalRecords,
                 Filters = filters,
                 Parties = parties
             };
+
 
             return View(model);
         }
         [HttpGet]
         public async Task<IActionResult> ExportVatInvoicePdf(ReportFilterViewModel filters)
         {
-            var report = await _reportService.GetVatInvoiceReportAsync(filters);
-            var pdf = _pdfGenerator.GenerateVatInvoiceReport(report);
+            // Fetch all records ignoring pagination for export
+            filters.PageNumber = 1;
+            filters.PageSize = int.MaxValue;
+
+            var pagedResult = await _reportService.GetVatInvoiceReportAsync(filters);
+            var report = pagedResult.Items;
+
+            if (report == null || !report.Any())
+            {
+                TempData["Error"] = "No data available to export.";
+                return RedirectToAction("VatInvoiceReport", filters);
+            }
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var selectedCompany = await _context.UserCompanies
+                .Include(u => u.Company)
+                .Where(u => u.UserId == userId)
+                .Select(u => u.Company)
+                .FirstOrDefaultAsync();
+
+            if (selectedCompany == null)
+            {
+                return BadRequest("No company selected.");
+            }
+
+            var pdf = _pdfGenerator.GenerateVatInvoiceReport(report, selectedCompany);
             return File(pdf, "application/pdf", $"VAT_Report_{DateTime.Now:yyyyMMdd}.pdf");
         }
+
+
 
 
 
