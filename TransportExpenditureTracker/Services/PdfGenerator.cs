@@ -3,12 +3,13 @@ using iTextSharp.text.pdf;
 using System.IO;
 using TransportExpenditureTracker.ViewModels;
 using TransportExpenditureTracker.Services.Interfaces;
+using TransportExpenditureTracker.Models;
 
 namespace TransportExpenditureTracker.Services
 {
     public class PdfGenerator : IPdfGenerator
     {
-        public byte[] GenerateVatInvoiceReport(List<ReportRowViewModel> data)
+        public byte[] GenerateVatInvoiceReport(List<ReportRowViewModel> data, Company company)
         {
             using (var memoryStream = new MemoryStream())
             {
@@ -25,7 +26,7 @@ namespace TransportExpenditureTracker.Services
                 var companyFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
 
                 // Company details
-                Paragraph companyDetails = new Paragraph("A.B Carriers\nLocation: Birgunj\nVAT No: 305314651\nContact: 9855026016", companyFont)
+                var companyDetails = new Paragraph($"{company.Name}\nLocation: {company.Location}\nVAT No: {company.VatNumber}\nContact: {company.ContactNumber}", companyFont)
                 {
                     Alignment = Element.ALIGN_LEFT,
                     SpacingAfter = 10f

@@ -51,7 +51,7 @@ namespace TransportExpenditureTracker
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
-                await AppDbInitializer.SeedRolesAdminFiscalYearsAndItemsAsync(services);
+                await AppDbInitializer.SeedRolesAdminFiscalYearsItemsAndCompaniesAsync(services);
             }
 
             // Middleware configuration

@@ -1,11 +1,12 @@
 ﻿// Services/Interfaces/IReportService.cs
 using TransportExpenditureTracker.ViewModels;
+using static TransportExpenditureTracker.Services.ReportService;
 
 namespace TransportExpenditureTracker.Services.Interfaces
 {
     public interface IReportService
     {
-        Task<List<ReportRowViewModel>> GetVatInvoiceReportAsync(ReportFilterViewModel filters);
+        Task<PagedResult<ReportRowViewModel>> GetVatInvoiceReportAsync(ReportFilterViewModel filters);
 
     }
 }
