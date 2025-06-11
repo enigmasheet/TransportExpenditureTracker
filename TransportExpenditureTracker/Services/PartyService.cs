@@ -44,6 +44,12 @@ namespace TransportExpenditureTracker.Services
 
         public async Task AddPartyAsync(PartyViewModel partyViewModel)
         {
+            var companyId = partyViewModel.CompanyId;
+
+            if (await PartyExistsAsync(partyViewModel.VatNo, companyId))
+            {
+                throw new InvalidOperationException("A party with the same VAT number already exists in this company.");
+            }
             var party = _mapper.Map<Party>(partyViewModel);
             _context.Parties.Add(party);
             await _context.SaveChangesAsync();
@@ -53,7 +59,18 @@ namespace TransportExpenditureTracker.Services
         {
             var party = await _context.Parties.FindAsync(partyViewModel.PartyId);
             if (party == null) throw new KeyNotFoundException("Party not found.");
+            if (party.VatNo != partyViewModel.VatNo)
+            {
+                bool vatExists = await _context.Parties
+                    .AnyAsync(p => p.CompanyId == partyViewModel.CompanyId &&
+                                   p.VatNo == partyViewModel.VatNo &&
+                                   p.PartyId != partyViewModel.PartyId);
 
+                if (vatExists)
+                {
+                    throw new InvalidOperationException("Another party with the same VAT number already exists in this company.");
+                }
+            }
             _mapper.Map(partyViewModel, party);
             _context.Parties.Update(party);
             await _context.SaveChangesAsync();
@@ -85,5 +102,11 @@ namespace TransportExpenditureTracker.Services
         {
             return await _context.Parties.AnyAsync(p => p.PartyId == id);
         }
+        public async Task<bool> PartyExistsAsync(string vatNo, int companyId)
+        {
+            return await _context.Parties
+                .AnyAsync(p => p.CompanyId == companyId && p.VatNo == vatNo);
+        }
+
     }
 }

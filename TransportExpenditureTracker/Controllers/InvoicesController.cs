@@ -71,7 +71,13 @@ namespace TransportExpenditureTracker.Controllers
             {
                 invoice.CreatedAt = DateTime.Now;
                 invoice.UpdatedAt = DateTime.Now;
-                invoice.CompanyId= UserClaimsHelper.GetCompanyId(User);
+                int? companyIdNullable = UserClaimsHelper.GetCompanyId(User);
+                if (companyIdNullable == null)
+                {
+                    return BadRequest("Company ID is required.");
+                }
+                int companyId = companyIdNullable.Value; // Safely access the value
+                invoice.CompanyId = companyId;
                 _context.Add(invoice);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -102,9 +108,7 @@ namespace TransportExpenditureTracker.Controllers
 
             if (!string.IsNullOrWhiteSpace(updatedInvoice.NepaliMiti))
             {
-                var cleanedMiti = ConvertToEnglishDigits(updatedInvoice.NepaliMiti.Replace('-', '/'));
-                updatedInvoice.NepaliMiti = cleanedMiti;
-                updatedInvoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+                ProcessNepaliDate(updatedInvoice);
             }
 
             if (ModelState.IsValid)
@@ -199,15 +203,18 @@ namespace TransportExpenditureTracker.Controllers
 
             if (ModelState.IsValid)
             {
-                int companyId = (int)UserClaimsHelper.GetCompanyId(User); // ✅ get companyId once
+                int? companyIdNullable = UserClaimsHelper.GetCompanyId(User);
+                if (companyIdNullable == null)
+                {
+                    return BadRequest("Company ID is required.");
+                }
+                int companyId = companyIdNullable.Value; // Safely access the value
 
                 foreach (var invoice in model.Invoices)
                 {
                     if (!string.IsNullOrWhiteSpace(invoice.NepaliMiti))
                     {
-                        var cleanedMiti = ConvertToEnglishDigits(invoice.NepaliMiti.Replace('-', '/'));
-                        invoice.NepaliMiti = cleanedMiti;
-                        invoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+                        ProcessNepaliDate(invoice);
                     }
 
                     invoice.FiscalYear = model.FiscalYear;
@@ -246,5 +253,15 @@ namespace TransportExpenditureTracker.Controllers
 
             return new string(nepaliNumber.Select(c => map.TryGetValue(c, out var eng) ? eng : c).ToArray());
         }
+        private void ProcessNepaliDate(Invoice invoice)
+        {
+            if (!string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+            {
+                var cleanedMiti = ConvertToEnglishDigits(invoice.NepaliMiti.Replace('-', '/'));
+                invoice.NepaliMiti = cleanedMiti;
+                invoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+            }
+        }
+
     }
 }

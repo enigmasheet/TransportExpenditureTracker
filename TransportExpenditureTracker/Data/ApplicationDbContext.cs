@@ -59,6 +59,10 @@ namespace TransportExpenditureTracker.Data
                 .HasForeignKey(p => p.CompanyId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<Party>()
+     .HasIndex(p => new { p.CompanyId, p.VatNo })
+     .IsUnique(); // 👈 Enforces uniqueness
+
             builder.Entity<Party>().HasQueryFilter(p => CurrentCompanyId == 0 || p.CompanyId == CurrentCompanyId);
             builder.Entity<Invoice>().HasQueryFilter(inv => CurrentCompanyId == 0 ||inv.CompanyId == CurrentCompanyId);
 

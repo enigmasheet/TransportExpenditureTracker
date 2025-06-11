@@ -98,6 +98,7 @@
         </tr>
     </thead>
     <tbody>
+        @if (Model.Reports != null && Model.Reports.Any()){
         @foreach (var row in Model.Reports)
         {
             <tr>
@@ -114,6 +115,7 @@
                 <td>@row.VatAmount.ToString("N2")</td>
                 <td>@row.TotalAmount.ToString("N2")</td>
             </tr>
+        }
         }
     </tbody>
     <tfoot>

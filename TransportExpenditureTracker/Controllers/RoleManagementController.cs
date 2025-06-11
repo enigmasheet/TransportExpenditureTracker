@@ -65,6 +65,8 @@ namespace TransportExpenditureTracker.Controllers
 
             foreach (var role in allRoles)
             {
+                if (role.Name == null) continue; // Skip roles with null names
+
                 var userRolesViewModel = new ManageUserRolesViewModel
                 {
                     RoleName = role.Name,
