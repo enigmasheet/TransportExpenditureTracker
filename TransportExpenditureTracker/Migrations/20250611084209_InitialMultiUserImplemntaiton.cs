@@ -5,7 +5,7 @@
 namespace TransportExpenditureTracker.Migrations
 {
     /// <inheritdoc />
-    public partial class initalMultiUSERRR : Migration
+    public partial class InitialMultiUserImplemntaiton : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -66,9 +66,11 @@ namespace TransportExpenditureTracker.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Parties_CompanyId",
+                name: "IX_Parties_CompanyId_VatNo",
                 table: "Parties",
-                column: "CompanyId");
+                columns: new[] { "CompanyId", "VatNo" },
+                unique: true,
+                filter: "[VatNo] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Invoices_CompanyId",
@@ -107,7 +109,7 @@ namespace TransportExpenditureTracker.Migrations
                 table: "UserCompanies");
 
             migrationBuilder.DropIndex(
-                name: "IX_Parties_CompanyId",
+                name: "IX_Parties_CompanyId_VatNo",
                 table: "Parties");
 
             migrationBuilder.DropIndex(

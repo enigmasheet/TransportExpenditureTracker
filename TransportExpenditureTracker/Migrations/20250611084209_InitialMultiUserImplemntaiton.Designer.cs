@@ -12,8 +12,8 @@ using TransportExpenditureTracker.Data;
 namespace TransportExpenditureTracker.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250611054121_initalMultiUSERRR")]
-    partial class initalMultiUSERRR
+    [Migration("20250611084209_InitialMultiUserImplemntaiton")]
+    partial class InitialMultiUserImplemntaiton
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -386,7 +386,9 @@ namespace TransportExpenditureTracker.Migrations
 
                     b.HasKey("PartyId");
 
-                    b.HasIndex("CompanyId");
+                    b.HasIndex("CompanyId", "VatNo")
+                        .IsUnique()
+                        .HasFilter("[VatNo] IS NOT NULL");
 
                     b.ToTable("Parties");
                 });

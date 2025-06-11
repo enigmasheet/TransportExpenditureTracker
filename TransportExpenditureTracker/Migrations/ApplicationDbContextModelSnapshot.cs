@@ -383,7 +383,9 @@ namespace TransportExpenditureTracker.Migrations
 
                     b.HasKey("PartyId");
 
-                    b.HasIndex("CompanyId");
+                    b.HasIndex("CompanyId", "VatNo")
+                        .IsUnique()
+                        .HasFilter("[VatNo] IS NOT NULL");
 
                     b.ToTable("Parties");
                 });
