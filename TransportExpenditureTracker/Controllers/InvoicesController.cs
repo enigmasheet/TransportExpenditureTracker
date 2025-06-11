@@ -4,52 +4,45 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using NepDate;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Helpers;
 using TransportExpenditureTracker.Models;
+using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Controllers
 {
     [Authorize]
-    public class InvoicesController(ApplicationDbContext context) : Controller
+    public class InvoicesController : Controller
     {
-        private readonly ApplicationDbContext _context = context;
+        private readonly ApplicationDbContext _context;
+        private readonly ICurrentCompanyService _currentCompanyService;
 
-        private void LoadFiscalYearAndMonths()
+        public InvoicesController(ApplicationDbContext context, ICurrentCompanyService currentCompanyService)
         {
-            ViewBag.FiscalYears = new SelectList(_context.FiscalYears.OrderByDescending(f => f.Name), "Name", "Name");
+            _context = context;
+            _currentCompanyService = currentCompanyService;
 
-            var months = new[] {
-                "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush",
-                "Magh", "Falgun", "Chaitra", "Baisakh", "Jestha", "Ashadh"
-            };
-            ViewBag.FiscalMonths = new SelectList(months);
         }
-
         private void LoadDropdowns(int? selectedPartyId = null, int? selectedItemId = null)
         {
-            var parties = _context.Parties
-                .Select(p => new
-                {
-                    p.PartyId,
-                    DisplayText = p.VatNo + " - " + p.PartyName
-                })
-                .ToList();
-
-            ViewData["PartyId"] = new SelectList(parties, "PartyId", "DisplayText", selectedPartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName", selectedItemId);
+            DropdownHelper.LoadFiscalYearAndMonths(_context, ViewData);
+            DropdownHelper.LoadDropdowns(_context, ViewData, selectedPartyId, selectedItemId);
         }
 
-        // GET: Invoices
+
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.Invoices
+            var userCompanyId = UserClaimsHelper.GetCompanyId(User);
+            var invoices = await _context.Invoices
+                .Where(i => i.CompanyId == userCompanyId)
                 .Include(i => i.Party)
-                .Include(i => i.Item);
+                .Include(i => i.Item)
+                .ToListAsync();
 
-            return View(await applicationDbContext.ToListAsync());
+            return View(invoices);
         }
 
-        // GET: Invoices/Details/5
+
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -59,43 +52,41 @@ namespace TransportExpenditureTracker.Controllers
                 .Include(i => i.Item)
                 .FirstOrDefaultAsync(m => m.InvoiceId == id);
 
-            if (invoice == null) return NotFound();
-
-            return View(invoice);
+            return invoice == null ? NotFound() : View(invoice);
         }
-        
+
         [Authorize(Roles = "Admin,User")]
-        // GET: Invoices/Create
         public IActionResult Create()
         {
             LoadDropdowns();
-            LoadFiscalYearAndMonths();
             return View();
         }
 
-        // POST: Invoices/Create
-        [Authorize(Roles = "Admin,User")]
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> Create([Bind("InvoiceId,InvoiceNo,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice invoice)
         {
             if (ModelState.IsValid)
             {
                 invoice.CreatedAt = DateTime.Now;
                 invoice.UpdatedAt = DateTime.Now;
-
+                int? companyIdNullable = UserClaimsHelper.GetCompanyId(User);
+                if (companyIdNullable == null)
+                {
+                    return BadRequest("Company ID is required.");
+                }
+                int companyId = companyIdNullable.Value; // Safely access the value
+                invoice.CompanyId = companyId;
                 _context.Add(invoice);
                 await _context.SaveChangesAsync();
-
                 return RedirectToAction(nameof(Index));
             }
 
             LoadDropdowns(invoice.PartyId, invoice.ItemId);
-            LoadFiscalYearAndMonths();
             return View(invoice);
         }
 
-        // GET: Invoices/Edit/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
@@ -105,52 +96,53 @@ namespace TransportExpenditureTracker.Controllers
             if (invoice == null) return NotFound();
 
             LoadDropdowns(invoice.PartyId, invoice.ItemId);
-            LoadFiscalYearAndMonths();
-
             return View(invoice);
         }
 
-        // POST: Invoices/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("InvoiceId,InvoiceNo,NepaliMiti,Miti,PartyId,ItemId,Quantity,Rate,TaxableAmount,VatAmount,TotalInvoiceAmount,FiscalYear,FiscalMonth")] Invoice updatedInvoice)
         {
             if (id != updatedInvoice.InvoiceId) return NotFound();
+
             if (!string.IsNullOrWhiteSpace(updatedInvoice.NepaliMiti))
             {
-                var cleanedMiti = ConvertToEnglishDigits(updatedInvoice.NepaliMiti.Replace('-', '/'));
-                updatedInvoice.NepaliMiti = cleanedMiti;
-                updatedInvoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+                ProcessNepaliDate(updatedInvoice);
             }
+
             if (ModelState.IsValid)
             {
                 try
                 {
                     var existingInvoice = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.InvoiceId == id);
                     if (existingInvoice == null) return NotFound();
+                    updatedInvoice.CompanyId = existingInvoice.CompanyId;
 
-                    // Preserve created date, update updated date
                     updatedInvoice.CreatedAt = existingInvoice.CreatedAt;
                     updatedInvoice.UpdatedAt = DateTime.Now;
-
+                    var userCompanyId = UserClaimsHelper.GetCompanyId(User);
+                    var isAdmin = User.IsInRole("Admin");
+                    if (!isAdmin && existingInvoice.CompanyId != userCompanyId)
+                    {
+                        return Forbid(); // or return Unauthorized();
+                    }
                     _context.Update(updatedInvoice);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!InvoiceExists(updatedInvoice.InvoiceId)) return NotFound();
-                    else throw;
+                    throw;
                 }
+
                 return RedirectToAction(nameof(Index));
             }
 
             LoadDropdowns(updatedInvoice.PartyId, updatedInvoice.ItemId);
-            LoadFiscalYearAndMonths();
             return View(updatedInvoice);
         }
 
-        // GET: Invoices/Delete/5
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
@@ -161,12 +153,9 @@ namespace TransportExpenditureTracker.Controllers
                 .Include(i => i.Item)
                 .FirstOrDefaultAsync(m => m.InvoiceId == id);
 
-            if (invoice == null) return NotFound();
-
-            return View(invoice);
+            return invoice == null ? NotFound() : View(invoice);
         }
 
-        // POST: Invoices/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -178,12 +167,26 @@ namespace TransportExpenditureTracker.Controllers
                 _context.Invoices.Remove(invoice);
                 await _context.SaveChangesAsync();
             }
+
             return RedirectToAction(nameof(Index));
         }
 
         private bool InvoiceExists(int id)
         {
             return _context.Invoices.Any(e => e.InvoiceId == id);
+        }
+
+        [Authorize(Roles = "Admin,User")]
+        public IActionResult CreateMultiple()
+        {
+            LoadDropdowns();
+
+            var model = new InvoiceMonthly
+            {
+                Invoices = new List<Invoice> { new Invoice() }
+            };
+
+            return View(model);
         }
 
         [HttpPost]
@@ -195,57 +198,69 @@ namespace TransportExpenditureTracker.Controllers
             {
                 ModelState.AddModelError("", "Please add at least one invoice.");
                 LoadDropdowns();
-                LoadFiscalYearAndMonths();
-                return View("CreateMultiple",model);
+                return View("CreateMultiple", model);
             }
 
-        
             if (ModelState.IsValid)
             {
+                int? companyIdNullable = UserClaimsHelper.GetCompanyId(User);
+                if (companyIdNullable == null)
+                {
+                    return BadRequest("Company ID is required.");
+                }
+                int companyId = companyIdNullable.Value; // Safely access the value
+
                 foreach (var invoice in model.Invoices)
                 {
-                    var cleanedMiti = ConvertToEnglishDigits(invoice.NepaliMiti.Replace('-', '/'));
-                    invoice.NepaliMiti = cleanedMiti;
-                    invoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+                    if (!string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+                    {
+                        ProcessNepaliDate(invoice);
+                    }
+
                     invoice.FiscalYear = model.FiscalYear;
                     invoice.FiscalMonth = model.FiscalMonth;
                     invoice.CreatedAt = DateTime.Now;
                     invoice.UpdatedAt = DateTime.Now;
+                    invoice.CompanyId = companyId;
                 }
+
                 _context.Invoices.AddRange(model.Invoices);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-         
 
             LoadDropdowns();
-            LoadFiscalYearAndMonths();
             return View("CreateMultiple", model);
         }
-        [Authorize(Roles = "Admin,User")]
-        public IActionResult CreateMultiple()
-        {
-            LoadDropdowns();
-            LoadFiscalYearAndMonths();
-            var model = new InvoiceMonthly
-            {
-                Invoices = new List<Invoice> { new Invoice() }
-            };
-            return View(model);
-        }
+
         public static string ConvertToEnglishDigits(string nepaliNumber)
         {
-            return nepaliNumber
-                .Replace('०', '0')
-                .Replace('१', '1')
-                .Replace('२', '2')
-                .Replace('३', '3')
-                .Replace('४', '4')
-                .Replace('५', '5')
-                .Replace('६', '6')
-                .Replace('७', '7')
-                .Replace('८', '8')
-                .Replace('९', '9');
+            if (string.IsNullOrEmpty(nepaliNumber)) return nepaliNumber;
+
+            var map = new Dictionary<char, char>
+            {
+                ['०'] = '0',
+                ['१'] = '1',
+                ['२'] = '2',
+                ['३'] = '3',
+                ['४'] = '4',
+                ['५'] = '5',
+                ['६'] = '6',
+                ['७'] = '7',
+                ['८'] = '8',
+                ['९'] = '9'
+            };
+
+            return new string(nepaliNumber.Select(c => map.TryGetValue(c, out var eng) ? eng : c).ToArray());
+        }
+        private void ProcessNepaliDate(Invoice invoice)
+        {
+            if (!string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+            {
+                var cleanedMiti = ConvertToEnglishDigits(invoice.NepaliMiti.Replace('-', '/'));
+                invoice.NepaliMiti = cleanedMiti;
+                invoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+            }
         }
 
     }

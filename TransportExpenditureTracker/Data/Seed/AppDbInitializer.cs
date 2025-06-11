@@ -13,7 +13,7 @@ namespace TransportExpenditureTracker.Data.Seed
         public static async Task SeedRolesAdminFiscalYearsItemsAndCompaniesAsync(IServiceProvider serviceProvider)
         {
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
             // 1. Seed Roles
@@ -32,7 +32,7 @@ namespace TransportExpenditureTracker.Data.Seed
             var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
             if (superAdminUser == null)
             {
-                superAdminUser = new IdentityUser
+                superAdminUser = new ApplicationUser
                 {
                     UserName = superAdminEmail,
                     Email = superAdminEmail,
@@ -65,7 +65,7 @@ namespace TransportExpenditureTracker.Data.Seed
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
             if (adminUser == null)
             {
-                adminUser = new IdentityUser
+                adminUser = new ApplicationUser
                 {
                     UserName = adminEmail,
                     Email = adminEmail,
@@ -90,7 +90,7 @@ namespace TransportExpenditureTracker.Data.Seed
             var normalUser = await userManager.FindByEmailAsync(normalUserEmail);
             if (normalUser == null)
             {
-                normalUser = new IdentityUser
+                normalUser = new ApplicationUser
                 {
                     UserName = normalUserEmail,
                     Email = normalUserEmail,

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Data.Seed;
 using TransportExpenditureTracker.Mappings;
+using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services;
 using TransportExpenditureTracker.Services.Interfaces;
 
@@ -26,18 +27,19 @@ namespace TransportExpenditureTracker
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+            builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
             {
                 options.SignIn.RequireConfirmedAccount = true;
             })
             .AddRoles<IdentityRole>() // Add Roles
             .AddEntityFrameworkStores<ApplicationDbContext>();
-           
+
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
             builder.Services.AddScoped<IPartyService, PartyService>();
             builder.Services.AddScoped<IReportService, ReportService>();
             builder.Services.AddScoped<IPdfGenerator, PdfGenerator>();
-
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<ICurrentCompanyService, CurrentCompanyService>();
             builder.Services.AddControllersWithViews();
            
             builder.Services.AddAuthorization(options =>
@@ -69,7 +71,8 @@ namespace TransportExpenditureTracker
             app.UseStaticFiles();
             app.UseRouting();
 
-            app.UseAuthentication(); // Needed for login
+            app.UseAuthentication();
+            app.UseMiddleware<TransportExpenditureTracker.Helper.CurrentCompanyMiddleware>();
             app.UseAuthorization();
 
             app.MapControllerRoute(

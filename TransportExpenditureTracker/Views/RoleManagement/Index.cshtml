@@ -16,6 +16,7 @@
             <tr>
                 <th>Email</th>
                 <th>Roles</th>
+                <th>Company</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -26,12 +27,39 @@
                     <td>@user.Email</td>
                     <td>@string.Join(", ", user.Roles)</td>
                     <td>
-                        <a asp-action="Manage" asp-route-userId="@user.UserId" class="btn btn-sm btn-primary">
-                            Manage Roles
+                        @if (user.CompanyNames.Any())
+                        {
+                            @string.Join(", ", user.CompanyNames)
+                        }
+                        else
+                        {
+                            <span class="text-muted">None</span>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="ManageRoles" asp-route-userId="@user.UserId" class="btn btn-sm btn-primary">
+                            Roles
                         </a>
+                        <!-- Trigger Button -->
+                        <button type="button" class="btn btn-sm btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#companyModal"
+                                data-userid="@user.UserId">
+                            Manage Companies
+                        </button>
+
                     </td>
                 </tr>
             }
         </tbody>
     </table>
 </div>
+<div class="modal fade" id="companyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content" id="modalContent">
+            <!-- Content will be loaded via AJAX -->
+        </div>
+    </div>
+</div>
+
+<!-- This code is for the User Roles Management page in an ASP.NET Core MVC application. It displays a list of users with their roles and associated companies, and allows management of user roles and companies through modals. The modal content is loaded dynamically via AJAX when the "Manage Companies" button is clicked. -->
