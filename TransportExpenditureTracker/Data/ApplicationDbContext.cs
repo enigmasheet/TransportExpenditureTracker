@@ -60,9 +60,12 @@ namespace TransportExpenditureTracker.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<Party>()
-     .HasIndex(p => new { p.CompanyId, p.VatNo })
-     .IsUnique(); // 👈 Enforces uniqueness
-
+                .HasIndex(p => new { p.CompanyId, p.VatNo })
+                .IsUnique(); //Enforces uniqueness
+            
+            builder.Entity<Invoice>()
+                .HasIndex(i => new { i.InvoiceNo, i.PartyId, i.CompanyId })
+                .IsUnique();
             builder.Entity<Party>().HasQueryFilter(p => CurrentCompanyId == 0 || p.CompanyId == CurrentCompanyId);
             builder.Entity<Invoice>().HasQueryFilter(inv => CurrentCompanyId == 0 ||inv.CompanyId == CurrentCompanyId);
 

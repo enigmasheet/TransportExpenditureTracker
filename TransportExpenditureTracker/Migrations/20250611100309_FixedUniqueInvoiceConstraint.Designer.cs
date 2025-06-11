@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TransportExpenditureTracker.Data;
 
@@ -11,9 +12,11 @@ using TransportExpenditureTracker.Data;
 namespace TransportExpenditureTracker.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250611100309_FixedUniqueInvoiceConstraint")]
+    partial class FixedUniqueInvoiceConstraint
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -251,7 +254,7 @@ namespace TransportExpenditureTracker.Migrations
                     b.HasIndex("VatNumber")
                         .IsUnique();
 
-                    b.ToTable("Companies", (string)null);
+                    b.ToTable("Companies");
                 });
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.FiscalYear", b =>
@@ -268,7 +271,7 @@ namespace TransportExpenditureTracker.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FiscalYears", (string)null);
+                    b.ToTable("FiscalYears");
                 });
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.Invoice", b =>
@@ -340,7 +343,7 @@ namespace TransportExpenditureTracker.Migrations
                         .IsUnique()
                         .HasFilter("[CompanyId] IS NOT NULL");
 
-                    b.ToTable("Invoices", (string)null);
+                    b.ToTable("Invoices");
                 });
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.Item", b =>
@@ -358,7 +361,7 @@ namespace TransportExpenditureTracker.Migrations
 
                     b.HasKey("ItemId");
 
-                    b.ToTable("Items", (string)null);
+                    b.ToTable("Items");
                 });
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.Party", b =>
@@ -391,7 +394,7 @@ namespace TransportExpenditureTracker.Migrations
                         .IsUnique()
                         .HasFilter("[VatNo] IS NOT NULL");
 
-                    b.ToTable("Parties", (string)null);
+                    b.ToTable("Parties");
                 });
 
             modelBuilder.Entity("TransportExpenditureTracker.Models.UserCompany", b =>
@@ -419,7 +422,7 @@ namespace TransportExpenditureTracker.Migrations
                     b.HasIndex("UserId", "CompanyId")
                         .IsUnique();
 
-                    b.ToTable("UserCompanies", (string)null);
+                    b.ToTable("UserCompanies");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
