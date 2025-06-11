@@ -11,6 +11,8 @@ namespace TransportExpenditureTracker.Models
         [Key]
         public int InvoiceId { get; set; }
 
+
+
         [Required]
         [MaxLength(50)]
         [Display(Name = "Invoice Number")]
@@ -79,5 +81,10 @@ namespace TransportExpenditureTracker.Models
 
         [ValidateNever]
         public Item Item { get; set; } = null!;
+
+        public int? CompanyId { get; set; }
+
+        public Company? Company { get; set; }
+
     }
 }

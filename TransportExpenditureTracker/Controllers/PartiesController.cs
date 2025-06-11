@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TransportExpenditureTracker.Helpers;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
 
@@ -18,14 +19,16 @@ namespace TransportExpenditureTracker.Controllers
         // GET: Parties
         public async Task<IActionResult> Index(string searchTerm)
         {
+            var companyId = UserClaimsHelper.GetCompanyId(User);
+
             if (string.IsNullOrWhiteSpace(searchTerm))
             {
-                var allParties = await _partyService.GetAllPartiesAsync();
+                var allParties = await _partyService.GetAllPartiesAsync(companyId.Value);
                 return View(allParties);
             }
             else
             {
-                var filteredParties = await _partyService.SearchPartiesAsync(searchTerm);
+                var filteredParties = await _partyService.SearchPartiesAsync(searchTerm, companyId.Value);
                 return View(filteredParties);
             }
         }
@@ -59,6 +62,17 @@ namespace TransportExpenditureTracker.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(PartyViewModel partyViewModel)
         {
+            // ✅ Inject CompanyId before validation
+            var companyIdClaim = User.FindFirst("CompanyId")?.Value;
+            if (!string.IsNullOrEmpty(companyIdClaim) && int.TryParse(companyIdClaim, out int companyId))
+            {
+                partyViewModel.CompanyId = companyId;
+            }
+            else
+            {
+                return Unauthorized(); // Or add error message
+            }
+
             if (!ModelState.IsValid)
             {
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -78,6 +92,7 @@ namespace TransportExpenditureTracker.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
 
         // GET: Parties/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -100,12 +115,20 @@ namespace TransportExpenditureTracker.Controllers
             if (id != partyViewModel.PartyId)
                 return NotFound();
 
+            // Optionally inject again to enforce correct CompanyId
+            var companyIdClaim = User.FindFirst("CompanyId")?.Value;
+            if (!string.IsNullOrEmpty(companyIdClaim) && int.TryParse(companyIdClaim, out int companyId))
+            {
+                partyViewModel.CompanyId = companyId;
+            }
+
             if (!ModelState.IsValid)
                 return View(partyViewModel);
 
             await _partyService.UpdatePartyAsync(partyViewModel);
             return RedirectToAction(nameof(Index));
         }
+ 
        
         [Authorize(Roles = "Admin")]
         // GET: Parties/Delete/5
@@ -134,7 +157,9 @@ namespace TransportExpenditureTracker.Controllers
         // Optional: Search endpoint
         public async Task<IActionResult> Search(string searchTerm)
         {
-            var results = await _partyService.SearchPartiesAsync(searchTerm);
+            var companyId = UserClaimsHelper.GetCompanyId(User);
+
+            var results = await _partyService.SearchPartiesAsync(searchTerm,companyId.Value);
             return View("Index", results);
         }
     }

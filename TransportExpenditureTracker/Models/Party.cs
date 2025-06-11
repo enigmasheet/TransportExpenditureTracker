@@ -22,7 +22,13 @@ namespace TransportExpenditureTracker.Models
         [MaxLength(50)]
         public string? VatNo { get; set; }
 
+        public int CompanyId { get; set; }
+
+        // Navigation property for Company
+        public Company? Company { get; set; }
+
         // Navigation property: One party can have many invoices
         public ICollection<Invoice> Invoices { get; set; }
     }
+
 }

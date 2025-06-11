@@ -11,11 +11,11 @@ namespace TransportExpenditureTracker.Controllers
     [Authorize(Policy = "RequireSuperAdminRole")]
     public class RoleManagementController : Controller
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _context;
 
-        public RoleManagementController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
+        public RoleManagementController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext context)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -106,31 +106,31 @@ namespace TransportExpenditureTracker.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-        public async Task<IActionResult> ManageUserCompanies(string userId)
+       public async Task<IActionResult> ManageUserCompanies(string userId)
+{
+    var user = await _userManager.FindByIdAsync(userId);
+    if (user == null) return NotFound();
+
+    var allCompanies = await _context.Companies.AsNoTracking().ToListAsync();
+    var userCompanyIds = await _context.UserCompanies
+        .Where(uc => uc.UserId == userId)
+        .Select(uc => uc.CompanyId)
+        .ToListAsync();
+
+    var viewModel = new ManageUserCompaniesPageViewModel
+    {
+        UserId = user.Id,
+        Email = user.Email,
+        Companies = allCompanies.Select(c => new ManageUserCompaniesViewModel
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound();
+            CompanyId = c.Id,
+            CompanyName = c.Name,
+            Selected = userCompanyIds.Contains(c.Id)
+        }).ToList()
+    };
 
-            var allCompanies = await _context.Companies.AsNoTracking().ToListAsync();
-            var userCompanyIds = await _context.UserCompanies
-                .Where(uc => uc.UserId == userId)
-                .Select(uc => uc.CompanyId)
-                .ToListAsync();
-
-            var viewModel = new ManageUserCompaniesPageViewModel
-            {
-                UserId = user.Id,
-                Email = user.Email,
-                Companies = allCompanies.Select(c => new ManageUserCompaniesViewModel
-                {
-                    CompanyId = c.Id,
-                    CompanyName = c.Name,
-                    Selected = userCompanyIds.Contains(c.Id)
-                }).ToList()
-            };
-
-            return PartialView("_ManageUserCompaniesModal", viewModel);
-        }
+    return PartialView("_ManageUserCompaniesModal", viewModel);
+}
 
 
         [HttpPost]

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Helpers;
 using TransportExpenditureTracker.Services;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
@@ -59,9 +60,10 @@ namespace TransportExpenditureTracker.Controllers
         {
             LoadFiscalYearAndMonths();  
             LoadDropdowns(filters.PartyId, filters.ItemId);
+            var companyId = UserClaimsHelper.GetCompanyId(User);
 
             var pagedResult = await _reportService.GetVatInvoiceReportAsync(filters);
-            var parties = await _partyService.GetAllPartiesAsync();
+            var parties = await _partyService.GetAllPartiesAsync(companyId.Value);
 
             var model = new ReportPageViewModel
             {
@@ -111,10 +113,5 @@ namespace TransportExpenditureTracker.Controllers
             var pdf = _pdfGenerator.GenerateVatInvoiceReport(report, selectedCompany);
             return File(pdf, "application/pdf", $"VAT_Report_{DateTime.Now:yyyyMMdd}.pdf");
         }
-
-
-
-
-
     }
 }

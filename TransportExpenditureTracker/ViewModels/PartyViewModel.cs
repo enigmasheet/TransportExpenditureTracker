@@ -15,5 +15,8 @@ namespace TransportExpenditureTracker.ViewModels
 
         [Display(Name = "VAT Number")]
         public  string? VatNo { get; set; }
+    
+        [Display(Name = "User Company Id")]
+        public int CompanyId { get; set; }
     }
 }

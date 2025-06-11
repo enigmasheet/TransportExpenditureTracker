@@ -11,18 +11,26 @@ namespace TransportExpenditureTracker.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly ICurrentCompanyService _currentCompanyService;
 
-        public PartyService(ApplicationDbContext context, IMapper mapper)
+
+        public PartyService(ApplicationDbContext context, IMapper mapper, ICurrentCompanyService currentCompanyService)
         {
             _context = context;
             _mapper = mapper;
+            _currentCompanyService = currentCompanyService;
+
         }
 
-        public async Task<List<PartyViewModel>> GetAllPartiesAsync()
+        public async Task<List<PartyViewModel>> GetAllPartiesAsync(int companyId)
         {
-            var parties = await _context.Parties.ToListAsync();
+            var parties = await _context.Parties
+                .Where(p => p.CompanyId == companyId)
+                 .ToListAsync();
+
             return _mapper.Map<List<PartyViewModel>>(parties);
         }
+
 
         public async Task<PartyViewModel> GetPartyByIdAsync(int id)
         {
@@ -60,16 +68,18 @@ namespace TransportExpenditureTracker.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<PartyViewModel>> SearchPartiesAsync(string searchTerm)
+        public async Task<List<PartyViewModel>> SearchPartiesAsync(string searchTerm, int companyId)
         {
             var parties = await _context.Parties
-                .Where(p => p.PartyName.Contains(searchTerm) ||
+                .Where(p => p.CompanyId == companyId &&
+                           (p.PartyName.Contains(searchTerm) ||
                             p.Location.Contains(searchTerm) ||
-                            p.VatNo.Contains(searchTerm))
+                            p.VatNo.Contains(searchTerm)))
                 .ToListAsync();
 
             return _mapper.Map<List<PartyViewModel>>(parties);
         }
+
 
         public async Task<bool> PartyExistsAsync(int id)
         {

@@ -22,8 +22,9 @@ namespace TransportExpenditureTracker.Models
         [Display(Name ="Contact Number")]
         [MaxLength(15, ErrorMessage = "Contact number cannot exceed 15 characters.")]
         public required string ContactNumber { get; set; }
+        public ICollection<Party> Parties { get; set; } = new HashSet<Party>();// <-- needed for WithMany in Party config
 
-        public ICollection<UserCompany> UserCompanies { get; set; } = [];
+        public ICollection<UserCompany> UserCompanies { get; set; } = new HashSet<UserCompany>();
     }
 
 }

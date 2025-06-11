@@ -10,17 +10,18 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Models;
 
 namespace TransportExpenditureTracker.Areas.Identity.Pages.Account
 {
     public class LoginModel : PageModel
     {
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<LoginModel> _logger;
         private readonly ApplicationDbContext _context;
 
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, ApplicationDbContext context)
+        public LoginModel(SignInManager<ApplicationUser> signInManager, ILogger<LoginModel> logger, ApplicationDbContext context)
         {
             _signInManager = signInManager;
             _logger = logger;
@@ -127,6 +128,7 @@ namespace TransportExpenditureTracker.Areas.Identity.Pages.Account
 
                         if (userCompany != null)
                         {
+                            identity.AddClaim(new Claim("CompanyId", userCompany.CompanyId.ToString()));
                             identity.AddClaim(new Claim("CompanyVat", userCompany.Company.VatNumber.ToString()));
                             identity.AddClaim(new Claim("CompanyName", userCompany.Company.Name));
                         }
