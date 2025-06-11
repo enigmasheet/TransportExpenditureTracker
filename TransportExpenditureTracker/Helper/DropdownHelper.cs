@@ -16,8 +16,8 @@ namespace TransportExpenditureTracker.Helpers
 
             viewData["FiscalMonths"] = new SelectList(new[]
             {
-                "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush",
-                "Magh", "Falgun", "Chaitra", "Baisakh", "Jestha", "Ashadh"
+                "Shrawan(4)", "Bhadra(5)", "Ashwin(6)", "Kartik(7)", "Mangsir(8)", "Poush(9)",
+                "Magh(10)", "Falgun(11)", "Chaitra(12)", "Baisakh(1)", "Jestha(2)", "Ashadh(3)"
             });
         }
 
