@@ -51,8 +51,7 @@
                         @if (isSuperAdmin)
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="RoleManagement" asp-action="Index">Manage Roles</a>
-                                <a class="nav-link""  asp-controller="RoleManagement" asp-action="UserCompanies">Manage User Companies</a>
+                                <a class="nav-link" asp-controller="RoleManagement" asp-action="Index">Manage</a>
 
                             </li>
                         }
@@ -109,6 +108,19 @@
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        $(document).ready(function () {
+            $('#companyModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var userId = button.data('userid');
+                var modal = $(this);
+
+                $.get('/RoleManagement/ManageUserCompanies', { userId: userId }, function (data) {
+                    modal.find('#modalContent').html(data);
+                });
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

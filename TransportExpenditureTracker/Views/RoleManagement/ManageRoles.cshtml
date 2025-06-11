@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <h3 class="mb-3">Manage Roles for: <strong>@ViewBag.userEmail</strong></h3>
 
-    <form asp-action="Manage" method="post">
+    <form asp-action="ManageRoles" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="userId" value="@ViewBag.userId" />
 
