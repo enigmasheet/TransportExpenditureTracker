@@ -1,16 +1,16 @@
 @model IEnumerable<TransportExpenditureTracker.Models.Invoice>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Invoice List";
 }
 
-<h1>Index</h1>
+<h1>Invoice List</h1>
 
 @if (User.IsInRole("Admin") || User.IsInRole("User"))
 {
     <p>
         <a asp-action="CreateMultiple" class="btn btn-success">
-            <i class="bi bi-plus-circle"></i> Create New
+            <i class="bi bi-plus-circle"></i> Create New Invoice
         </a>
     </p>
 }

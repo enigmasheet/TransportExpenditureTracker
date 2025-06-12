@@ -1,13 +1,15 @@
 @model IEnumerable<TransportExpenditureTracker.Models.Item>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Items List";
 }
 
-<h1>Index</h1>
+<h1>Item List</h1>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    <a asp-action="Create" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Create New Item
+    </a>
 </p>
 <table class="table">
     <thead>

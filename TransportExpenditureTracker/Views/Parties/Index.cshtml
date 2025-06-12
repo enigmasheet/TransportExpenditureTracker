@@ -6,7 +6,11 @@
 }
 
 <h1>Party List</h1>
-
+<p>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createPartyModal">
+        <i class="bi bi-plus-circle"></i> Create New Party
+    </button>
+</p>
 @using (Html.BeginForm("Search", "Parties", FormMethod.Get))
 {
     <div class="input-group mb-3">
@@ -19,11 +23,7 @@
     </div>
 }
 
-<p>
-    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createPartyModal">
-        <i class="bi bi-plus-lg"></i> Create New Party
-    </button>
-</p>
+
 
 <table class="table table-bordered table-hover">
     <thead class="table-light">
