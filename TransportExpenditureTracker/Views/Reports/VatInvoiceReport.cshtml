@@ -65,7 +65,8 @@
 @if (Model.Reports != null && Model.Reports.Any())
 {
     <div class="m-3 text-end">
-        <form asp-controller="Reports" asp-action="ExportVatInvoicePdf" method="get">
+        <form asp-controller="Reports" asp-action="ExportVatInvoiceReport" method="get" style="display:inline-block;">
+            <input type="hidden" name="format" value="pdf" />
             <input type="hidden" name="FiscalYear" value="@Model.Filters.FiscalYear" />
             <input type="hidden" name="FiscalMonth" value="@Model.Filters.FiscalMonth" />
             <input type="hidden" name="FromDate" value="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" />
@@ -75,8 +76,21 @@
             <input type="hidden" name="InvoiceNo" value="@Model.Filters.InvoiceNo" />
             <button type="submit" class="btn btn-primary">Download PDF</button>
         </form>
+
+        <form asp-controller="Reports" asp-action="ExportVatInvoiceReport" method="get" style="display:inline-block; margin-left:10px;">
+            <input type="hidden" name="format" value="excel" />
+            <input type="hidden" name="FiscalYear" value="@Model.Filters.FiscalYear" />
+            <input type="hidden" name="FiscalMonth" value="@Model.Filters.FiscalMonth" />
+            <input type="hidden" name="FromDate" value="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="ToDate" value="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="PartyId" value="@Model.Filters.PartyId" />
+            <input type="hidden" name="ItemId" value="@Model.Filters.ItemId" />
+            <input type="hidden" name="InvoiceNo" value="@Model.Filters.InvoiceNo" />
+            <button type="submit" class="btn btn-success">Download Excel</button>
+        </form>
     </div>
 }
+
 
 
 

@@ -16,15 +16,15 @@ namespace TransportExpenditureTracker.Controllers
     {
         private readonly IReportService _reportService;
         private readonly IPartyService _partyService;
-        private readonly IPdfGenerator _pdfGenerator; 
+        private readonly IReportExportService _reportExportService;
         private readonly ApplicationDbContext _context;
 
-        public ReportsController(IReportService reportService, IPartyService partyService, ApplicationDbContext context, IPdfGenerator pdfGenerator)
+        public ReportsController(IReportService reportService, IPartyService partyService, ApplicationDbContext context, IReportExportService reportExportService)
         {
             _reportService = reportService;
             _partyService = partyService;
             _context = context;
-            _pdfGenerator = pdfGenerator;
+            _reportExportService = reportExportService;
         }
         private void LoadFiscalYearAndMonths()
         {
@@ -77,9 +77,9 @@ namespace TransportExpenditureTracker.Controllers
             return View(model);
         }
         [HttpGet]
-        public async Task<IActionResult> ExportVatInvoicePdf(ReportFilterViewModel filters)
+        public async Task<IActionResult> ExportVatInvoiceReport(string format, ReportFilterViewModel filters)
         {
-            // Fetch all records ignoring pagination for export
+            // Fetch all records for export
             filters.PageNumber = 1;
             filters.PageSize = int.MaxValue;
 
@@ -93,11 +93,7 @@ namespace TransportExpenditureTracker.Controllers
             }
 
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized();
-            }
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var selectedCompany = await _context.UserCompanies
                 .Include(u => u.Company)
@@ -110,8 +106,19 @@ namespace TransportExpenditureTracker.Controllers
                 return BadRequest("No company selected.");
             }
 
-            var pdf = _pdfGenerator.GenerateVatInvoiceReport(report, selectedCompany);
-            return File(pdf, "application/pdf", $"VAT_Report_{DateTime.Now:yyyyMMdd}.pdf");
+            if (format?.ToLower() == "excel")
+            {
+                var excel = _reportExportService.GenerateVatInvoiceExcel(report, selectedCompany);
+                return File(excel,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"VAT_Report_{DateTime.Now:yyyyMMdd}.xlsx");
+            }
+            else // default to PDF
+            {
+                var pdf = _reportExportService.GenerateVatInvoiceReport(report, selectedCompany);
+                return File(pdf, "application/pdf", $"VAT_Report_{DateTime.Now:yyyyMMdd}.pdf");
+            }
         }
+
     }
 }

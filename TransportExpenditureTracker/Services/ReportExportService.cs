@@ -1,14 +1,119 @@
-﻿using iTextSharp.text;
+﻿using ClosedXML.Excel;
+using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System.IO;
-using TransportExpenditureTracker.ViewModels;
-using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.Models;
+using TransportExpenditureTracker.Services.Interfaces;
+using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services
 {
-    public class PdfGenerator : IPdfGenerator
+    public class ReportExportService : IReportExportService
     {
+        public byte[] GenerateVatInvoiceExcel(List<ReportRowViewModel> reports, Company company)
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("VAT Invoice Report");
+
+            // Merge and set header info across columns 1-12
+            worksheet.Range(1, 1, 1, 12).Merge().Value = $"Company: {company.Name}";
+            worksheet.Range(1, 1, 1, 12).Style.Font.Bold = true;
+            worksheet.Range(1, 1, 1, 12).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+            worksheet.Range(2, 1, 2, 12).Merge().Value = $"Location: {company.Location}";
+            worksheet.Range(3, 1, 3, 12).Merge().Value = $"VAT No: {company.VatNumber}";
+            worksheet.Range(4, 1, 4, 12).Merge().Value = $"Contact: {company.ContactNumber}";
+
+            // Report Title - merged and centered
+            worksheet.Range(6, 1, 6, 12).Merge().Value = "VAT Invoice Report";
+            worksheet.Range(6, 1, 6, 12).Style.Font.Bold = true;
+            worksheet.Range(6, 1, 6, 12).Style.Font.FontSize = 16;
+            worksheet.Range(6, 1, 6, 12).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // Column Headers
+            var headers = new[]
+            {
+            "S.N.", "Date", "Invoice No", "Party", "Location", "Vat No",
+            "Item", "Qty", "Rate", "Taxable", "VAT", "Total Amount"
+        };
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = worksheet.Cell(8, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
+
+            // Data Rows
+            int row = 9;
+            decimal totalTaxable = 0, totalVat = 0, totalAmount = 0;
+
+            foreach (var item in reports)
+            {
+                worksheet.Cell(row, 1).Value = item.Sno;
+                worksheet.Cell(row, 2).Value = item.Miti;
+                worksheet.Cell(row, 3).Value = item.InvoiceNo;
+                worksheet.Cell(row, 4).Value = item.PartyName;
+                worksheet.Cell(row, 5).Value = item.Location;
+                worksheet.Cell(row, 6).Value = item.VatNo;
+                worksheet.Cell(row, 7).Value = item.ItemName;
+                worksheet.Cell(row, 8).Value = item.Quantity;
+                worksheet.Cell(row, 9).Value = item.Rate;
+                worksheet.Cell(row, 10).Value = item.TaxableAmount;
+                worksheet.Cell(row, 11).Value = item.VatAmount;
+                worksheet.Cell(row, 12).Value = item.TotalAmount;
+
+                totalTaxable += item.TaxableAmount;
+                totalVat += item.VatAmount;
+                totalAmount += item.TotalAmount;
+
+                row++;
+            }
+
+            // Totals row styling
+            var totalLabelCell = worksheet.Cell(row, 9);
+            totalLabelCell.Value = "Total:";
+            totalLabelCell.Style.Font.Bold = true;
+            totalLabelCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+            totalLabelCell.Style.Alignment.Indent = 1;
+
+            worksheet.Cell(row, 10).Value = totalTaxable;
+            worksheet.Cell(row, 11).Value = totalVat;
+            worksheet.Cell(row, 12).Value = totalAmount;
+            worksheet.Row(row).Style.Fill.BackgroundColor = XLColor.LightGray;
+
+            // Format columns
+            worksheet.Column(8).Style.NumberFormat.Format = "#,##0";      // Qty as integer
+            worksheet.Column(9).Style.NumberFormat.Format = "#,##0.00";   // Rate
+            worksheet.Column(10).Style.NumberFormat.Format = "#,##0.00";  // Taxable
+            worksheet.Column(11).Style.NumberFormat.Format = "#,##0.00";  // VAT
+            worksheet.Column(12).Style.NumberFormat.Format = "#,##0.00";  // Total Amount
+
+            // Align text columns left
+            worksheet.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            worksheet.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            worksheet.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+            // Align numeric columns right
+            for (int i = 8; i <= 12; i++)
+                worksheet.Column(i).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+
+            // Add autofilter to header row
+            worksheet.Range(8, 1, row - 1, 12).SetAutoFilter();
+
+            worksheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }
+     
+
+
+
         public byte[] GenerateVatInvoiceReport(List<ReportRowViewModel> data, Company company)
         {
             using (var memoryStream = new MemoryStream())
@@ -130,9 +235,10 @@ namespace TransportExpenditureTracker.Services
                 };
                 footerTbl.DefaultCell.Border = Rectangle.NO_BORDER;
                 footerTbl.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                footerTbl.AddCell(new Phrase("This is a computer generated report", footerFont));
 
-                // Write footer at bottom
+                string text = $"Page {writer.PageNumber} - This is a computer generated report";
+                footerTbl.AddCell(new Phrase(text, footerFont));
+
                 footerTbl.WriteSelectedRows(0, -1, document.LeftMargin, document.BottomMargin - 5, writer.DirectContent);
             }
         }
