@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Data.Seed;
@@ -35,6 +36,8 @@ namespace TransportExpenditureTracker
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
             builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
+            builder.Services.AddTransient<IEmailSender<ApplicationUser>, EmailSender>();
+            builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
             builder.Services.AddScoped<IPartyService, PartyService>();
             builder.Services.AddScoped<IReportService, ReportService>();
             builder.Services.AddScoped<IReportExportService, ReportExportService>();
