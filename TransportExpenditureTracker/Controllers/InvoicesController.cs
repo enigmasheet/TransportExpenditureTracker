@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Packaging;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -208,30 +210,222 @@ namespace TransportExpenditureTracker.Controllers
                 {
                     return BadRequest("Company ID is required.");
                 }
-                int companyId = companyIdNullable.Value; // Safely access the value
+                const int batchSize = 100;
+                var invoices = model.Invoices;
+                int companyId = companyIdNullable.Value;
 
-                foreach (var invoice in model.Invoices)
+                _context.ChangeTracker.AutoDetectChangesEnabled = false; // improve performance
+                try
                 {
-                    if (!string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+                    for (int i = 0; i < invoices.Count; i += batchSize)
                     {
-                        ProcessNepaliDate(invoice);
-                    }
+                        var batch = invoices.Skip(i).Take(batchSize).ToList();
 
-                    invoice.FiscalYear = model.FiscalYear;
-                    invoice.FiscalMonth = model.FiscalMonth;
-                    invoice.CreatedAt = DateTime.Now;
-                    invoice.UpdatedAt = DateTime.Now;
-                    invoice.CompanyId = companyId;
+                        foreach (var invoice in batch)
+                        {
+                            if (!string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+                            {
+                                ProcessNepaliDate(invoice);
+                            }
+
+                            invoice.FiscalYear = model.FiscalYear;
+                            invoice.FiscalMonth = model.FiscalMonth;
+                            invoice.CreatedAt = DateTime.Now;
+                            invoice.UpdatedAt = DateTime.Now;
+                            invoice.CompanyId = companyId;
+                        }
+
+                        _context.Invoices.AddRange(batch);
+                        await _context.SaveChangesAsync();
+                        _context.ChangeTracker.Clear(); // clear tracked entities after save
+                    }
+                }
+                finally
+                {
+                    _context.ChangeTracker.AutoDetectChangesEnabled = true; // restore tracking
                 }
 
-                _context.Invoices.AddRange(model.Invoices);
-                await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
 
             LoadDropdowns();
             return View("CreateMultiple", model);
         }
+
+        [Authorize(Roles = "Admin,User")]
+        public IActionResult ImportExcel()
+        {
+            LoadDropdowns();
+            return View();
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,User")]
+        public async Task<IActionResult> ImportExcel(string FiscalYear, string FiscalMonth, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                ModelState.AddModelError("", "Please select a valid Excel file.");
+                LoadDropdowns();
+                return View();
+            }
+
+            var model = new InvoiceMonthly
+            {
+                Invoices = new List<Invoice>()
+            };
+
+            var importErrors = new List<string>();
+
+            using (var stream = new MemoryStream())
+            {
+                await file.CopyToAsync(stream);
+                using (var workbook = new XLWorkbook(stream))
+                {
+                    var worksheet = workbook.Worksheet(1);
+                    var rows = worksheet.RangeUsed().RowsUsed().Skip(1);
+
+                    int rowIndex = 2; // starting row after header
+
+                    
+                        foreach (var row in rows)
+                        {
+                            var invoiceNoCell = row.Cell(3).GetString().Trim();
+                            var vatNoCell = row.Cell(6).GetString().Trim();
+
+                            if (string.IsNullOrWhiteSpace(invoiceNoCell) && string.IsNullOrWhiteSpace(vatNoCell))
+                            {
+                                rowIndex++;
+                                continue;
+                            }
+
+                            var nepaliMiti = row.Cell(2).GetString();
+
+                            if (string.IsNullOrWhiteSpace(nepaliMiti))
+                            {
+                                importErrors.Add($"Row {rowIndex}: Nepali date is empty");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            var vatNo = vatNoCell;
+
+                            if (string.IsNullOrWhiteSpace(vatNo) || vatNo.Length != 9)
+                            {
+                                importErrors.Add($"Row {rowIndex}: Invalid VAT No '{vatNo}'");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            var party = await _context.Parties.FirstOrDefaultAsync(p => p.VatNo == vatNo);
+                            if (party == null)
+                            {
+                                importErrors.Add($"Row {rowIndex}: VAT No '{vatNo}' not found in system");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            var invoiceNo = invoiceNoCell;
+                            var companyId = UserClaimsHelper.GetCompanyId(User) ?? 0;
+
+                            bool exists = await _context.Invoices.AnyAsync(i => i.InvoiceNo == invoiceNo && i.CompanyId == companyId);
+                            if (exists)
+                            {
+                                importErrors.Add($"Row {rowIndex}: Invoice No '{invoiceNo}' already exists");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            // Parse numbers safely
+                            if (!TryGetDecimalFromCell(row.Cell(8), out decimal quantity))
+                            {
+                                importErrors.Add($"Row {rowIndex}: Invalid Quantity");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            if (!TryGetDecimalFromCell(row.Cell(9), out decimal rate))
+                            {
+                                importErrors.Add($"Row {rowIndex}: Invalid Rate");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            if (!TryGetDecimalFromCell(row.Cell(10), out decimal taxableAmount))
+                            {
+                                importErrors.Add($"Row {rowIndex}: Invalid Taxable Amount");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            if (!TryGetDecimalFromCell(row.Cell(11), out decimal vatAmount))
+                            {
+                                importErrors.Add($"Row {rowIndex}: Invalid VAT Amount");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            if (!TryGetDecimalFromCell(row.Cell(12), out decimal totalInvoiceAmount))
+                            {
+                                importErrors.Add($"Row {rowIndex}: Invalid Total Invoice Amount");
+                                rowIndex++;
+                                continue;
+                            }
+
+                            var invoice = new Invoice
+                            {
+                                NepaliMiti = nepaliMiti,
+                                InvoiceNo = invoiceNo,
+                                PartyId = party.PartyId,
+                                ItemId = GetItemIdByName(row.Cell(7).GetString()),
+                                Quantity = quantity,
+                                Rate = rate,
+                                TaxableAmount = quantity*rate,
+                                VatAmount = (quantity * rate) * 0.13m,  // 13% VAT as decimal
+                                TotalInvoiceAmount = (quantity * rate) * 1.13m,  // Total = taxable + VAT
+                                CreatedAt = DateTime.Now,
+                                UpdatedAt = DateTime.Now,
+                                CompanyId = companyId,
+                                FiscalYear = FiscalYear,
+                                FiscalMonth = FiscalMonth
+                            };
+
+                            ProcessNepaliDateImport(invoice);
+
+                            model.Invoices.Add(invoice);
+                            rowIndex++;
+                        }
+
+
+
+                }
+            }
+
+            LoadDropdowns();
+
+            // Pass errors to ViewBag so you can display in the View
+            ViewBag.ImportErrors = importErrors;
+
+            return View("CreateMultiple", model);
+        }
+
+
+        private int GetItemIdByName(string itemName)
+        {
+            if (string.IsNullOrWhiteSpace(itemName))
+                return 0;
+
+            var normalizedInput = itemName.Trim().ToUpper();
+
+            // Get all items as list and search in-memory:
+            var items = _context.Items.AsEnumerable();
+
+            var item = items.FirstOrDefault(i => i.ItemName != null && i.ItemName.Trim().ToUpper() == normalizedInput);
+
+            return item?.ItemId ?? 0;
+        }
+
+
 
         public static string ConvertToEnglishDigits(string nepaliNumber)
         {
@@ -255,13 +449,123 @@ namespace TransportExpenditureTracker.Controllers
         }
         private void ProcessNepaliDate(Invoice invoice)
         {
-            if (!string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+            if (string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+                return;
+
+            var cleanedMiti = ConvertToEnglishDigits(invoice.NepaliMiti.Replace('-', '/'));
+            var parts = cleanedMiti.Split('/');
+            if (parts.Length != 3)
+            {
+                // Invalid format
+                return;
+            }
+
+            int day, month, year;
+
+            // Detect format: if first part has 4 digits, treat as yyyy/mm/dd
+            if (parts[0].Length == 4)
+            {
+                // yyyy/mm/dd
+                year = int.Parse(parts[0]);
+                month = int.Parse(parts[1]);
+                day = int.Parse(parts[2]);
+            }
+            else
+            {
+                // dd/mm/yyyy
+                day = int.Parse(parts[0]);
+                month = int.Parse(parts[1]);
+                year = int.Parse(parts[2]);
+            }
+
+            var engDate = new NepaliDate(year, month, day).EnglishDate;
+            invoice.NepaliMiti = cleanedMiti;
+            invoice.Miti = engDate;
+        }
+
+        private void ProcessNepaliDateImport(Invoice invoice)
+        {
+            if (string.IsNullOrWhiteSpace(invoice.NepaliMiti))
+                return;
+
+            try
             {
                 var cleanedMiti = ConvertToEnglishDigits(invoice.NepaliMiti.Replace('-', '/'));
-                invoice.NepaliMiti = cleanedMiti;
-                invoice.Miti = new NepaliDate(cleanedMiti).EnglishDate;
+
+                // Remove time part if present by splitting at space and taking the first segment
+                var datePart = cleanedMiti.Split(' ')[0];
+
+                var parts = datePart.Split('/');
+                if (parts.Length != 3)
+                {
+                    // Invalid format
+                    return;
+                }
+
+                int day, month, year;
+
+                // Detect format: if first part has 4 digits, treat as yyyy/mm/dd
+                if (parts[0].Length == 4)
+                {
+                    // yyyy/mm/dd
+                    year = int.Parse(parts[0]);
+                    month = int.Parse(parts[1]);
+                    day = int.Parse(parts[2]);
+                }
+                else
+                {
+                    // dd/mm/yyyy
+                    day = int.Parse(parts[0]);
+                    month = int.Parse(parts[1]);
+                    year = int.Parse(parts[2]);
+                }
+
+                var engDate = new NepaliDate(year, month, day).EnglishDate;
+
+                // Assign the Gregorian equivalent to a DateTime property, e.g. Miti
+                invoice.Miti = engDate;
+
+                // Also update the cleaned NepaliMiti string if needed
+                invoice.NepaliMiti = $"{year:D4}/{month:D2}/{day:D2}"; ;
+            }
+            catch (Exception ex)
+            {
+                // Log or handle parsing error
             }
         }
+
+
+        private bool TryGetIntFromCell(IXLCell cell, out int result)
+        {
+            result = 0;
+            if (cell.IsEmpty()) return false;
+
+            if (cell.DataType == XLDataType.Number)
+            {
+                result = (int)cell.GetDouble();
+                return true;
+            }
+            else
+            {
+                return int.TryParse(cell.GetString(), out result);
+            }
+        }
+        private bool TryGetDecimalFromCell(IXLCell cell, out decimal result)
+        {
+            result = 0;
+            if (cell.IsEmpty()) return false;
+
+            if (cell.DataType == XLDataType.Number)
+            {
+                result = (decimal)cell.GetDouble();
+                return true;
+            }
+            else
+            {
+                return decimal.TryParse(cell.GetString(), out result);
+            }
+        }
+
 
     }
 }

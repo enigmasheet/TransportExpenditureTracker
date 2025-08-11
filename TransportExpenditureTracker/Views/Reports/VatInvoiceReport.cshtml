@@ -53,6 +53,12 @@
                 <option value="">-- Select Party --</option>
             </select>
         </div>
+        <div class="col-md-2">
+            <label asp-for="Filters.QualifiedPartyId" class="form-label">Party > 1Lakh</label>
+            <select asp-for="Filters.QualifiedPartyId" asp-items="@(ViewData["QualifiedPartyId"] as SelectList)" class="form-select">
+                <option value="">-- Select Party --</option>
+            </select>
+        </div>
 
     </div>
    
@@ -72,6 +78,7 @@
             <input type="hidden" name="FromDate" value="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" />
             <input type="hidden" name="ToDate" value="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")" />
             <input type="hidden" name="PartyId" value="@Model.Filters.PartyId" />
+            <input type="hidden" name="QualifiedPartyId" value="@Model.Filters.QualifiedPartyId" />
             <input type="hidden" name="ItemId" value="@Model.Filters.ItemId" />
             <input type="hidden" name="InvoiceNo" value="@Model.Filters.InvoiceNo" />
             <button type="submit" class="btn btn-primary">Download PDF</button>
@@ -84,6 +91,7 @@
             <input type="hidden" name="FromDate" value="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" />
             <input type="hidden" name="ToDate" value="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")" />
             <input type="hidden" name="PartyId" value="@Model.Filters.PartyId" />
+            <input type="hidden" name="QualifiedPartyId" value="@Model.Filters.QualifiedPartyId" />
             <input type="hidden" name="ItemId" value="@Model.Filters.ItemId" />
             <input type="hidden" name="InvoiceNo" value="@Model.Filters.InvoiceNo" />
             <button type="submit" class="btn btn-success">Download Excel</button>

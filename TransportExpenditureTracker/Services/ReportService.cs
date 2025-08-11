@@ -31,6 +31,9 @@ namespace TransportExpenditureTracker.Services
 
             if (filters.PartyId.HasValue)
                 query = query.Where(i => i.PartyId == filters.PartyId.Value);
+            
+            if (filters.QualifiedPartyId.HasValue)
+                query = query.Where(i => i.PartyId == filters.QualifiedPartyId.Value);
 
             if (!string.IsNullOrEmpty(filters.FiscalYear))
                 query = query.Where(i => i.FiscalYear == filters.FiscalYear);

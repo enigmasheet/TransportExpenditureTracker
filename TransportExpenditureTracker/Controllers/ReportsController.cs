@@ -32,8 +32,8 @@ namespace TransportExpenditureTracker.Controllers
 
             var months = new[]
             {
-        "Shrawan", "Bhadra", "Ashwin", "Kartik", "Mangsir", "Poush",
-        "Magh", "Falgun", "Chaitra", "Baisakh", "Jestha", "Ashadh"
+                "Shrawan(4)", "Bhadra(5)", "Ashwin(6)", "Kartik(7)", "Mangsir(8)", "Poush(9)",
+                "Magh(10)", "Falgun(11)", "Chaitra(12)", "Baisakh(1)", "Jestha(2)", "Ashadh(3)"
     };
 
             ViewBag.FiscalMonths = new SelectList(months);
@@ -41,25 +41,37 @@ namespace TransportExpenditureTracker.Controllers
 
 
 
-        private void LoadDropdowns(int? selectedPartyId = null, int? selectedItemId = null)
+        private async Task LoadDropdownsAsync(int? selectedPartyId = null, int? selectedItemId = null)
         {
-            var parties = _context.Parties
+            var parties = await _context.Parties
                 .Select(p => new
                 {
                     p.PartyId,
                     DisplayText = p.VatNo + " - " + p.PartyName
                 })
-                .ToList();
+                .ToListAsync();
+
+            var qualifiedParties = await _context.Invoices
+                .GroupBy(i => i.Party)
+                .Where(g => g.Sum(i => i.TaxableAmount) >= 100000)
+                .Select(g => new
+                {
+                    PartyId = g.Key.PartyId,
+                    DisplayText = g.Key.VatNo + " - " + g.Key.PartyName
+                })
+                .ToListAsync();
 
             ViewData["PartyId"] = new SelectList(parties, "PartyId", "DisplayText", selectedPartyId);
+            ViewData["QualifiedPartyId"] = new SelectList(qualifiedParties, "PartyId", "DisplayText", selectedPartyId);
             ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName", selectedItemId);
         }
 
 
+
         public async Task<IActionResult> VatInvoiceReport(ReportFilterViewModel filters)
         {
-            LoadFiscalYearAndMonths();  
-            LoadDropdowns(filters.PartyId, filters.ItemId);
+            LoadFiscalYearAndMonths();
+            await LoadDropdownsAsync(filters.PartyId, filters.ItemId);
             var companyId = UserClaimsHelper.GetCompanyId(User);
 
             var pagedResult = await _reportService.GetVatInvoiceReportAsync(filters);

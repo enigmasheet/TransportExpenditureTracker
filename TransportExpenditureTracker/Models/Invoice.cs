@@ -38,7 +38,7 @@ namespace TransportExpenditureTracker.Models
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
         [Display(Name = "Quantity")]
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         [Range(0.01, double.MaxValue, ErrorMessage = "Rate must be positive")]

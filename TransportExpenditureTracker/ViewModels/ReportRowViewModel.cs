@@ -9,7 +9,7 @@
         public string Location { get; set; } = null!;
         public string VatNo { get; set; } = null!;
         public string ItemName { get; set; } = null!;
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
         public decimal Rate { get; set; }
         public decimal TaxableAmount { get; set; }
         public decimal VatAmount { get; set; }

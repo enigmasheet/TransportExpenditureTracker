@@ -25,6 +25,9 @@ namespace TransportExpenditureTracker.ViewModels
 
         [Display(Name = "Party")]
         public int? PartyId { get; set; }
+        
+        [Display(Name = "Party with > 1 lakh")]
+        public int? QualifiedPartyId { get; set; }
 
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 30;
