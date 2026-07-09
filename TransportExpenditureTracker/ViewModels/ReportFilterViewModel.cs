@@ -1,35 +1,18 @@
-﻿using System.ComponentModel.DataAnnotations;
+namespace TransportExpenditureTracker.ViewModels;
 
-namespace TransportExpenditureTracker.ViewModels
+public class ReportFilterViewModel
 {
-    public class ReportFilterViewModel
-    {
-        [Display(Name = "From Date")]
-        public DateTime? FromDate { get; set; }
-
-        [Display(Name = "To Date")]
-        public DateTime? ToDate { get; set; }
-
-        [Required(ErrorMessage = "Fiscal Year is required.")]
-        [Display(Name = "Fiscal Year")]
-        public string FiscalYear { get; set; }
-
-        [Display(Name = "Fiscal Month")]
-        public string? FiscalMonth { get; set; }
-
-        [Display(Name = "Invoice Number")]
-        public string InvoiceNo { get; set; }
-
-        [Display(Name = "Item")]
-        public int? ItemId { get; set; }
-
-        [Display(Name = "Party")]
-        public int? PartyId { get; set; }
-        
-        [Display(Name = "Party with > 1 lakh")]
-        public int? QualifiedPartyId { get; set; }
-
-        public int PageNumber { get; set; } = 1;
-        public int PageSize { get; set; } = 30;
-    }
+    public string? FiscalYear { get; set; }
+    public string? NepaliMonth { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public int? SupplierId { get; set; }
+    public int? CategoryId { get; set; }
+    public int? ItemId { get; set; }
+    public string? InvoiceNo { get; set; }
+    public string? Location { get; set; }
+    public string? VatNo { get; set; }
+    public string? PaymentMethod { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
 }

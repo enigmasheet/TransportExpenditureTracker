@@ -1,23 +1,104 @@
-html {
-    font-size: 14px;
-}
-
-@media (min-width: 768px) {
-    html {
-        font-size: 16px;
-    }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-    position: relative;
-    min-height: 100%;
-}
-
 body {
-    margin-bottom: 60px;
+    font-family: 'Segoe UI', Tahoma;
+    background: #f8f9fa;
 }
 
+.navbar-brand {
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.kpi-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-card .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.kpi-card .kpi-label {
+    font-size: 14px;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+.kpi-icon {
+    font-size: 32px;
+    opacity: 0.2;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+
+.filter-sidebar {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.table-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-export {
+    margin-right: 8px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-processing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.expense-row input,
+.expense-row select {
+    font-size: 13px;
+}
+
+.sidebar-nav .nav-link {
+    padding: 8px 16px;
+    border-radius: 8px;
+    margin: 2px 0;
+    color: #495057;
+}
+
+.sidebar-nav .nav-link:hover {
+    background: #e9ecef;
+}
+
+.sidebar-nav .nav-link.active {
+    background: #0d6efd;
+    color: white;
+}

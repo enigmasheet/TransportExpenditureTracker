@@ -1,0 +1,61 @@
+@model List<ExportQueueViewModel>
+@{
+    ViewData["Title"] = "Export Queue";
+}
+
+<h5>@ViewData["Title"]</h5>
+
+<div class="table-container">
+    <table class="table table-sm table-bordered" id="exports-table">
+        <thead>
+            <tr>
+                <th>Requested At</th>
+                <th>Format</th>
+                <th>Report Type</th>
+                <th>Status</th>
+                <th>Recipient Email</th>
+                <th>Sent At</th>
+                <th>Error Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.RequestedAt.ToString("g")</td>
+                    <td>@item.Format</td>
+                    <td>@item.ReportType</td>
+                    <td>
+                        @{
+                            var badgeClass = item.Status switch
+                            {
+                                "Completed" => "bg-success",
+                                "Processing" => "bg-warning text-dark",
+                                "Failed" => "bg-danger",
+                                "Queued" => "bg-info text-dark",
+                                _ => "bg-secondary"
+                            };
+                        }
+                        <span class="badge @badgeClass">@item.Status</span>
+                    </td>
+                    <td>@item.RecipientEmail</td>
+                    <td>@(item.SentAt?.ToString("g") ?? "-")</td>
+                    <td>@(item.ErrorMessage ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#exports-table').DataTable({
+                ordering: true,
+                pageLength: 25,
+                order: [[0, 'desc']]
+            });
+            setTimeout(function () { location.reload(); }, 30000);
+        });
+    </script>
+}

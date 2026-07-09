@@ -1,9 +1,12 @@
-﻿namespace TransportExpenditureTracker.Models
-{
-    public class FiscalYear
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } // e.g., "2080/81"
-    }
+using System.ComponentModel.DataAnnotations;
 
+namespace TransportExpenditureTracker.Models;
+
+public class FiscalYear
+{
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(20)]
+    public string Name { get; set; } = null!;
 }

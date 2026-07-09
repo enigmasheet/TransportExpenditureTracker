@@ -1,50 +1,49 @@
-@model IEnumerable<TransportExpenditureTracker.Models.Item>
-
+@model List<ItemViewModel>
 @{
-    ViewData["Title"] = "Items List";
+    ViewData["Title"] = "Items";
 }
 
-<h1>Item List</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">@ViewData["Title"]</h5>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add Item</a>
+</div>
 
-<p>
-    <a asp-action="Create" class="btn btn-success">
-        <i class="bi bi-plus-circle"></i> Create New Item
-    </a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.ItemName)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.ItemName)
-            </td>
-               
-                <td class="d-flex gap-2">
-                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
-                    {
-                        <a asp-action="Edit" asp-route-id="@item.ItemId" class="btn btn-sm btn-primary"
-                           data-bs-toggle="tooltip" title="Edit">
-                            <i class="bi bi-pencil-square"></i>
-                        </a>
-                        <a asp-action="Details" asp-route-id="@item.ItemId" class="btn btn-sm btn-info"
-                           data-bs-toggle="tooltip" title="Details">
-                            <i class="bi bi-info-circle"></i>
-                        </a>
-                        <a asp-action="Delete" asp-route-id="@item.ItemId" class="btn btn-sm btn-danger"
-                           data-bs-toggle="tooltip" title="Delete">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                    }
-                </td>
-        </tr>
+<div class="table-container">
+    <table class="table table-sm table-bordered" id="items-table">
+        <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Unit</th>
+                <th style="width:120px">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.ItemName</td>
+                    <td>@item.Unit</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.ItemId" class="btn btn-warning btn-sm"><i class="bi bi-pencil"></i></a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-action="Delete" asp-route-id="@item.ItemId" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#items-table').DataTable({
+                ordering: true,
+                pageLength: 25,
+                language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
+            });
+        });
+    </script>
 }
-    </tbody>
-</table>

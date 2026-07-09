@@ -1,0 +1,50 @@
+@model CsvPreviewViewModel
+@{ ViewData["Title"] = "Import Expenses"; }
+
+<h4><i class="bi bi-upload"></i> Import Expenses</h4><hr/>
+
+@if (Model == null || Model.Rows == null || !Model.Rows.Any())
+{
+    <form asp-action="Import" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">Upload CSV or Excel file</label>
+            <input type="file" name="file" class="form-control" accept=".csv,.xlsx" required/>
+        </div>
+        <div class="form-check mb-3">
+            <input type="checkbox" name="autoCreate" class="form-check-input" id="autoCreate" checked/>
+            <label class="form-check-label" for="autoCreate">Auto-create missing suppliers & items</label>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-eye"></i> Preview</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </form>
+}
+else
+{
+    <div class="alert alert-info">Found @Model.Rows.Count rows (@Model.DuplicateCount duplicates, @Model.ErrorCount errors)</div>
+
+    @if (Model.Errors?.Any() == true)
+    {
+        <div class="alert alert-warning"><ul>@foreach (var e in Model.Errors) { <li>@e</li> }</ul></div>
+    }
+
+    <form asp-action="ImportConfirm" method="post">
+        <div class="table-container" style="max-height:400px;overflow:auto">
+            <table class="table table-sm table-bordered">
+                <thead><tr><th>Row</th><th>Miti</th><th>Invoice</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT</th><th>Total</th></tr></thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Rows.Count; i++)
+                    {
+                        var r = Model.Rows[i];
+                        <tr class="@(r.IsDuplicate ? "table-warning" : r.ValidationError != null ? "table-danger" : "")">
+                            <td>@r.RowIndex</td>
+                            <td>@r.Miti</td><td>@r.InvoiceNo</td><td>@r.SupplierName</td><td>@r.ItemName</td>
+                            <td>@r.Quantity</td><td>@r.Rate</td><td>@r.TaxableAmount</td><td>@r.VatAmount</td><td>@r.TotalAmount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <button type="submit" class="btn btn-success mt-3"><i class="bi bi-check-lg"></i> Confirm Import</button>
+        <a asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+    </form>
+}

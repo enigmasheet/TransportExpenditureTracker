@@ -1,23 +1,17 @@
-﻿@model List<TransportExpenditureTracker.ViewModels.UserRolesViewModel>
+@model List<UserRolesViewModel>
 @{
-    ViewData["Title"] = "User Roles Management";
+    ViewData["Title"] = "User Management";
 }
 
-<div class="container mt-4">
-    <h2 class="mb-4">User Roles Management</h2>
+<h5>@ViewData["Title"]</h5>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success">@TempData["Success"]</div>
-    }
-
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
+<div class="table-container">
+    <table class="table table-sm table-bordered" id="users-table">
+        <thead>
             <tr>
                 <th>Email</th>
                 <th>Roles</th>
-                <th>Company</th>
-                <th>Action</th>
+                <th style="width:150px">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -25,41 +19,65 @@
             {
                 <tr>
                     <td>@user.Email</td>
-                    <td>@string.Join(", ", user.Roles)</td>
                     <td>
-                        @if (user.CompanyNames.Any())
+                        @if (user.Roles.Count > 0)
                         {
-                            @string.Join(", ", user.CompanyNames)
+                            @string.Join(", ", user.Roles)
                         }
                         else
                         {
-                            <span class="text-muted">None</span>
+                            <span class="text-muted">No roles</span>
                         }
                     </td>
                     <td>
-                        <a asp-action="ManageRoles" asp-route-userId="@user.UserId" class="btn btn-sm btn-primary">
-                            Roles
-                        </a>
-                        <!-- Trigger Button -->
-                        <button type="button" class="btn btn-sm btn-primary"
-                                data-bs-toggle="modal"
-                                data-bs-target="#companyModal"
-                                data-userid="@user.UserId">
-                            Manage Companies
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rolesModal"
+                                data-user-id="@user.UserId" data-user-email="@user.Email">
+                            <i class="bi bi-shield"></i> Manage Roles
                         </button>
-
                     </td>
                 </tr>
             }
         </tbody>
     </table>
 </div>
-<div class="modal fade" id="companyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content" id="modalContent">
-            <!-- Content will be loaded via AJAX -->
+
+<!-- Manage Roles Modal -->
+<div class="modal fade" id="rolesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Manage Roles - <span id="modalUserEmail"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="rolesModalBody">
+                <div class="text-center py-3">
+                    <div class="spinner-border" role="status"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- This code is for the User Roles Management page in an ASP.NET Core MVC application. It displays a list of users with their roles and associated companies, and allows management of user roles and companies through modals. The modal content is loaded dynamically via AJAX when the "Manage Companies" button is clicked. -->
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#users-table').DataTable({
+                ordering: true,
+                pageLength: 25
+            });
+
+            var rolesModal = document.getElementById('rolesModal');
+            rolesModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var userId = button.getAttribute('data-user-id');
+                var userEmail = button.getAttribute('data-user-email');
+                document.getElementById('modalUserEmail').textContent = userEmail;
+                var body = document.getElementById('rolesModalBody');
+                body.innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>';
+                $.get('/RoleManagement/ManageRoles?userId=' + userId, function (html) {
+                    body.innerHTML = html;
+                });
+            });
+        });
+    </script>
+}

@@ -1,0 +1,45 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace TransportExpenditureTracker.Models;
+
+public class ExpenseHeader
+{
+    [Key]
+    public int ExpenseId { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string InvoiceNo { get; set; } = null!;
+
+    [Required]
+    [MaxLength(20)]
+    public string Miti { get; set; } = null!;
+
+    public DateTime EnglishDate { get; set; }
+
+    [MaxLength(20)]
+    public string FiscalYear { get; set; } = null!;
+
+    [MaxLength(20)]
+    public string? NepaliMonth { get; set; }
+
+    public int SupplierId { get; set; }
+
+    public int CategoryId { get; set; }
+
+    [MaxLength(30)]
+    public string PaymentMethod { get; set; } = null!;
+
+    [MaxLength(500)]
+    public string? Remarks { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
+    public Supplier Supplier { get; set; } = null!;
+
+    public ExpenseCategory Category { get; set; } = null!;
+
+    public ICollection<ExpenseDetail> Details { get; set; } = new List<ExpenseDetail>();
+}

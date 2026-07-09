@@ -1,136 +1,162 @@
-﻿// Controllers/ReportsController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using TransportExpenditureTracker.Data;
-using TransportExpenditureTracker.Helpers;
-using TransportExpenditureTracker.Services;
+using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
 
-namespace TransportExpenditureTracker.Controllers
+namespace TransportExpenditureTracker.Controllers;
+
+[Authorize]
+public class ReportsController : Controller
 {
-    [Authorize]
-    public class ReportsController : Controller
+    private readonly IReportService _reportService;
+    private readonly IReportExportService _reportExportService;
+    private readonly IExportJobService _exportJobService;
+    private readonly ApplicationDbContext _ctx;
+
+    public ReportsController(
+        IReportService reportService,
+        IReportExportService reportExportService,
+        IExportJobService exportJobService,
+        ApplicationDbContext ctx)
     {
-        private readonly IReportService _reportService;
-        private readonly IPartyService _partyService;
-        private readonly IReportExportService _reportExportService;
-        private readonly ApplicationDbContext _context;
+        _reportService = reportService;
+        _reportExportService = reportExportService;
+        _exportJobService = exportJobService;
+        _ctx = ctx;
+    }
 
-        public ReportsController(IReportService reportService, IPartyService partyService, ApplicationDbContext context, IReportExportService reportExportService)
-        {
-            _reportService = reportService;
-            _partyService = partyService;
-            _context = context;
-            _reportExportService = reportExportService;
-        }
-        private void LoadFiscalYearAndMonths()
-        {
-            ViewBag.FiscalYears = new SelectList(_context.FiscalYears.OrderByDescending(f => f.Name), "Name", "Name");
+    private void LoadDropdowns()
+    {
+        DropdownHelper.LoadFiscalYears(_ctx, ViewData);
+        DropdownHelper.LoadNepaliMonths(ViewData);
+        DropdownHelper.LoadSuppliers(_ctx, ViewData);
+        DropdownHelper.LoadCategories(_ctx, ViewData);
+        DropdownHelper.LoadItems(_ctx, ViewData);
+    }
 
-            var months = new[]
+    public async Task<IActionResult> Daily(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetDailyReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> Monthly(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetMonthlyReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> FiscalYear(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetFiscalYearReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> SupplierWise(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetSupplierWiseReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> CategoryWise(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetCategoryWiseReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> ItemWise(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetItemWiseReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> VatPaid(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetVatPaidReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> PaymentMethod(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetPaymentMethodReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> LocationWise(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetLocationWiseReportAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> DetailedLedger(ReportFilterViewModel filters)
+    {
+        LoadDropdowns();
+        var model = await _reportService.GetDetailedLedgerAsync(filters);
+        return View(model);
+    }
+
+    public async Task<IActionResult> Export(string format, string reportType, ReportFilterViewModel filters, string action)
+    {
+        if (action == "Download")
+        {
+            List<ReportRowViewModel> data = reportType switch
             {
-                "Shrawan(4)", "Bhadra(5)", "Ashwin(6)", "Kartik(7)", "Mangsir(8)", "Poush(9)",
-                "Magh(10)", "Falgun(11)", "Chaitra(12)", "Baisakh(1)", "Jestha(2)", "Ashadh(3)"
-    };
-
-            ViewBag.FiscalMonths = new SelectList(months);
-        }
-
-
-
-        private async Task LoadDropdownsAsync(int? selectedPartyId = null, int? selectedItemId = null)
-        {
-            var parties = await _context.Parties
-                .Select(p => new
-                {
-                    p.PartyId,
-                    DisplayText = p.VatNo + " - " + p.PartyName
-                })
-                .ToListAsync();
-
-            var qualifiedParties = await _context.Invoices
-                .GroupBy(i => i.Party)
-                .Where(g => g.Sum(i => i.TaxableAmount) >= 100000)
-                .Select(g => new
-                {
-                    PartyId = g.Key.PartyId,
-                    DisplayText = g.Key.VatNo + " - " + g.Key.PartyName
-                })
-                .ToListAsync();
-
-            ViewData["PartyId"] = new SelectList(parties, "PartyId", "DisplayText", selectedPartyId);
-            ViewData["QualifiedPartyId"] = new SelectList(qualifiedParties, "PartyId", "DisplayText", selectedPartyId);
-            ViewData["ItemId"] = new SelectList(_context.Items, "ItemId", "ItemName", selectedItemId);
-        }
-
-
-
-        public async Task<IActionResult> VatInvoiceReport(ReportFilterViewModel filters)
-        {
-            LoadFiscalYearAndMonths();
-            await LoadDropdownsAsync(filters.PartyId, filters.ItemId);
-            var companyId = UserClaimsHelper.GetCompanyId(User);
-
-            var pagedResult = await _reportService.GetVatInvoiceReportAsync(filters);
-            var parties = await _partyService.GetAllPartiesAsync(companyId.Value);
-
-            var model = new ReportPageViewModel
-            {
-                Reports = pagedResult.Items,
-                TotalRecords = pagedResult.TotalRecords,
-                Filters = filters,
-                Parties = parties
+                "Daily" => await _reportService.GetDailyReportAsync(filters),
+                "Monthly" => await _reportService.GetMonthlyReportAsync(filters),
+                "FiscalYear" => await _reportService.GetFiscalYearReportAsync(filters),
+                "SupplierWise" => await _reportService.GetSupplierWiseReportAsync(filters),
+                "CategoryWise" => await _reportService.GetCategoryWiseReportAsync(filters),
+                "ItemWise" => await _reportService.GetItemWiseReportAsync(filters),
+                "VatPaid" => await _reportService.GetVatPaidReportAsync(filters),
+                "PaymentMethod" => await _reportService.GetPaymentMethodReportAsync(filters),
+                "LocationWise" => await _reportService.GetLocationWiseReportAsync(filters),
+                "DetailedLedger" => await _reportService.GetDetailedLedgerAsync(filters),
+                _ => new List<ReportRowViewModel>()
             };
 
+            byte[] fileBytes;
+            var contentType = "application/octet-stream";
+            var extension = format.ToLower();
 
-            return View(model);
+            if (extension == "pdf")
+            {
+                fileBytes = _reportExportService.GeneratePdf(data, reportType);
+                contentType = "application/pdf";
+            }
+            else if (extension == "csv")
+            {
+                fileBytes = _reportExportService.GenerateCsv(data);
+                contentType = "text/csv";
+            }
+            else
+            {
+                fileBytes = _reportExportService.GenerateExcel(data, reportType);
+                contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                extension = "xlsx";
+            }
+
+            var fileName = $"{reportType}_{DateTime.Now:yyyyMMdd}.{extension}";
+            return File(fileBytes, contentType, fileName);
         }
-        [HttpGet]
-        public async Task<IActionResult> ExportVatInvoiceReport(string format, ReportFilterViewModel filters)
+        else
         {
-            // Fetch all records for export
-            filters.PageNumber = 1;
-            filters.PageSize = int.MaxValue;
-
-            var pagedResult = await _reportService.GetVatInvoiceReportAsync(filters);
-            var report = pagedResult.Items;
-
-            if (report == null || !report.Any())
-            {
-                TempData["Error"] = "No data available to export.";
-                return RedirectToAction("VatInvoiceReport", filters);
-            }
-
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            var selectedCompany = await _context.UserCompanies
-                .Include(u => u.Company)
-                .Where(u => u.UserId == userId)
-                .Select(u => u.Company)
-                .FirstOrDefaultAsync();
-
-            if (selectedCompany == null)
-            {
-                return BadRequest("No company selected.");
-            }
-
-            if (format?.ToLower() == "excel")
-            {
-                var excel = _reportExportService.GenerateVatInvoiceExcel(report, selectedCompany);
-                return File(excel,
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    $"VAT_Report_{DateTime.Now:yyyyMMdd}.xlsx");
-            }
-            else // default to PDF
-            {
-                var pdf = _reportExportService.GenerateVatInvoiceReport(report, selectedCompany);
-                return File(pdf, "application/pdf", $"VAT_Report_{DateTime.Now:yyyyMMdd}.pdf");
-            }
+            var email = User.Identity?.Name ?? "";
+            var filterJson = JsonSerializer.Serialize(filters);
+            await _exportJobService.EnqueueAsync(format, reportType, filterJson, email);
+            TempData["Message"] = "Export job has been queued. You will receive an email once completed.";
+            return RedirectToAction(reportType, filters);
         }
-
     }
 }

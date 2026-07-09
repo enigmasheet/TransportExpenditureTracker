@@ -1,74 +1,74 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.Emit;
 using TransportExpenditureTracker.Models;
-using TransportExpenditureTracker.Services.Interfaces;
 
-namespace TransportExpenditureTracker.Data
+namespace TransportExpenditureTracker.Data;
+
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+    public DbSet<Item> Items => Set<Item>();
+    public DbSet<ExpenseHeader> ExpenseHeaders => Set<ExpenseHeader>();
+    public DbSet<ExpenseDetail> ExpenseDetails => Set<ExpenseDetail>();
+    public DbSet<FiscalYear> FiscalYears => Set<FiscalYear>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<ExportQueue> ExportQueues => Set<ExportQueue>();
+
+    protected override void OnModelCreating(ModelBuilder builder)
     {
-        private readonly ICurrentCompanyService _currentCompanyService;
+        base.OnModelCreating(builder);
 
+        builder.Entity<Supplier>()
+            .HasIndex(s => s.VatNo)
+            .IsUnique()
+            .HasFilter("[VatNo] IS NOT NULL");
 
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentCompanyService currentCompanyService)
-            : base(options)
+        builder.Entity<ExpenseHeader>()
+            .HasIndex(e => new { e.InvoiceNo, e.SupplierId })
+            .IsUnique();
+
+        builder.Entity<ExpenseHeader>()
+            .HasOne(e => e.Supplier)
+            .WithMany()
+            .HasForeignKey(e => e.SupplierId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+
+        builder.Entity<ExpenseHeader>()
+            .HasOne(e => e.Category)
+            .WithMany()
+            .HasForeignKey(e => e.CategoryId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+        builder.Entity<ExpenseHeader>()
+            .HasMany(e => e.Details)
+            .WithOne(d => d.Expense)
+            .HasForeignKey(d => d.ExpenseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ExpenseDetail>()
+            .HasOne(d => d.Item)
+            .WithMany()
+            .HasForeignKey(d => d.ItemId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+        builder.Entity<ExpenseDetail>()
+            .HasOne(d => d.Expense)
+            .WithMany(e => e.Details)
+            .HasForeignKey(d => d.ExpenseId)
+            .OnDelete(DeleteBehavior.Cascade)
+            .IsRequired();
+
+        builder.Entity<ExpenseDetail>(entity =>
         {
-            _currentCompanyService = currentCompanyService;
-        }
-        public DbSet<Party> Parties { get; set; }
-        public DbSet<Invoice> Invoices { get; set; }
-        public DbSet<Item> Items { get; set; }
-        public DbSet<FiscalYear> FiscalYears { get; set; }
-        public DbSet<Company> Companies { get; set; }
-        public DbSet<UserCompany> UserCompanies { get; set; }
-
-       
-        public int CurrentCompanyId { get; set; } = 0;
-
-        protected override void OnModelCreating(ModelBuilder builder)
-        {
-            base.OnModelCreating(builder);
-
-            builder.Entity<Company>()
-                .HasIndex(c => c.VatNumber)
-                .IsUnique();
-
-            builder.Entity<UserCompany>()
-                .HasIndex(uc => new { uc.UserId, uc.CompanyId })
-                .IsUnique();
-
-            builder.Entity<UserCompany>()
-              .HasOne(uc => uc.User)
-              .WithOne(u => u.UserCompany)
-              .HasForeignKey<UserCompany>(uc => uc.UserId)
-              .OnDelete(DeleteBehavior.Cascade);
-
-
-            builder.Entity<UserCompany>()
-                .HasOne(uc => uc.Company)
-                .WithMany(c => c.UserCompanies)
-                .HasForeignKey(uc => uc.CompanyId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // Explicit FK config to fix multiple cascade paths error
-            builder.Entity<Party>()
-                .HasOne(p => p.Company)
-                .WithMany(c => c.Parties)  // make sure Company class has Parties collection
-                .HasForeignKey(p => p.CompanyId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<Party>()
-                .HasIndex(p => new { p.CompanyId, p.VatNo })
-                .IsUnique(); //Enforces uniqueness
-            
-            builder.Entity<Invoice>()
-                .HasIndex(i => new { i.InvoiceNo, i.PartyId, i.CompanyId })
-                .IsUnique();
-            builder.Entity<Party>().HasQueryFilter(p => CurrentCompanyId == 0 || p.CompanyId == CurrentCompanyId);
-            builder.Entity<Invoice>().HasQueryFilter(inv => CurrentCompanyId == 0 ||inv.CompanyId == CurrentCompanyId);
-
-        }
-    }  
+            entity.Property(d => d.Quantity).HasColumnType("decimal(18,2)");
+            entity.Property(d => d.Rate).HasColumnType("decimal(18,2)");
+            entity.Property(d => d.TaxableAmount).HasColumnType("decimal(18,2)");
+            entity.Property(d => d.VatAmount).HasColumnType("decimal(18,2)");
+            entity.Property(d => d.TotalAmount).HasColumnType("decimal(18,2)");
+        });
+    }
 }

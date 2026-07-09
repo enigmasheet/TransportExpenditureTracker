@@ -1,0 +1,41 @@
+@model SupplierViewModel
+@{
+    ViewData["Title"] = "Create Supplier";
+}
+
+<h5>@ViewData["Title"]</h5>
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="SupplierName" class="form-label"></label>
+                <input asp-for="SupplierName" class="form-control" required />
+                <span asp-validation-for="SupplierName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Location" class="form-label"></label>
+                <input asp-for="Location" class="form-control" />
+                <span asp-validation-for="Location" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="VatNo" class="form-label"></label>
+                <input asp-for="VatNo" class="form-control" />
+                <span asp-validation-for="VatNo" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Save</button>
+                <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-x-lg"></i> Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

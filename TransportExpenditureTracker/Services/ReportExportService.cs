@@ -1,246 +1,156 @@
-﻿using ClosedXML.Excel;
+using ClosedXML.Excel;
+using CsvHelper;
+using CsvHelper.Configuration;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-using System.IO;
-using TransportExpenditureTracker.Models;
+using System.Globalization;
+using System.Text;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
 
-namespace TransportExpenditureTracker.Services
+namespace TransportExpenditureTracker.Services;
+
+public class ReportExportService : IReportExportService
 {
-    public class ReportExportService : IReportExportService
+    public byte[] GenerateExcel(List<ReportRowViewModel> data, string title)
     {
-        public byte[] GenerateVatInvoiceExcel(List<ReportRowViewModel> reports, Company company)
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add(title.Length > 31 ? title[..31] : title);
+
+        ws.Cell(1, 1).Value = title;
+        ws.Range(1, 1, 1, 10).Merge().Style.Font.Bold = true;
+
+        var headers = new[] { "S.No", "Miti", "Invoice No", "Supplier", "Item", "Category", "Quantity", "Rate", "Taxable Amount", "VAT Amount", "Total Amount" };
+        for (int i = 0; i < headers.Length; i++)
         {
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("VAT Invoice Report");
-
-            // Merge and set header info across columns 1-12
-            worksheet.Range(1, 1, 1, 12).Merge().Value = $"Company: {company.Name}";
-            worksheet.Range(1, 1, 1, 12).Style.Font.Bold = true;
-            worksheet.Range(1, 1, 1, 12).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-
-            worksheet.Range(2, 1, 2, 12).Merge().Value = $"Location: {company.Location}";
-            worksheet.Range(3, 1, 3, 12).Merge().Value = $"VAT No: {company.VatNumber}";
-            worksheet.Range(4, 1, 4, 12).Merge().Value = $"Contact: {company.ContactNumber}";
-
-            // Report Title - merged and centered
-            worksheet.Range(6, 1, 6, 12).Merge().Value = "VAT Invoice Report";
-            worksheet.Range(6, 1, 6, 12).Style.Font.Bold = true;
-            worksheet.Range(6, 1, 6, 12).Style.Font.FontSize = 16;
-            worksheet.Range(6, 1, 6, 12).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-            // Column Headers
-            var headers = new[]
-            {
-            "S.N.", "Date", "Invoice No", "Party", "Location", "Vat No",
-            "Item", "Qty", "Rate", "Taxable", "VAT", "Total Amount"
-        };
-
-            for (int i = 0; i < headers.Length; i++)
-            {
-                var cell = worksheet.Cell(8, i + 1);
-                cell.Value = headers[i];
-                cell.Style.Font.Bold = true;
-                cell.Style.Fill.BackgroundColor = XLColor.LightGray;
-                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            }
-
-            // Data Rows
-            int row = 9;
-            decimal totalTaxable = 0, totalVat = 0, totalAmount = 0;
-
-            foreach (var item in reports)
-            {
-                worksheet.Cell(row, 1).Value = item.Sno;
-                worksheet.Cell(row, 2).Value = item.Miti;
-                worksheet.Cell(row, 3).Value = item.InvoiceNo;
-                worksheet.Cell(row, 4).Value = item.PartyName;
-                worksheet.Cell(row, 5).Value = item.Location;
-                worksheet.Cell(row, 6).Value = item.VatNo;
-                worksheet.Cell(row, 7).Value = item.ItemName;
-                worksheet.Cell(row, 8).Value = item.Quantity;
-                worksheet.Cell(row, 9).Value = item.Rate;
-                worksheet.Cell(row, 10).Value = item.TaxableAmount;
-                worksheet.Cell(row, 11).Value = item.VatAmount;
-                worksheet.Cell(row, 12).Value = item.TotalAmount;
-
-                totalTaxable += item.TaxableAmount;
-                totalVat += item.VatAmount;
-                totalAmount += item.TotalAmount;
-
-                row++;
-            }
-
-            // Totals row styling
-            var totalLabelCell = worksheet.Cell(row, 9);
-            totalLabelCell.Value = "Total:";
-            totalLabelCell.Style.Font.Bold = true;
-            totalLabelCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-            totalLabelCell.Style.Alignment.Indent = 1;
-
-            worksheet.Cell(row, 10).Value = totalTaxable;
-            worksheet.Cell(row, 11).Value = totalVat;
-            worksheet.Cell(row, 12).Value = totalAmount;
-            worksheet.Row(row).Style.Fill.BackgroundColor = XLColor.LightGray;
-
-            // Format columns
-            worksheet.Column(8).Style.NumberFormat.Format = "#,##0";      // Qty as integer
-            worksheet.Column(9).Style.NumberFormat.Format = "#,##0.00";   // Rate
-            worksheet.Column(10).Style.NumberFormat.Format = "#,##0.00";  // Taxable
-            worksheet.Column(11).Style.NumberFormat.Format = "#,##0.00";  // VAT
-            worksheet.Column(12).Style.NumberFormat.Format = "#,##0.00";  // Total Amount
-
-            // Align text columns left
-            worksheet.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-            worksheet.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-            worksheet.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-
-            // Align numeric columns right
-            for (int i = 8; i <= 12; i++)
-                worksheet.Column(i).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-
-
-            // Add autofilter to header row
-            worksheet.Range(8, 1, row - 1, 12).SetAutoFilter();
-
-            worksheet.Columns().AdjustToContents();
-
-            using var stream = new MemoryStream();
-            workbook.SaveAs(stream);
-            return stream.ToArray();
-        }
-     
-
-
-
-        public byte[] GenerateVatInvoiceReport(List<ReportRowViewModel> data, Company company)
-        {
-            using (var memoryStream = new MemoryStream())
-            {
-                var document = new Document(PageSize.A4, 20, 20, 20, 20);
-                var writer = PdfWriter.GetInstance(document, memoryStream);
-
-                writer.PageEvent = new PdfFooter();
-
-                document.Open();
-
-                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16);
-                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
-                var bodyFont = FontFactory.GetFont(FontFactory.HELVETICA, 10);
-                var companyFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
-
-                // Company details
-                var companyDetails = new Paragraph($"{company.Name}\nLocation: {company.Location}\nVAT No: {company.VatNumber}\nContact: {company.ContactNumber}", companyFont)
-                {
-                    Alignment = Element.ALIGN_LEFT,
-                    SpacingAfter = 10f
-                };
-                document.Add(companyDetails);
-
-                // Report title
-                document.Add(new Paragraph("VAT Invoice Report", titleFont) { Alignment = Element.ALIGN_CENTER });
-                document.Add(new Paragraph("\n"));
-
-                PdfPTable table = new PdfPTable(12)
-                {
-                    WidthPercentage = 100
-                };
-                table.SetWidths(new float[] {
-                        1f,    // S.N.
-                        3.5f,    // Date
-                        2.3f,    // Invoice No
-                        4f,    // Party (wider)
-                        3f,    // Location (wider)
-                        3.3f,  // Vat No
-                        2f,    // Item
-                        1.5f,  // Qty
-                        2.5f,  // Rate
-                        3f,    // Taxable
-                        2.5f,    // VAT
-                        3f     // Total Amount
-                    });
-
-                // Helper method to add cell with padding and alignment
-                void AddCell(PdfPTable tbl, string text, Font font, int horizontalAlignment = Element.ALIGN_LEFT, BaseColor bgColor = null, int colspan = 1)
-                {
-                    var cell = new PdfPCell(new Phrase(text, font))
-                    {
-                       
-                        HorizontalAlignment = horizontalAlignment,
-                        VerticalAlignment = Element.ALIGN_MIDDLE,
-                        BackgroundColor = bgColor ?? BaseColor.White,
-                        Colspan = colspan,
-                        BorderWidth = 0.5f,
-                        NoWrap = false 
-
-
-                    };
-                    tbl.AddCell(cell);
-                }
-
-                // Add header row with padding and gray background
-                string[] headers = { "S.N.", "Date", "Invoice No", "Party", "Location", "Vat No", "Item", "Qty", "Rate", "Taxable", "VAT", "Total Amount" };
-                foreach (var header in headers)
-                {
-                    AddCell(table, header, headerFont, Element.ALIGN_CENTER, BaseColor.LightGray);
-                }
-
-                // Data rows
-                decimal totalTaxable = 0, totalVat = 0, totalAmount = 0;
-
-                foreach (var item in data)
-                {
-                    AddCell(table, item.Sno.ToString(), bodyFont, Element.ALIGN_CENTER);
-                    AddCell(table, item.Miti, bodyFont);
-                    AddCell(table, item.InvoiceNo, bodyFont);
-                    AddCell(table, item.PartyName, bodyFont);
-                    AddCell(table, item.Location, bodyFont);
-                    AddCell(table, item.VatNo, bodyFont);
-                    AddCell(table, item.ItemName, bodyFont);
-                    AddCell(table, item.Quantity.ToString(), bodyFont, Element.ALIGN_CENTER);
-                    AddCell(table, item.Rate.ToString("N2"), bodyFont, Element.ALIGN_RIGHT);
-                    AddCell(table, item.TaxableAmount.ToString("N2"), bodyFont, Element.ALIGN_RIGHT);
-                    AddCell(table, item.VatAmount.ToString("N2"), bodyFont, Element.ALIGN_RIGHT);
-                    AddCell(table, item.TotalAmount.ToString("N2"), bodyFont, Element.ALIGN_RIGHT);
-
-                    totalTaxable += item.TaxableAmount;
-                    totalVat += item.VatAmount;
-                    totalAmount += item.TotalAmount;
-                }
-
-                // Total Row
-                AddCell(table, "Total", headerFont, Element.ALIGN_RIGHT, BaseColor.LightGray, 9);
-                AddCell(table, totalTaxable.ToString("N2"), headerFont, Element.ALIGN_RIGHT, BaseColor.LightGray);
-                AddCell(table, totalVat.ToString("N2"), headerFont, Element.ALIGN_RIGHT, BaseColor.LightGray);
-                AddCell(table, totalAmount.ToString("N2"), headerFont, Element.ALIGN_RIGHT, BaseColor.LightGray);
-
-                document.Add(table);
-                document.Close();
-
-                return memoryStream.ToArray();
-            }
+            ws.Cell(3, i + 1).Value = headers[i];
+            ws.Cell(3, i + 1).Style.Font.Bold = true;
+            ws.Cell(3, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
         }
 
-
-        // Class to add footer on each page
-        private class PdfFooter : PdfPageEventHelper
+        int row = 4;
+        foreach (var item in data)
         {
-            public override void OnEndPage(PdfWriter writer, Document document)
-            {
-                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 9, BaseColor.Gray);
-                PdfPTable footerTbl = new PdfPTable(1)
-                {
-                    TotalWidth = document.PageSize.Width - document.LeftMargin - document.RightMargin
-                };
-                footerTbl.DefaultCell.Border = Rectangle.NO_BORDER;
-                footerTbl.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
-
-                string text = $"Page {writer.PageNumber} - This is a computer generated report";
-                footerTbl.AddCell(new Phrase(text, footerFont));
-
-                footerTbl.WriteSelectedRows(0, -1, document.LeftMargin, document.BottomMargin - 5, writer.DirectContent);
-            }
+            ws.Cell(row, 1).Value = item.Sno;
+            ws.Cell(row, 2).Value = item.Miti;
+            ws.Cell(row, 3).Value = item.InvoiceNo;
+            ws.Cell(row, 4).Value = item.SupplierName;
+            ws.Cell(row, 5).Value = item.ItemName;
+            ws.Cell(row, 6).Value = item.CategoryName;
+            ws.Cell(row, 7).Value = item.Quantity;
+            ws.Cell(row, 8).Value = item.Rate;
+            ws.Cell(row, 9).Value = item.TaxableAmount;
+            ws.Cell(row, 10).Value = item.VatAmount;
+            ws.Cell(row, 11).Value = item.TotalAmount;
+            row++;
         }
+
+        ws.Cell(row, 1).Value = "Total";
+        ws.Cell(row, 1).Style.Font.Bold = true;
+        ws.Cell(row, 9).FormulaA1 = $"=SUM(I4:I{row - 1})";
+        ws.Cell(row, 10).FormulaA1 = $"=SUM(J4:J{row - 1})";
+        ws.Cell(row, 11).FormulaA1 = $"=SUM(K4:K{row - 1})";
+
+        ws.Columns().AdjustToContents();
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    public byte[] GeneratePdf(List<ReportRowViewModel> data, string title)
+    {
+        using var ms = new MemoryStream();
+        var document = new Document(PageSize.A4.Rotate(), 10f, 10f, 20f, 20f);
+        var writer = PdfWriter.GetInstance(document, ms);
+        document.Open();
+
+        var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16);
+        var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9);
+        var cellFont = FontFactory.GetFont(FontFactory.HELVETICA, 8);
+
+        document.Add(new Paragraph(title, titleFont));
+        document.Add(new Paragraph(" "));
+
+        var table = new PdfPTable(11);
+        table.WidthPercentage = 100;
+
+        var headers = new[] { "S.No", "Miti", "Invoice No", "Supplier", "Item", "Category", "Qty", "Rate", "Taxable", "VAT", "Total" };
+        foreach (var h in headers)
+        {
+            var cell = new PdfPCell(new Phrase(h, headerFont));
+            cell.BackgroundColor = BaseColor.LightGray;
+            table.AddCell(cell);
+        }
+
+        foreach (var item in data)
+        {
+            table.AddCell(new PdfPCell(new Phrase(item.Sno.ToString(), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.Miti, cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.InvoiceNo, cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.SupplierName, cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.ItemName, cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.CategoryName, cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.Quantity.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.Rate.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.TaxableAmount.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.VatAmount.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.TotalAmount.ToString("N2"), cellFont)));
+        }
+
+        if (data.Count > 0)
+        {
+            var totalTaxable = data.Sum(x => x.TaxableAmount);
+            var totalVat = data.Sum(x => x.VatAmount);
+            var total = data.Sum(x => x.TotalAmount);
+
+            table.AddCell(new PdfPCell(new Phrase("Total", headerFont)) { Colspan = 8 });
+            table.AddCell(new PdfPCell(new Phrase(totalTaxable.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(totalVat.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(total.ToString("N2"), cellFont)));
+        }
+
+        document.Add(table);
+        document.Close();
+        return ms.ToArray();
+    }
+
+    public byte[] GenerateCsv(List<ReportRowViewModel> data)
+    {
+        using var ms = new MemoryStream();
+        using var writer = new StreamWriter(ms, Encoding.UTF8);
+        using var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture));
+
+        csv.WriteField("S.No");
+        csv.WriteField("Miti");
+        csv.WriteField("Invoice No");
+        csv.WriteField("Supplier Name");
+        csv.WriteField("Item Name");
+        csv.WriteField("Category");
+        csv.WriteField("Quantity");
+        csv.WriteField("Rate");
+        csv.WriteField("Taxable Amount");
+        csv.WriteField("VAT Amount");
+        csv.WriteField("Total Amount");
+        csv.NextRecord();
+
+        foreach (var item in data)
+        {
+            csv.WriteField(item.Sno);
+            csv.WriteField(item.Miti);
+            csv.WriteField(item.InvoiceNo);
+            csv.WriteField(item.SupplierName);
+            csv.WriteField(item.ItemName);
+            csv.WriteField(item.CategoryName);
+            csv.WriteField(item.Quantity);
+            csv.WriteField(item.Rate);
+            csv.WriteField(item.TaxableAmount);
+            csv.WriteField(item.VatAmount);
+            csv.WriteField(item.TotalAmount);
+            csv.NextRecord();
+        }
+
+        writer.Flush();
+        return ms.ToArray();
     }
 }

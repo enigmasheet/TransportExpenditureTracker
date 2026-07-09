@@ -1,40 +1,44 @@
-﻿using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using TransportExpenditureTracker.Data;
-using System.Linq;
 
-namespace TransportExpenditureTracker.Helpers
+namespace TransportExpenditureTracker.Helper;
+
+public static class DropdownHelper
 {
-    public static class DropdownHelper
+    public static void LoadFiscalYears(ApplicationDbContext ctx, ViewDataDictionary vd)
     {
-        public static void LoadFiscalYearAndMonths(ApplicationDbContext context, ViewDataDictionary viewData)
-        {
-            viewData["FiscalYears"] = new SelectList(
-                context.FiscalYears.OrderByDescending(f => f.Name),
-                "Name", "Name"
-            );
-
-            viewData["FiscalMonths"] = new SelectList(new[]
-            {
-                "Shrawan(4)", "Bhadra(5)", "Ashwin(6)", "Kartik(7)", "Mangsir(8)", "Poush(9)",
-                "Magh(10)", "Falgun(11)", "Chaitra(12)", "Baisakh(1)", "Jestha(2)", "Ashadh(3)"
-            });
-        }
-
-        public static void LoadDropdowns(ApplicationDbContext context, ViewDataDictionary viewData, int? selectedPartyId = null, int? selectedItemId = null)
-        {
-            var parties = context.Parties
-                .Select(p => new
-                {
-                    p.PartyId,
-                    DisplayText = $"{p.VatNo} - {p.PartyName}"
-                })
-                .ToList();
-
-            viewData["PartyId"] = new SelectList(parties, "PartyId", "DisplayText", selectedPartyId);
-            viewData["ItemId"] = new SelectList(context.Items, "ItemId", "ItemName", selectedItemId);
-        }
-
+        var years = ctx.FiscalYears.OrderByDescending(f => f.Id).ToList();
+        vd["FiscalYears"] = new SelectList(years, "Id", "Name");
     }
 
+    public static void LoadNepaliMonths(ViewDataDictionary vd)
+    {
+        var monthNames = new[] { "Baisakh(1)", "Jestha(2)", "Ashad(3)", "Shrawan(4)", "Bhadra(5)", "Ashwin(6)", "Kartik(7)", "Mangsir(8)", "Poush(9)", "Magh(10)", "Falgun(11)", "Chaitra(12)" };
+        vd["NepaliMonths"] = new SelectList(monthNames);
+    }
+
+    public static void LoadPaymentMethods(ViewDataDictionary vd)
+    {
+        var methods = new List<string> { "Cash", "Bank", "Cheque", "eSewa", "Khalti" };
+        vd["PaymentMethods"] = new SelectList(methods);
+    }
+
+    public static void LoadSuppliers(ApplicationDbContext ctx, ViewDataDictionary vd, int? selected = null)
+    {
+        var suppliers = ctx.Suppliers.OrderBy(s => s.SupplierName).ToList();
+        vd["Suppliers"] = new SelectList(suppliers, "SupplierId", "SupplierName", selected);
+    }
+
+    public static void LoadCategories(ApplicationDbContext ctx, ViewDataDictionary vd, int? selected = null)
+    {
+        var categories = ctx.ExpenseCategories.OrderBy(c => c.CategoryName).ToList();
+        vd["Categories"] = new SelectList(categories, "CategoryId", "CategoryName", selected);
+    }
+
+    public static void LoadItems(ApplicationDbContext ctx, ViewDataDictionary vd, int? selected = null)
+    {
+        var items = ctx.Items.OrderBy(i => i.ItemName).ToList();
+        vd["Items"] = new SelectList(items, "ItemId", "ItemName", selected);
+    }
 }

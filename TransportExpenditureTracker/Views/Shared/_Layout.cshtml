@@ -1,126 +1,107 @@
-﻿@using Microsoft.AspNetCore.Identity
-@inject UserManager<ApplicationUser> UserManager
-@inject SignInManager<ApplicationUser> SignInManager
-@{
-    var companyVat = User.FindFirst("CompanyVat")?.Value;
-    var companyName = User.FindFirst("CompanyName")?.Value;
-}
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - TransportExpenditureTracker</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Nepali DatePicker -->
+    <link href="https://unpkg.com/nepali-date-picker@2.0.1/dist/nepaliDatePicker.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <!-- Site CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/TransportExpenditureTracker.styles.css" asp-append-version="true" />
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
     <link rel="icon" href="~/favicon.ico" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3" role="navigation">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">TransportExpenditureTracker</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <a class="navbar-brand fw-bold" asp-controller="Dashboard" asp-action="Index">
+                    <i class="bi bi-truck"></i> TransportExpenditureTracker
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Invoices" asp-action="Index">Invoices</a>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item"><a class="nav-link" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Expenses" asp-action="Index"><i class="bi bi-receipt"></i> Expenses</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Suppliers" asp-action="Index"><i class="bi bi-people"></i> Suppliers</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Items" asp-action="Index"><i class="bi bi-box"></i> Items</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="ExpenseCategories" asp-action="Index"><i class="bi bi-tags"></i> Categories</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="Daily">Daily</a></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="Monthly">Monthly</a></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="FiscalYear">Fiscal Year</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="SupplierWise">Supplier-wise</a></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="CategoryWise">Category-wise</a></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="ItemWise">Item-wise</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="VatPaid">VAT Paid</a></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="PaymentMethod">Payment Method</a></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="LocationWise">Location-wise</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" asp-controller="Reports" asp-action="DetailedLedger">Detailed Ledger</a></li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Parties" asp-action="Index">Parties</a>
-                        </li>
-                        
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Items" asp-action="Index">Items</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Reports" asp-action="VatInvoiceReport">Reports</a>
-                        </li>
-                        
-                        @{
-                            var currentUser = await UserManager.GetUserAsync(User);
-                            var isSuperAdmin = currentUser != null && await UserManager.IsInRoleAsync(currentUser, "SuperAdmin");
-                        }
-                        @if (isSuperAdmin)
+                        <li class="nav-item"><a class="nav-link" asp-controller="Exports" asp-action="Index"><i class="bi bi-envelope-paper"></i> Exports</a></li>
+                        @if (User.Identity?.IsAuthenticated == true && User.IsInRole("SuperAdmin"))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="RoleManagement" asp-action="Index">Manage</a>
-
-                            </li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="RoleManagement" asp-action="Index"><i class="bi bi-shield-lock"></i> Manage</a></li>
                         }
-
-
                     </ul>
                     <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
+
+    <div class="container-fluid py-3">
         <main role="main" class="pb-3">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            }
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            @if (!string.IsNullOrEmpty(companyName))
-            {
-                <div class="mt-1">
-                    Logged in Company: <strong>@companyName</strong> @if (!string.IsNullOrEmpty(companyVat)) {
-                    <span> | VAT: <strong>@companyVat</strong></span> 
-                    <span> | For Support:<strong>9806886202(Abhay)</strong></span>
-                    }
-                </div>
-            }
+    <footer class="border-top footer text-muted bg-light py-3">
+        <div class="container-fluid text-center">
+            &copy; @DateTime.Now.Year - TransportExpenditureTracker | For Support: <strong>9806886202 (Abhay)</strong>
         </div>
     </footer>
-    
-    <div class="modal fade" id="addPartyModal" tabindex="-1" aria-labelledby="addPartyModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addPartyModalLabel">Add New Party</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="addPartyModalBody">
-                    <!-- Content will be loaded here dynamically -->
-                    <div class="text-center py-5">
-                        <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Select2 -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-    <script src="https://unpkg.com/nepali-date-picker@2.0.1/dist/jquery.nepaliDatePicker.min.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://unpkg.com/nepali-date-picker@2.0.1/dist/nepaliDatePicker.min.css" crossorigin="anonymous" />
-
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Nepali DatePicker -->
+    <script src="https://unpkg.com/nepali-date-picker@2.0.1/dist/jquery.nepaliDatePicker.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <!-- Site JS -->
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script>
-        $(document).ready(function () {
-            $('#companyModal').on('show.bs.modal', function (event) {
-                var button = $(event.relatedTarget);
-                var userId = button.data('userid');
-                var modal = $(this);
-
-                $.get('/RoleManagement/ManageUserCompanies', { userId: userId }, function (data) {
-                    modal.find('#modalContent').html(data);
-                });
-            });
-        });
-    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

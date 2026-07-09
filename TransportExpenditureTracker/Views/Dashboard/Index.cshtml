@@ -1,0 +1,33 @@
+@model DashboardViewModel
+@{ ViewData["Title"] = "Dashboard"; }
+
+<div class="row mb-4">
+    <div class="col-md-12"><h2><i class="bi bi-speedometer2"></i> Dashboard</h2><hr/></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Total Expenditure</div><div class="kpi-value text-primary">Rs @Model.TotalExpenditure.ToString("N2")</div><i class="bi bi-cash-stack kpi-icon text-primary"></i></div></div>
+    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Total VAT Paid</div><div class="kpi-value text-success">Rs @Model.TotalVatPaid.ToString("N2")</div><i class="bi bi-receipt kpi-icon text-success"></i></div></div>
+    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Taxable Amount</div><div class="kpi-value text-warning">Rs @Model.TotalTaxableAmount.ToString("N2")</div><i class="bi bi-calculator kpi-icon text-warning"></i></div></div>
+    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Total Invoices</div><div class="kpi-value text-info">@Model.TotalInvoices</div><i class="bi bi-file-text kpi-icon text-info"></i></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">This Month</div><div class="kpi-value text-danger">Rs @Model.ThisMonthExpenses.ToString("N2")</div></div></div>
+    <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">This Fiscal Year</div><div class="kpi-value text-secondary">Rs @Model.ThisFiscalYearExpenses.ToString("N2")</div></div></div>
+    <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">Top Supplier</div><div class="kpi-value text-dark">@Model.TopSupplier</div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8"><div class="table-container"><h5>Monthly Expenditure</h5><canvas id="monthlyChart" height="250"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5>By Category</h5><canvas id="categoryChart" height="250"></canvas></div></div>
+</div>
+<div class="row g-3 mt-2">
+    <div class="col-md-4"><div class="table-container"><h5>Top Suppliers</h5><canvas id="supplierChart" height="250"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5>VAT Paid</h5><canvas id="vatChart" height="250"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5>FY Comparison</h5><canvas id="fyChart" height="250"></canvas></div></div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
+}

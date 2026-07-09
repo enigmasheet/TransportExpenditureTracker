@@ -1,22 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace TransportExpenditureTracker.Models
+namespace TransportExpenditureTracker.Models;
+
+public class Item
 {
-    public class Item
-    {
-        public Item()
-        {
-            Invoices = new HashSet<Invoice>();
-        }
+    [Key]
+    public int ItemId { get; set; }
 
-        [Key]
-        public int ItemId { get; set; }
+    [Required]
+    [MaxLength(100)]
+    public string ItemName { get; set; } = null!;
 
-        [Required]
-        [MaxLength(100)]
-        public string ItemName { get; set; } = null!;
-
-        public ICollection<Invoice> Invoices { get; set; }
-
-    }
+    [MaxLength(50)]
+    public string? Unit { get; set; }
 }
