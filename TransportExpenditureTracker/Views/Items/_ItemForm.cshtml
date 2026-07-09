@@ -1,0 +1,13 @@
+@model ItemViewModel
+
+<div class="mb-3">
+    <label asp-for="ItemName" class="form-label"></label>
+    <input asp-for="ItemName" class="form-control" required />
+    <span asp-validation-for="ItemName" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Unit" class="form-label"></label>
+    <input asp-for="Unit" class="form-control" />
+    <span asp-validation-for="Unit" class="text-danger"></span>
+</div>

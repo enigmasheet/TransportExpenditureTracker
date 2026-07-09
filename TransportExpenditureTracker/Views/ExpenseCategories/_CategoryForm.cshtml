@@ -1,0 +1,7 @@
+@model ExpenseCategoryViewModel
+
+<div class="mb-3">
+    <label asp-for="CategoryName" class="form-label"></label>
+    <input asp-for="CategoryName" class="form-control" required />
+    <span asp-validation-for="CategoryName" class="text-danger"></span>
+</div>

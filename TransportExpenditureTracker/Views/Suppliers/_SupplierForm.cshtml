@@ -1,0 +1,19 @@
+@model SupplierViewModel
+
+<div class="mb-3">
+    <label asp-for="SupplierName" class="form-label"></label>
+    <input asp-for="SupplierName" class="form-control" required />
+    <span asp-validation-for="SupplierName" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Location" class="form-label"></label>
+    <input asp-for="Location" class="form-control" />
+    <span asp-validation-for="Location" class="text-danger"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="VatNo" class="form-label"></label>
+    <input asp-for="VatNo" class="form-control" />
+    <span asp-validation-for="VatNo" class="text-danger"></span>
+</div>

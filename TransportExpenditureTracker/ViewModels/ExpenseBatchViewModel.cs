@@ -14,14 +14,6 @@ public class ExpenseBatchViewModel : IValidatableObject
     [Required(ErrorMessage = "Month is required")]
     public string NepaliMonth { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Default category is required")]
-    [Range(1, int.MaxValue, ErrorMessage = "Select a default category")]
-    public int DefaultCategoryId { get; set; }
-
-    [Required(ErrorMessage = "Default payment method is required")]
-    [StringLength(30)]
-    public string DefaultPaymentMethod { get; set; } = string.Empty;
-
     [MinLength(1, ErrorMessage = "At least one expense row is required")]
     public List<ExpenseBatchRowViewModel> Rows { get; set; } = [];
 

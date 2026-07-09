@@ -77,8 +77,6 @@ public class ExpensesController : Controller
 
         DropdownHelper.LoadFiscalYears(_ctx, ViewData);
         DropdownHelper.LoadNepaliMonths(ViewData);
-        DropdownHelper.LoadCategories(_ctx, ViewData);
-        DropdownHelper.LoadPaymentMethods(ViewData);
         DropdownHelper.LoadItems(_ctx, ViewData);
         return View(vm);
     }

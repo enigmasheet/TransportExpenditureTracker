@@ -9,33 +9,19 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <label asp-for="FiscalYearId" class="form-label"></label>
                     <select asp-for="FiscalYearId" class="form-select" asp-items="ViewBag.FiscalYears">
                         <option value="">-- Select --</option>
                     </select>
                     <span asp-validation-for="FiscalYearId" class="text-danger"></span>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-6">
                     <label asp-for="NepaliMonth" class="form-label">Month</label>
                     <select asp-for="NepaliMonth" class="form-select" asp-items="ViewBag.NepaliMonths">
                         <option value="">-- Select --</option>
                     </select>
                     <span asp-validation-for="NepaliMonth" class="text-danger"></span>
-                </div>
-                <div class="col-md-3">
-                    <label asp-for="DefaultCategoryId" class="form-label">Default Category</label>
-                    <select asp-for="DefaultCategoryId" class="form-select" asp-items="ViewBag.Categories">
-                        <option value="">-- Select --</option>
-                    </select>
-                    <span asp-validation-for="DefaultCategoryId" class="text-danger"></span>
-                </div>
-                <div class="col-md-3">
-                    <label asp-for="DefaultPaymentMethod" class="form-label">Default Payment</label>
-                    <select asp-for="DefaultPaymentMethod" class="form-select" asp-items="ViewBag.PaymentMethods">
-                        <option value="">-- Select --</option>
-                    </select>
-                    <span asp-validation-for="DefaultPaymentMethod" class="text-danger"></span>
                 </div>
             </div>
         </div>

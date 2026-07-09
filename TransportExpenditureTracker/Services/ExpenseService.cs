@@ -376,8 +376,8 @@ public class ExpenseService : IExpenseService
                     FiscalYearId = fiscalYear.Id,
                     NepaliMonth = vm.NepaliMonth,
                     SupplierId = row.SupplierId,
-                    CategoryId = row.CategoryId ?? vm.DefaultCategoryId,
-                    PaymentMethod = row.PaymentMethod ?? vm.DefaultPaymentMethod,
+                    CategoryId = row.CategoryId ?? 1,
+                    PaymentMethod = row.PaymentMethod ?? "Cash",
                     CreatedAt = DateTime.UtcNow
                 };
                 _db.ExpenseHeaders.Add(header);
