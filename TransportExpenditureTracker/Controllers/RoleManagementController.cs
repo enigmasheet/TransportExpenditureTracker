@@ -51,7 +51,7 @@ public class RoleManagementController : Controller
         }
         ViewBag.UserEmail = user.Email;
         ViewBag.UserId = userId;
-        return View(model);
+        return PartialView(model);
     }
 
     [HttpPost]
@@ -59,7 +59,7 @@ public class RoleManagementController : Controller
     public async Task<IActionResult> ManageRoles(List<ManageUserRolesViewModel> model, string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return NotFound();
+        if (user == null) return Json(new { success = false, errors = new { UserId = new[] { "User not found." } } });
         var currentRoles = await _userManager.GetRolesAsync(user);
         await _userManager.RemoveFromRolesAsync(user, currentRoles);
         var selectedRoles = model.Where(r => r.Selected).Select(r => r.RoleName).ToList();
@@ -67,6 +67,6 @@ public class RoleManagementController : Controller
         {
             await _userManager.AddToRolesAsync(user, selectedRoles);
         }
-        return RedirectToAction(nameof(Index));
+        return Json(new { success = true });
     }
 }

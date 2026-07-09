@@ -67,6 +67,7 @@ public static class WebAppBuilder
             builder.Services.AddScoped<ReportConverter>();
 
             builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, EmailSender>();
+            builder.Services.AddTransient<EmailSender>();
             builder.Services.AddHostedService<ExportBackgroundJob>();
 
             builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
@@ -77,6 +78,7 @@ public static class WebAppBuilder
                 .AddPolicy("RequireSuperAdminRole", policy => policy.RequireRole("SuperAdmin"));
 
             var app = builder.Build();
+            app.UseSerilogRequestLogging();
 
             using (var scope = app.Services.CreateScope())
             {

@@ -23,17 +23,32 @@ $.fn.loading = function (state) {
 };
 
 $(document).ready(function () {
+    // Active nav highlighting
+    var currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+    $('.navbar-nav a').each(function () {
+        var href = $(this).attr('href');
+        if (href && href !== '#' && currentPath === href.toLowerCase().split('?')[0].replace(/\/+$/, '')) {
+            $(this).addClass('active');
+            if ($(this).closest('.dropdown-menu').length) {
+                $(this).closest('.dropdown').find('.dropdown-toggle').addClass('active');
+            }
+        }
+    });
+
     // Convert TempData to toasts
     var $td = $('#tempData');
     if ($td.length) {
         var success = $td.data('success');
         var error = $td.data('error');
+        var warning = $td.data('warning');
         if (success) showToast('success', success);
         if (error) showToast('error', error);
+        if (warning) showToast('warning', warning);
     }
 
     // Auto-loading state on form submits
-    $(document).on('submit', 'form', function () {
+    $(document).on('submit', 'form', function (e) {
+        if (e.isDefaultPrevented()) return;
         var $btn = $(this).find('button[type="submit"]');
         if ($btn.length && !$btn.hasClass('is-loading')) {
             $btn.loading(true);

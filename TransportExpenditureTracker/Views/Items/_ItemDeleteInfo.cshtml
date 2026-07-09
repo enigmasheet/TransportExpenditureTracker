@@ -1,3 +1,4 @@
 @model ItemViewModel
+<input type="hidden" name="Id" value="@Model.ItemId" />
 <p><strong>Item:</strong> @Model.ItemName</p>
 <p><strong>Unit:</strong> @(string.IsNullOrEmpty(Model.Unit) ? "—" : Model.Unit)</p>

@@ -1,0 +1,170 @@
+@model ReportPageViewModel
+@{
+    var f = Model.Filters ?? new ReportFilterViewModel();
+    var totalQty = Model.Rows.Sum(r => r.Quantity);
+    var totalTaxable = Model.Rows.Sum(r => r.TaxableAmount);
+    var totalVat = Model.Rows.Sum(r => r.VatAmount);
+    var totalAmount = Model.Rows.Sum(r => r.TotalAmount);
+}
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="filter-sidebar">
+            <h5><i class="bi bi-funnel"></i> Filters</h5>
+            <form method="get">
+                <div class="mb-2">
+                    <label class="form-label">Fiscal Year</label>
+                    <select name="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Month</label>
+                    <select name="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Supplier</label>
+                    <select name="SupplierId" class="form-control" asp-items="ViewBag.Suppliers">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Category</label>
+                    <select name="CategoryId" class="form-control" asp-items="ViewBag.Categories">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">From</label>
+                    <input name="FromDate" type="date" class="form-control" value="@(f.FromDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">To</label>
+                    <input name="ToDate" type="date" class="form-control" value="@(f.ToDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Invoice No</label>
+                    <input name="InvoiceNo" class="form-control" value="@f.InvoiceNo" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search"></i> Filter</button>
+            </form>
+
+            <hr />
+            <h5><i class="bi bi-download"></i> Export</h5>
+            <form method="get" action="@Url.Action("Export", "Reports")">
+                <input type="hidden" name="reportType" value="@Model.ReportType" />
+                <input type="hidden" name="action" value="Download" />
+                <input type="hidden" name="FiscalYear" value="@f.FiscalYear" />
+                <input type="hidden" name="NepaliMonth" value="@f.NepaliMonth" />
+                <input type="hidden" name="SupplierId" value="@f.SupplierId" />
+                <input type="hidden" name="CategoryId" value="@f.CategoryId" />
+                <input type="hidden" name="ItemId" value="@f.ItemId" />
+                <input type="hidden" name="InvoiceNo" value="@f.InvoiceNo" />
+                <input type="hidden" name="Location" value="@f.Location" />
+                <input type="hidden" name="VatNo" value="@f.VatNo" />
+                <input type="hidden" name="PaymentMethod" value="@f.PaymentMethod" />
+                <input type="hidden" name="FromDate" value="@f.FromDate?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="ToDate" value="@f.ToDate?.ToString("yyyy-MM-dd")" />
+                <button type="submit" name="format" value="Excel" class="btn btn-success btn-sm w-100 mb-1">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>
+                <button type="submit" name="format" value="PDF" class="btn btn-danger btn-sm w-100 mb-1">
+                    <i class="bi bi-file-earmark-pdf"></i> PDF
+                </button>
+                <button type="submit" name="format" value="CSV" class="btn btn-secondary btn-sm w-100 mb-1">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                </button>
+            </form>
+
+            <hr />
+            <form asp-controller="Reports" asp-action="Export" method="post">
+                <input type="hidden" name="format" value="CSV" />
+                <input type="hidden" name="reportType" value="@Model.ReportType" />
+                <input type="hidden" name="FiscalYear" value="@f.FiscalYear" />
+                <input type="hidden" name="NepaliMonth" value="@f.NepaliMonth" />
+                <input type="hidden" name="SupplierId" value="@f.SupplierId" />
+                <input type="hidden" name="CategoryId" value="@f.CategoryId" />
+                <input type="hidden" name="ItemId" value="@f.ItemId" />
+                <input type="hidden" name="InvoiceNo" value="@f.InvoiceNo" />
+                <input type="hidden" name="Location" value="@f.Location" />
+                <input type="hidden" name="VatNo" value="@f.VatNo" />
+                <input type="hidden" name="PaymentMethod" value="@f.PaymentMethod" />
+                <input type="hidden" name="FromDate" value="@f.FromDate?.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="ToDate" value="@f.ToDate?.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-envelope"></i> Email CSV</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="table-container">
+            <h5>@Model.Title</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered" id="report-table">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Miti</th>
+                            <th>Invoice</th>
+                            <th>Supplier</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th>Taxable</th>
+                            <th>VAT</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Rows)
+                        {
+                            <tr>
+                                <td>@item.Sno</td>
+                                <td>@item.Miti</td>
+                                <td>@item.InvoiceNo</td>
+                                <td>@item.SupplierName</td>
+                                <td>@item.CategoryName</td>
+                                <td>@item.ItemName (@item.Unit)</td>
+                                <td class="text-end">@item.Quantity.ToString("N2")</td>
+                                <td class="text-end">@item.Rate.ToString("N2")</td>
+                                <td class="text-end">@item.TaxableAmount.ToString("N2")</td>
+                                <td class="text-end">@item.VatAmount.ToString("N2")</td>
+                                <td class="text-end">@item.TotalAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    @if (Model.Rows.Count > 0)
+                    {
+                        <tfoot class="table-dark">
+                            <tr>
+                                <th colspan="6" class="text-end">Total</th>
+                                <th class="text-end">@totalQty.ToString("N2")</th>
+                                <th></th>
+                                <th class="text-end">@totalTaxable.ToString("N2")</th>
+                                <th class="text-end">@totalVat.ToString("N2")</th>
+                                <th class="text-end">@totalAmount.ToString("N2")</th>
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#report-table').DataTable({
+                pageLength: 50,
+                ordering: true,
+                language: {
+                    search: "<i class='bi bi-search'></i> _INPUT_",
+                    searchPlaceholder: "Search..."
+                }
+            });
+        });
+    </script>
+}

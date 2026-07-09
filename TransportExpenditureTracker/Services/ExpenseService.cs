@@ -326,13 +326,7 @@ public class ExpenseService : IExpenseService
         using var transaction = await _db.Database.BeginTransactionAsync();
         var summary = new ImportSummaryViewModel();
 
-        var fiscalYear = await _db.FiscalYears.FindAsync(vm.FiscalYearId);
-        if (fiscalYear is null)
-        {
-            summary.Errors++;
-            summary.ErrorMessages.Add("Selected fiscal year not found.");
-            return summary;
-        }
+        var allFiscalYears = await _db.FiscalYears.ToListAsync();
 
         foreach (var row in vm.Rows)
         {
@@ -344,6 +338,18 @@ public class ExpenseService : IExpenseService
                     summary.SkippedReasons.Add($"Row {row.RowIndex}: Missing required fields");
                     continue;
                 }
+
+                var fiscalYear = FiscalYearHelper.GetFiscalYear(row.Miti, allFiscalYears);
+                if (fiscalYear is null)
+                {
+                    summary.Skipped++;
+                    summary.SkippedReasons.Add($"Row {row.RowIndex}: Could not determine fiscal year from Miti");
+                    continue;
+                }
+
+                var mitiParts = row.Miti.Split('/');
+                var monthIndex = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(mitiParts[1])) - 1;
+                var nepaliMonth = NepaliDateHelper.NepaliMonthNames[monthIndex];
 
                 var englishDate = NepaliDateHelper.ParseNepaliDate(row.Miti) ?? DateTime.UtcNow;
 
@@ -374,7 +380,7 @@ public class ExpenseService : IExpenseService
                     EnglishDate = englishDate,
                     FiscalYear = fiscalYear.Name,
                     FiscalYearId = fiscalYear.Id,
-                    NepaliMonth = vm.NepaliMonth,
+                    NepaliMonth = nepaliMonth,
                     SupplierId = row.SupplierId,
                     CategoryId = row.CategoryId ?? 1,
                     PaymentMethod = row.PaymentMethod ?? "Cash",

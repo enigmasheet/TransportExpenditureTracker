@@ -17,17 +17,20 @@ public class ExpensesController : Controller
     private readonly ICsvImportService _csvImportService;
     private readonly ApplicationDbContext _ctx;
     private readonly ExpenseConverter _expenseConverter;
+    private readonly ILogger<ExpensesController> _logger;
 
     public ExpensesController(
         IExpenseService expenseService,
         ICsvImportService csvImportService,
         ApplicationDbContext ctx,
-        ExpenseConverter expenseConverter)
+        ExpenseConverter expenseConverter,
+        ILogger<ExpensesController> logger)
     {
         _expenseService = expenseService;
         _csvImportService = csvImportService;
         _ctx = ctx;
         _expenseConverter = expenseConverter;
+        _logger = logger;
     }
 
     private string CurrentUserId => HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
@@ -47,8 +50,7 @@ public class ExpensesController : Controller
 
     public IActionResult Create()
     {
-        DropdownHelper.LoadFiscalYears(_ctx, ViewData);
-        DropdownHelper.LoadNepaliMonths(ViewData);
+        DropdownHelper.LoadSuppliers(_ctx, ViewData);
         DropdownHelper.LoadCategories(_ctx, ViewData);
         DropdownHelper.LoadPaymentMethods(ViewData);
         DropdownHelper.LoadItems(_ctx, ViewData);
@@ -66,17 +68,28 @@ public class ExpensesController : Controller
     {
         vm.Rows = vm.Rows.Where(r => !string.IsNullOrWhiteSpace(r.InvoiceNo) || r.Quantity > 0 || r.Rate > 0).ToList();
 
+        // Clear ModelState errors for removed rows and re-validate
+        var rowKeys = ModelState.Keys.Where(k => k.StartsWith("Rows[")).ToList();
+        foreach (var key in rowKeys) ModelState.Remove(key);
+        TryValidateModel(vm);
+
         if (ModelState.IsValid)
         {
             var result = await _expenseService.BatchCreateAsync(vm, CurrentUserId);
+            _logger.LogInformation("Batch create by {User}: {Inserted} inserted, {Skipped} skipped, {Errors} errors",
+                CurrentUserId, result.Inserted, result.Skipped, result.Errors);
             TempData["Success"] = $"{result.Inserted} expenses created, {result.Skipped} skipped, {result.Errors} errors.";
             if (result.ErrorMessages.Count > 0)
                 TempData["Error"] = string.Join("; ", result.ErrorMessages);
+            if (result.SkippedReasons.Count > 0)
+                TempData["Warning"] = string.Join("; ", result.SkippedReasons);
             return RedirectToAction(nameof(Index));
         }
 
-        DropdownHelper.LoadFiscalYears(_ctx, ViewData);
-        DropdownHelper.LoadNepaliMonths(ViewData);
+        _logger.LogWarning("Batch create validation failed for {User}: {Errors}",
+            CurrentUserId, string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+
+        DropdownHelper.LoadSuppliers(_ctx, ViewData);
         DropdownHelper.LoadItems(_ctx, ViewData);
         return View(vm);
     }

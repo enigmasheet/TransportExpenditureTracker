@@ -16,6 +16,7 @@
                 <th>Recipient Email</th>
                 <th>Sent At</th>
                 <th>Error Message</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -41,6 +42,12 @@
                     <td>@item.RecipientEmail</td>
                     <td>@(item.SentAt?.ToString("g") ?? "-")</td>
                     <td>@(item.ErrorMessage ?? "-")</td>
+                    <td>
+                        @if (item.Status == "Completed" && !string.IsNullOrEmpty(item.FilePath))
+                        {
+                            <a asp-action="Download" asp-route-id="@item.ExportQueueId" class="btn btn-success btn-sm"><i class="bi bi-download"></i> Download</a>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>

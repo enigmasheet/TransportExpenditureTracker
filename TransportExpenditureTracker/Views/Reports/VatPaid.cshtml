@@ -2,56 +2,10 @@
 @{
     ViewData["Title"] = "VAT Paid Report";
 }
-
-<div class="row">
-    <div class="col-md-3">
-        <div class="filter-sidebar">
-            <h5><i class="bi bi-funnel"></i> Filters</h5>
-            <form method="get">
-                <div class="mb-2"><label class="form-label">Fiscal Year</label><select name="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears"><option value="">All</option></select></div>
-                <div class="mb-2"><label class="form-label">Month</label><select name="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths"><option value="">All</option></select></div>
-                <div class="mb-2"><label class="form-label">Supplier</label><select name="SupplierId" class="form-control" asp-items="ViewBag.Suppliers"><option value="">All</option></select></div>
-                <div class="mb-2"><label class="form-label">From</label><input name="FromDate" type="date" class="form-control" /></div>
-                <div class="mb-2"><label class="form-label">To</label><input name="ToDate" type="date" class="form-control" /></div>
-                <div class="mb-2"><label class="form-label">Invoice No</label><input name="InvoiceNo" class="form-control" /></div>
-                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search"></i> Filter</button>
-            </form>
-            <hr />
-            <h5><i class="bi bi-download"></i> Export</h5>
-            <a asp-action="Export" asp-route-format="Excel" asp-route-reportType="VatPaid" class="btn btn-success btn-sm w-100 mb-1"><i class="bi bi-file-earmark-excel"></i> Excel</a>
-            <a asp-action="Export" asp-route-format="PDF" asp-route-reportType="VatPaid" class="btn btn-danger btn-sm w-100 mb-1"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
-            <a asp-action="Export" asp-route-format="CSV" asp-route-reportType="VatPaid" class="btn btn-secondary btn-sm w-100"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</a>
-            <hr />
-            <form asp-controller="Reports" asp-action="Export" method="post">
-                <input type="hidden" name="format" value="CSV" />
-                <input type="hidden" name="reportType" value="VatPaid" />
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-envelope"></i> Email CSV</button>
-            </form>
-        </div>
-    </div>
-    <div class="col-md-9">
-        <div class="table-container">
-            <h5>VAT Paid Report</h5>
-            <table class="table table-sm table-bordered" id="report-table">
-                <thead>
-                    <tr><th>S.No</th><th>Miti</th><th>Invoice</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT</th><th>Total</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model)
-                    {
-                        <tr><td>@item.Sno</td><td>@item.Miti</td><td>@item.InvoiceNo</td><td>@item.SupplierName</td>
-                            <td>@item.ItemName (@item.Unit)</td><td>@item.Quantity</td><td>@item.Rate.ToString("N2")</td>
-                            <td>@item.TaxableAmount.ToString("N2")</td><td>@item.VatAmount.ToString("N2")</td>
-                            <td>@item.TotalAmount.ToString("N2")</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        $(document).ready(function () { $('#report-table').DataTable({ pageLength: 50, ordering: true, language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." } }); });
-    </script>
-}
+@await Html.PartialAsync("_ReportView", new ReportPageViewModel
+{
+    Title = "VAT Paid Report",
+    ReportType = "VatPaid",
+    Rows = Model,
+    Filters = ViewBag.Filter as ReportFilterViewModel
+})

@@ -13,8 +13,8 @@ public static class FiscalYearHelper
         var nepaliMonth = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(parts[1]));
 
         string fyName = nepaliMonth >= 4
-            ? $"{nepaliYear}/{nepaliYear + 1}"
-            : $"{nepaliYear - 1}/{nepaliYear}";
+            ? $"{nepaliYear}/{nepaliYear % 100 + 1:D2}"
+            : $"{nepaliYear - 1}/{nepaliYear % 100:D2}";
 
         return fiscalYears.FirstOrDefault(f => f.Name == fyName);
     }
@@ -28,7 +28,7 @@ public static class FiscalYearHelper
         var nepaliMonth = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(parts[1]));
 
         return nepaliMonth >= 4
-            ? $"{nepaliYear}/{nepaliYear + 1}"
-            : $"{nepaliYear - 1}/{nepaliYear}";
+            ? $"{nepaliYear}/{nepaliYear % 100 + 1:D2}"
+            : $"{nepaliYear - 1}/{nepaliYear % 100:D2}";
     }
 }

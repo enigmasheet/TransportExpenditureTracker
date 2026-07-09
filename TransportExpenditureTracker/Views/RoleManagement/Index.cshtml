@@ -3,7 +3,9 @@
     ViewData["Title"] = "User Management";
 }
 
-<h4 class="page-heading"><i class="bi bi-shield-lock"></i> @ViewData["Title"]</h4>
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-shield-lock"></i> @ViewData["Title"]</h4>
+</div>
 
 <div class="table-container">
     <table class="table table-sm table-bordered" id="users-table">
@@ -31,7 +33,7 @@
                     </td>
                     <td>
                         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rolesModal"
-                                data-user-id="@user.UserId" data-user-email="@user.Email">
+                                data-id="@user.UserId" data-email="@user.Email">
                             <i class="bi bi-shield"></i> Manage Roles
                         </button>
                     </td>
@@ -41,22 +43,18 @@
     </table>
 </div>
 
-<!-- Manage Roles Modal -->
-<div class="modal fade" id="rolesModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title">Manage Roles - <span id="modalUserEmail"></span></h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="rolesModalBody">
-                <div class="text-center py-3">
-                    <div class="spinner-border" role="status"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+@{
+    Func<object, object> rolesBody = @<text>
+        <div class="text-center py-3"><div class="spinner-border" role="status"></div></div>
+    </text>;
+}
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig
+{
+    ModalId = "rolesModal",
+    FormId = "rolesForm",
+    Title = "Manage Roles",
+    BodyContent = rolesBody
+})
 
 @section Scripts {
     <script>
@@ -67,17 +65,13 @@
                 language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
             });
 
-            var rolesModal = document.getElementById('rolesModal');
-            rolesModal.addEventListener('show.bs.modal', function (event) {
-                var button = event.relatedTarget;
-                var userId = button.getAttribute('data-user-id');
-                var userEmail = button.getAttribute('data-user-email');
-                document.getElementById('modalUserEmail').textContent = userEmail;
-                var body = document.getElementById('rolesModalBody');
-                body.innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>';
-                $.get('/RoleManagement/ManageRoles?userId=' + userId, function (html) {
-                    body.innerHTML = html;
-                });
+            ModalForm.initDynamic({
+                modalId: 'rolesModal',
+                formId: 'rolesForm',
+                loadUrl: '@Url.Action("ManageRoles", "RoleManagement")',
+                submitUrl: '@Url.Action("ManageRoles", "RoleManagement")',
+                loadParamName: 'userId',
+                useFormData: true
             });
         });
     </script>

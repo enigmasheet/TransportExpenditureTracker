@@ -31,6 +31,9 @@ function addBatchRows() {
             $(this).val('').trigger('change');
         }
     });
+    // Strip artifact classes that survived clone so init functions don't skip them
+    template.find('.supplier-select, .item-select').removeClass('select2-hidden-accessible');
+    template.find('.nepali-datepicker').removeClass('ndp-initialized');
 
     for (let i = 0; i < 5; i++) {
         const newRow = template.clone();
@@ -44,7 +47,7 @@ function addBatchRows() {
     }
 
     initRowSelect2(tbody);
-    initDatepicker(tbody);
+    initRowDatepicker(tbody);
 }
 
 function removeLastRow() {
@@ -58,50 +61,36 @@ function removeLastRow() {
 }
 
 function initRowSelect2(container) {
-    const searchUrl = $('#batch-table').data('supplier-search-url');
-    container.find('.supplier-select').not('.select2-hidden-accessible').each(function () {
-        $(this).select2({
-            ajax: {
-                url: searchUrl,
-                dataType: 'json',
-                delay: 300,
-                data: function (params) { return { term: params.term }; },
-                processResults: function (data) { return { results: data.results }; }
-            },
-            placeholder: 'Type name or VAT...',
-            minimumInputLength: 1,
-            width: '100%',
-            allowClear: true
-        });
+    container.find('.supplier-select').each(function () {
+        if (!$(this).data('select2')) {
+            $(this).select2({ width: '100%', allowClear: true });
+        }
     });
 
-    container.find('.item-select').not('.select2-hidden-accessible').each(function () {
-        $(this).select2({
-            placeholder: '-- Select Item --',
-            allowClear: true,
-            width: '100%'
-        });
+    container.find('.item-select').each(function () {
+        if (!$(this).data('select2')) {
+            $(this).select2({ placeholder: '-- Select Item --', allowClear: true, width: '100%' });
+        }
     });
 }
 
 function initRowDatepicker(container) {
-    container.find('.nepali-datepicker').not('.ndp-initialized').each(function () {
-        $(this).addClass('ndp-initialized');
-        $(this).nepaliDatePicker({ dateFormat: '%y-%m-%d', ndpYear: true, ndpMonth: true, ndpYearCount: 100 });
+    container.find('.nepali-datepicker').each(function () {
+        if (!$(this).hasClass('ndp-initialized')) {
+            $(this).addClass('ndp-initialized');
+            $(this).nepaliDatePicker({ dateFormat: '%y/%m/%d', ndpYear: true, ndpMonth: true, ndpYearCount: 100 });
+        }
     });
 }
 
 $(document).ready(function () {
-    const searchUrl = $('#batch-table').data('supplier-search-url');
-    if (!searchUrl) {
-        const base = window.location.origin;
-        $('#batch-table').data('supplier-search-url', base + '/Suppliers/SearchJson');
-    }
-
     $('#batch-table').on('input', '.qty, .rate', function () { recalcRow($(this).closest('tr')); });
     $('#add-rows-btn').on('click', addBatchRows);
     $('#remove-row-btn').on('click', removeLastRow);
 
     initRowSelect2($('#batch-table tbody'));
     initRowDatepicker($('#batch-table tbody'));
+
+    // Recalculate computed columns on page load (validation error return)
+    $('#batch-table tbody tr').each(function () { recalcRow($(this)); });
 });

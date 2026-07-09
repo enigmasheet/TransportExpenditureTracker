@@ -25,7 +25,7 @@
                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-id="@item.CategoryId"><i class="bi bi-pencil"></i></button>
                         @if (User.IsInRole("Admin"))
                         {
-                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal" data-id="@item.CategoryId" data-name="@item.CategoryName"><i class="bi bi-trash"></i></button>
+                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal" data-id="@item.CategoryId"><i class="bi bi-trash"></i></button>
                         }
                     </td>
                 </tr>
@@ -34,169 +34,41 @@
     </table>
 </div>
 
-<!-- Create Modal -->
-<div class="modal fade" id="createCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="createCategoryForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-plus-lg text-primary"></i> Add Category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">@await Html.PartialAsync("_CategoryForm.cshtml", new ExpenseCategoryViewModel())</div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Save</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Modal -->
-<div class="modal fade" id="editCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="editCategoryForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil text-warning"></i> Edit Category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body"><div class="text-center py-3"><div class="spinner-border" role="status"></div></div></div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Update</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="deleteCategoryForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-trash text-danger"></i> Delete Category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body"><div class="text-center py-3"><div class="spinner-border" role="status"></div></div></div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Delete</button></div>
-            </form>
-        </div>
-    </div>
-</div>
+@{
+    Func<object, object> createBody = @<text>@await Html.PartialAsync("~/Views/ExpenseCategories/_CategoryForm.cshtml", new ExpenseCategoryViewModel())</text>;
+    Func<object, object> spinnerBody = @<text><div class="text-center py-3"><div class="spinner-border" role="status"></div></div></text>;
+}
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "createCategoryModal", FormId = "createCategoryForm", Title = "<i class='bi bi-plus-lg text-primary'></i> Add Category", BodyContent = createBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "editCategoryModal", FormId = "editCategoryForm", Title = "<i class='bi bi-pencil text-warning'></i> Edit Category", SubmitText = "Update", BodyContent = spinnerBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "deleteCategoryModal", FormId = "deleteCategoryForm", Title = "<i class='bi bi-trash text-danger'></i> Delete Category", SubmitText = "Delete", SubmitIcon = "bi-trash", SubmitClass = "btn-danger", BodyContent = spinnerBody })
 
 @section Scripts {
     <script>
         $(document).ready(function () {
-            var table = $('#categories-table').DataTable({
+            $('#categories-table').DataTable({
                 ordering: true,
                 pageLength: 25,
                 language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
             });
 
-            // Create
-            $('#createCategoryForm').on('submit', function (e) {
-                e.preventDefault();
-                var $form = $(this);
-                if (!$form.valid()) return;
-                var $btn = $form.find('button[type="submit"]');
-                $btn.loading(true);
-                $.ajax({
-                    url: '@Url.Action("Create", "ExpenseCategories")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        categoryName: $form.find('[name="CategoryName"]').val()
-                    }),
-                    headers: { 'RequestVerificationToken': $form.find('[name="__RequestVerificationToken"]').val() }
-                }).done(function (data) {
-                    if (data.success) {
-                        $('#createCategoryModal').modal('hide');
-                        $form[0].reset();
-                        showToast('success', 'Category created.');
-                        setTimeout(function () { location.reload(); }, 500);
-                    } else {
-                        var msgs = [];
-                        $.each(data.errors, function (f, arr) { msgs.push(arr.join(', ')); });
-                        showToast('error', msgs.join('<br>'));
-                    }
-                }).fail(function () { showToast('error', 'Failed to create category.'); })
-                  .always(function () { $btn.loading(false); });
+            ModalForm.initCreate({
+                modalId: 'createCategoryModal',
+                formId: 'createCategoryForm',
+                submitUrl: '@Url.Action("Create", "ExpenseCategories")'
             });
 
-            // Edit - load content
-            $('#editCategoryModal').on('show.bs.modal', function (e) {
-                var id = $(e.relatedTarget).data('id');
-                var $body = $(this).find('.modal-body');
-                $body.html('<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>');
-                $.get('@Url.Action("GetForEdit", "ExpenseCategories")/' + id, function (html) {
-                    $body.html(html);
-                    $.validator.unobtrusive.parse($body);
-                });
+            ModalForm.initDynamic({
+                modalId: 'editCategoryModal',
+                formId: 'editCategoryForm',
+                loadUrl: '@Url.Action("GetForEdit", "ExpenseCategories")',
+                submitUrl: '@Url.Action("QuickUpdate", "ExpenseCategories")'
             });
 
-            $('#editCategoryForm').on('submit', function (e) {
-                e.preventDefault();
-                var $form = $(this);
-                if (!$form.valid()) return;
-                var $btn = $form.find('button[type="submit"]');
-                var $body = $form.closest('.modal').find('.modal-body');
-                $btn.loading(true);
-                $.ajax({
-                    url: '@Url.Action("QuickUpdate", "ExpenseCategories")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        categoryId: $body.find('[name="CategoryId"]').val(),
-                        categoryName: $body.find('[name="CategoryName"]').val()
-                    }),
-                    headers: { 'RequestVerificationToken': $form.find('[name="__RequestVerificationToken"]').val() }
-                }).done(function (data) {
-                    if (data.success) {
-                        $('#editCategoryModal').modal('hide');
-                        showToast('success', 'Category updated.');
-                        setTimeout(function () { location.reload(); }, 500);
-                    } else {
-                        var msgs = [];
-                        $.each(data.errors, function (f, arr) { msgs.push(arr.join(', ')); });
-                        showToast('error', msgs.join('<br>'));
-                    }
-                }).fail(function () { showToast('error', 'Failed to update category.'); })
-                  .always(function () { $btn.loading(false); });
-            });
-
-            // Delete - load content
-            $('#deleteCategoryModal').on('show.bs.modal', function (e) {
-                var id = $(e.relatedTarget).data('id');
-                var $body = $(this).find('.modal-body');
-                $body.html('<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>');
-                $.get('@Url.Action("GetDeleteInfo", "ExpenseCategories")/' + id, function (html) {
-                    $body.html(html);
-                });
-            });
-
-            $('#deleteCategoryModal').on('show.bs.modal', function (e) {
-                $(this).data('currentId', $(e.relatedTarget).data('id'));
-            });
-
-            $('#deleteCategoryForm').on('submit', function (e) {
-                e.preventDefault();
-                var $form = $(this);
-                var $btn = $form.find('button[type="submit"]');
-                var id = $('#deleteCategoryModal').data('currentId');
-                $btn.loading(true);
-                $.ajax({
-                    url: '@Url.Action("QuickDelete", "ExpenseCategories")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ id: id }),
-                    headers: { 'RequestVerificationToken': $form.find('[name="__RequestVerificationToken"]').val() }
-                }).done(function (data) {
-                    if (data.success) {
-                        $('#deleteCategoryModal').modal('hide');
-                        showToast('success', 'Category deleted.');
-                        setTimeout(function () { location.reload(); }, 500);
-                    } else {
-                        showToast('error', 'Failed to delete category.');
-                    }
-                }).fail(function () { showToast('error', 'Failed to delete category.'); })
-                  .always(function () { $btn.loading(false); });
-            });
-
-            // Reset create modal on hide
-            $('#createCategoryModal').on('hidden.bs.modal', function () {
-                $(this).find('form')[0].reset();
+            ModalForm.initDynamic({
+                modalId: 'deleteCategoryModal',
+                formId: 'deleteCategoryForm',
+                loadUrl: '@Url.Action("GetDeleteInfo", "ExpenseCategories")',
+                submitUrl: '@Url.Action("QuickDelete", "ExpenseCategories")'
             });
         });
     </script>

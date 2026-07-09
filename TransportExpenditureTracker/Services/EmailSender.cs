@@ -13,8 +13,9 @@ public class EmailSender : IEmailSender
     private readonly string _smtpPassword;
     private readonly string _fromEmail;
     private readonly string _fromName;
+    private readonly ILogger<EmailSender> _logger;
 
-    public EmailSender(IConfiguration configuration)
+    public EmailSender(IConfiguration configuration, ILogger<EmailSender> logger)
     {
         _smtpHost = configuration["Resend:SmtpHost"] ?? "smtp.resend.com";
         _smtpPort = int.TryParse(configuration["Resend:SmtpPort"], out var port) ? port : 587;
@@ -22,6 +23,7 @@ public class EmailSender : IEmailSender
         _smtpPassword = configuration["Resend:ApiKey"] ?? string.Empty;
         _fromEmail = configuration["Resend:FromEmail"] ?? "noreply@expensetracker.com";
         _fromName = configuration["Resend:FromName"] ?? "Expense Tracker";
+        _logger = logger;
     }
 
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)

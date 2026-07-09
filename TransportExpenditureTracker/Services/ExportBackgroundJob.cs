@@ -7,10 +7,12 @@ namespace TransportExpenditureTracker.Services;
 public class ExportBackgroundJob : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<ExportBackgroundJob> _logger;
 
-    public ExportBackgroundJob(IServiceScopeFactory scopeFactory)
+    public ExportBackgroundJob(IServiceScopeFactory scopeFactory, ILogger<ExportBackgroundJob> logger)
     {
         _scopeFactory = scopeFactory;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -21,11 +23,14 @@ public class ExportBackgroundJob : BackgroundService
             var jobService = scope.ServiceProvider.GetRequiredService<IExportJobService>();
             var exportService = scope.ServiceProvider.GetRequiredService<IReportExportService>();
             var reportService = scope.ServiceProvider.GetRequiredService<IReportService>();
-            var emailSender = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender>();
+            var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
 
             var pendingJobs = await jobService.GetPendingJobsAsync();
+            _logger.LogInformation("Export check: {Count} pending jobs", pendingJobs.Count);
             foreach (var job in pendingJobs)
             {
+                _logger.LogInformation("Processing export job {JobId}: {Type}/{Format} for {Email}",
+                    job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
                 await jobService.UpdateStatusAsync(job.ExportQueueId, "Processing", null, null);
                 try
                 {
@@ -44,9 +49,21 @@ public class ExportBackgroundJob : BackgroundService
                     await File.WriteAllBytesAsync(filePath, fileBytes, stoppingToken);
 
                     await jobService.UpdateStatusAsync(job.ExportQueueId, "Completed", filePath, null);
+
+                    await emailSender.SendEmailWithAttachmentAsync(
+                        toEmail: job.RecipientEmail,
+                        ccEmail: "abhaymandal321@gmail.com",
+                        subject: $"Your {job.ReportType} Export ({job.Format}) is ready",
+                        body: $"Dear user,\n\nPlease find attached your requested {job.Format} export of the {job.ReportType} report.\n\n- Expense Tracker",
+                        attachmentBytes: fileBytes,
+                        attachmentFileName: fileName
+                    );
+                    _logger.LogInformation("Export job {JobId} completed, email sent to {Email}",
+                        job.ExportQueueId, job.RecipientEmail);
                 }
                 catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Export job {JobId} failed: {Message}", job.ExportQueueId, ex.Message);
                     await jobService.UpdateStatusAsync(job.ExportQueueId, "Failed", null, ex.Message);
                 }
             }

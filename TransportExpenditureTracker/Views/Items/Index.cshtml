@@ -27,7 +27,7 @@
                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editItemModal" data-id="@item.ItemId"><i class="bi bi-pencil"></i></button>
                         @if (User.IsInRole("Admin"))
                         {
-                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteItemModal" data-id="@item.ItemId" data-name="@item.ItemName"><i class="bi bi-trash"></i></button>
+                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteItemModal" data-id="@item.ItemId"><i class="bi bi-trash"></i></button>
                         }
                     </td>
                 </tr>
@@ -36,171 +36,41 @@
     </table>
 </div>
 
-<!-- Create Modal -->
-<div class="modal fade" id="createItemModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="createItemForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-plus-lg text-primary"></i> Add Item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">@await Html.PartialAsync("_ItemForm.cshtml", new ItemViewModel())</div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Save</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Modal -->
-<div class="modal fade" id="editItemModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="editItemForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil text-warning"></i> Edit Item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body"><div class="text-center py-3"><div class="spinner-border" role="status"></div></div></div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Update</button></div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteItemModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="deleteItemForm">
-                @Html.AntiForgeryToken()
-                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-trash text-danger"></i> Delete Item</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body"><div class="text-center py-3"><div class="spinner-border" role="status"></div></div></div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Delete</button></div>
-            </form>
-        </div>
-    </div>
-</div>
+@{
+    Func<object, object> createBody = @<text>@await Html.PartialAsync("~/Views/Items/_ItemForm.cshtml", new ItemViewModel())</text>;
+    Func<object, object> spinnerBody = @<text><div class="text-center py-3"><div class="spinner-border" role="status"></div></div></text>;
+}
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "createItemModal", FormId = "createItemForm", Title = "<i class='bi bi-plus-lg text-primary'></i> Add Item", BodyContent = createBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "editItemModal", FormId = "editItemForm", Title = "<i class='bi bi-pencil text-warning'></i> Edit Item", SubmitText = "Update", BodyContent = spinnerBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "deleteItemModal", FormId = "deleteItemForm", Title = "<i class='bi bi-trash text-danger'></i> Delete Item", SubmitText = "Delete", SubmitIcon = "bi-trash", SubmitClass = "btn-danger", BodyContent = spinnerBody })
 
 @section Scripts {
     <script>
         $(document).ready(function () {
-            var table = $('#items-table').DataTable({
+            $('#items-table').DataTable({
                 ordering: true,
                 pageLength: 25,
                 language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
             });
 
-            // Create
-            $('#createItemForm').on('submit', function (e) {
-                e.preventDefault();
-                var $form = $(this);
-                if (!$form.valid()) return;
-                var $btn = $form.find('button[type="submit"]');
-                $btn.loading(true);
-                $.ajax({
-                    url: '@Url.Action("Create", "Items")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        itemName: $form.find('[name="ItemName"]').val(),
-                        unit: $form.find('[name="Unit"]').val()
-                    }),
-                    headers: { 'RequestVerificationToken': $form.find('[name="__RequestVerificationToken"]').val() }
-                }).done(function (data) {
-                    if (data.success) {
-                        $('#createItemModal').modal('hide');
-                        $form[0].reset();
-                        showToast('success', 'Item created.');
-                        setTimeout(function () { location.reload(); }, 500);
-                    } else {
-                        var msgs = [];
-                        $.each(data.errors, function (f, arr) { msgs.push(arr.join(', ')); });
-                        showToast('error', msgs.join('<br>'));
-                    }
-                }).fail(function () { showToast('error', 'Failed to create item.'); })
-                  .always(function () { $btn.loading(false); });
+            ModalForm.initCreate({
+                modalId: 'createItemModal',
+                formId: 'createItemForm',
+                submitUrl: '@Url.Action("Create", "Items")'
             });
 
-            // Edit - load content
-            $('#editItemModal').on('show.bs.modal', function (e) {
-                var id = $(e.relatedTarget).data('id');
-                var $body = $(this).find('.modal-body');
-                $body.html('<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>');
-                $.get('@Url.Action("GetForEdit", "Items")/' + id, function (html) {
-                    $body.html(html);
-                    $.validator.unobtrusive.parse($body);
-                });
+            ModalForm.initDynamic({
+                modalId: 'editItemModal',
+                formId: 'editItemForm',
+                loadUrl: '@Url.Action("GetForEdit", "Items")',
+                submitUrl: '@Url.Action("QuickUpdate", "Items")'
             });
 
-            $('#editItemForm').on('submit', function (e) {
-                e.preventDefault();
-                var $form = $(this);
-                if (!$form.valid()) return;
-                var $btn = $form.find('button[type="submit"]');
-                var $body = $form.closest('.modal').find('.modal-body');
-                $btn.loading(true);
-                $.ajax({
-                    url: '@Url.Action("QuickUpdate", "Items")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        itemId: $body.find('[name="ItemId"]').val(),
-                        itemName: $body.find('[name="ItemName"]').val(),
-                        unit: $body.find('[name="Unit"]').val()
-                    }),
-                    headers: { 'RequestVerificationToken': $form.find('[name="__RequestVerificationToken"]').val() }
-                }).done(function (data) {
-                    if (data.success) {
-                        $('#editItemModal').modal('hide');
-                        showToast('success', 'Item updated.');
-                        setTimeout(function () { location.reload(); }, 500);
-                    } else {
-                        var msgs = [];
-                        $.each(data.errors, function (f, arr) { msgs.push(arr.join(', ')); });
-                        showToast('error', msgs.join('<br>'));
-                    }
-                }).fail(function () { showToast('error', 'Failed to update item.'); })
-                  .always(function () { $btn.loading(false); });
-            });
-
-            // Delete - load content
-            $('#deleteItemModal').on('show.bs.modal', function (e) {
-                var id = $(e.relatedTarget).data('id');
-                var $body = $(this).find('.modal-body');
-                $body.html('<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>');
-                $.get('@Url.Action("GetDeleteInfo", "Items")/' + id, function (html) {
-                    $body.html(html);
-                });
-            });
-
-            $('#deleteItemModal').on('show.bs.modal', function (e) {
-                $(this).data('currentId', $(e.relatedTarget).data('id'));
-            });
-
-            $('#deleteItemForm').on('submit', function (e) {
-                e.preventDefault();
-                var $form = $(this);
-                var $btn = $form.find('button[type="submit"]');
-                var id = $('#deleteItemModal').data('currentId');
-                $btn.loading(true);
-                $.ajax({
-                    url: '@Url.Action("QuickDelete", "Items")',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ id: id }),
-                    headers: { 'RequestVerificationToken': $form.find('[name="__RequestVerificationToken"]').val() }
-                }).done(function (data) {
-                    if (data.success) {
-                        $('#deleteItemModal').modal('hide');
-                        showToast('success', 'Item deleted.');
-                        setTimeout(function () { location.reload(); }, 500);
-                    } else {
-                        showToast('error', 'Failed to delete item.');
-                    }
-                }).fail(function () { showToast('error', 'Failed to delete item.'); })
-                  .always(function () { $btn.loading(false); });
-            });
-
-            // Reset create modal on hide
-            $('#createItemModal').on('hidden.bs.modal', function () {
-                $(this).find('form')[0].reset();
+            ModalForm.initDynamic({
+                modalId: 'deleteItemModal',
+                formId: 'deleteItemForm',
+                loadUrl: '@Url.Action("GetDeleteInfo", "Items")',
+                submitUrl: '@Url.Action("QuickDelete", "Items")'
             });
         });
     </script>

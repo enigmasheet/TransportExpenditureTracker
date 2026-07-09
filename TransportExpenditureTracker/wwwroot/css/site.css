@@ -28,12 +28,29 @@ body {
 .navbar.bg-dark {
     background: #1e293b !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+
+.navbar .nav-link {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    font-size: 0.88rem;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+}
+
+.navbar-dark .navbar-nav .nav-link.active,
+.navbar-dark .navbar-nav .nav-link.show {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .navbar-brand {
     font-weight: 700;
-    font-size: 1.15rem;
+    font-size: 1rem;
     letter-spacing: -0.02em;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
 }
 
 /* ===== Breadcrumbs ===== */
