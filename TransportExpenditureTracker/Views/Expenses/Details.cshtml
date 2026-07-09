@@ -1,7 +1,7 @@
 @model ExpenseEntryViewModel
 @{ ViewData["Title"] = "Expense Details"; }
 
-<h4><i class="bi bi-eye"></i> Expense Details</h4><hr/>
+<h4 class="page-heading"><i class="bi bi-eye"></i> Expense Details</h4><hr/>
 
 <div class="row g-3 mb-4">
     <div class="col-md-3"><label class="fw-bold">Invoice No</label><p>@Model.InvoiceNo</p></div>
@@ -43,4 +43,4 @@
 </div>
 
 <a asp-action="Edit" asp-route-id="@Model.ExpenseId" class="btn btn-primary mt-3"><i class="bi bi-pencil"></i> Edit</a>
-<a asp-action="Index" class="btn btn-secondary mt-3">Back to List</a>
+<a asp-action="Index" class="btn btn-outline-secondary mt-3"><i class="bi bi-x-lg"></i> Back to List</a>

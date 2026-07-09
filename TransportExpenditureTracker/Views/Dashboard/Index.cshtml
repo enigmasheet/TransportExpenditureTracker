@@ -1,31 +1,27 @@
 @model DashboardViewModel
 @{ ViewData["Title"] = "Dashboard"; }
 
-<div class="row mb-4">
-    <div class="col-md-12"><h2><i class="bi bi-speedometer2"></i> Dashboard</h2><hr/></div>
+<div class="section-title mb-4">
+    <h4 class="page-heading"><i class="bi bi-speedometer2"></i> Dashboard</h4>
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Total Expenditure</div><div class="kpi-value text-primary">Rs @Model.TotalExpenditure.ToString("N2")</div><i class="bi bi-cash-stack kpi-icon text-primary"></i></div></div>
-    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Total VAT Paid</div><div class="kpi-value text-success">Rs @Model.TotalVatPaid.ToString("N2")</div><i class="bi bi-receipt kpi-icon text-success"></i></div></div>
-    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Taxable Amount</div><div class="kpi-value text-warning">Rs @Model.TotalTaxableAmount.ToString("N2")</div><i class="bi bi-calculator kpi-icon text-warning"></i></div></div>
-    <div class="col-md-3"><div class="kpi-card"><div class="kpi-label">Total Invoices</div><div class="kpi-value text-info">@Model.TotalInvoices</div><i class="bi bi-file-text kpi-icon text-info"></i></div></div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">This Month</div><div class="kpi-value text-danger">Rs @Model.ThisMonthExpenses.ToString("N2")</div></div></div>
-    <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">This Fiscal Year</div><div class="kpi-value text-secondary">Rs @Model.ThisFiscalYearExpenses.ToString("N2")</div></div></div>
-    <div class="col-md-4"><div class="kpi-card"><div class="kpi-label">Top Supplier</div><div class="kpi-value text-dark">@Model.TopSupplier</div></div></div>
+    <div class="col-md-4"><div class="kpi-card kpi-primary"><div class="kpi-label"><i class="bi bi-cash-stack me-1"></i>Total Expenditure</div><div class="kpi-value text-primary">Rs @Model.TotalExpenditure.ToString("N2")</div></div></div>
+    <div class="col-md-4"><div class="kpi-card kpi-success"><div class="kpi-label"><i class="bi bi-receipt me-1"></i>Total VAT Paid</div><div class="kpi-value text-success">Rs @Model.TotalVatPaid.ToString("N2")</div></div></div>
+    <div class="col-md-4"><div class="kpi-card kpi-warning"><div class="kpi-label"><i class="bi bi-calculator me-1"></i>Taxable Amount</div><div class="kpi-value text-warning">Rs @Model.TotalTaxableAmount.ToString("N2")</div></div></div>
+    <div class="col-md-4"><div class="kpi-card kpi-info"><div class="kpi-label"><i class="bi bi-file-text me-1"></i>Total Invoices</div><div class="kpi-value text-info">@Model.TotalInvoices</div></div></div>
+    <div class="col-md-4"><div class="kpi-card kpi-danger"><div class="kpi-label"><i class="bi bi-calendar-month me-1"></i>This Month</div><div class="kpi-value text-danger">Rs @Model.ThisMonthExpenses.ToString("N2")</div></div></div>
+    <div class="col-md-4"><div class="kpi-card kpi-primary" style="border-left-color:#6b7280"><div class="kpi-label"><i class="bi bi-calendar-range me-1"></i>This Fiscal Year</div><div class="kpi-value" style="color:#6b7280">Rs @Model.ThisFiscalYearExpenses.ToString("N2")</div></div></div>
 </div>
 
 <div class="row g-3">
-    <div class="col-md-8"><div class="table-container"><h5>Monthly Expenditure</h5><div id="monthlyChartSpinner" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="monthlyChart" height="250" class="d-none"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5>By Category</h5><div id="categoryChartSpinner" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="categoryChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-8"><div class="table-container"><h5><i class="bi bi-bar-chart-line text-primary"></i>Monthly Expenditure</h5><div id="monthlyChartSpinner" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="monthlyChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-pie-chart text-info"></i>By Category</h5><div id="categoryChartSpinner" class="text-center py-5"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="categoryChart" height="250" class="d-none"></canvas></div></div>
 </div>
 <div class="row g-3 mt-2">
-    <div class="col-md-4"><div class="table-container"><h5>Top Suppliers</h5><div id="supplierChartSpinner" class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="supplierChart" height="250" class="d-none"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5>VAT Paid</h5><div id="vatChartSpinner" class="text-center py-5"><div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="vatChart" height="250" class="d-none"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5>FY Comparison</h5><div id="fyChartSpinner" class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="fyChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-people text-success"></i>Top Suppliers</h5><div id="supplierChartSpinner" class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="supplierChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-receipt text-warning"></i>VAT Paid</h5><div id="vatChartSpinner" class="text-center py-5"><div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="vatChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-arrow-left-right text-secondary"></i>FY Comparison</h5><div id="fyChartSpinner" class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="fyChart" height="250" class="d-none"></canvas></div></div>
 </div>
 
 @section Scripts {

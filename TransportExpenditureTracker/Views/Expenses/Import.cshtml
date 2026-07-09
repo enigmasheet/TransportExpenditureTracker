@@ -1,7 +1,7 @@
 @model CsvPreviewViewModel
 @{ ViewData["Title"] = "Import Expenses"; }
 
-<h4><i class="bi bi-upload"></i> Import Expenses</h4><hr/>
+<h4 class="page-heading"><i class="bi bi-upload"></i> Import Expenses</h4><hr/>
 
 @if (Model == null || Model.Rows == null || !Model.Rows.Any())
 {
@@ -15,7 +15,7 @@
             <label class="form-check-label" for="autoCreate">Auto-create missing suppliers & items</label>
         </div>
         <button type="submit" class="btn btn-primary"><i class="bi bi-eye"></i> Preview</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancel</a>
     </form>
 }
 else
@@ -75,6 +75,6 @@ else
             </table>
         </div>
         <button type="submit" class="btn btn-success mt-3"><i class="bi bi-check-lg"></i> Confirm Import</button>
-        <a asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+        <a asp-action="Index" class="btn btn-outline-secondary mt-3"><i class="bi bi-x-lg"></i> Cancel</a>
     </form>
 }

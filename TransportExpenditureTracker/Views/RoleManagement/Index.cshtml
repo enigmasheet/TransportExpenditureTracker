@@ -3,7 +3,7 @@
     ViewData["Title"] = "User Management";
 }
 
-<h5>@ViewData["Title"]</h5>
+<h4 class="page-heading"><i class="bi bi-shield-lock"></i> @ViewData["Title"]</h4>
 
 <div class="table-container">
     <table class="table table-sm table-bordered" id="users-table">
@@ -63,7 +63,8 @@
         $(document).ready(function () {
             $('#users-table').DataTable({
                 ordering: true,
-                pageLength: 25
+                pageLength: 25,
+                language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
             });
 
             var rolesModal = document.getElementById('rolesModal');

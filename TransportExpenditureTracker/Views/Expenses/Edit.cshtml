@@ -1,7 +1,7 @@
 @model ExpenseEntryViewModel
 @{ ViewData["Title"] = "Edit Expense"; }
 
-<h4><i class="bi bi-pencil"></i> Edit Expense</h4><hr/>
+<h4 class="page-heading"><i class="bi bi-pencil"></i> Edit Expense</h4><hr/>
 <form asp-action="Edit" asp-route-id="@Model.ExpenseId" method="post">
     <input type="hidden" asp-for="ExpenseId" />
     <div class="row g-3">
@@ -39,7 +39,7 @@
         <button type="button" id="add-row-btn" class="btn btn-sm btn-success"><i class="bi bi-plus-lg"></i> Add Row</button>
     </div>
     <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-save"></i> Update</button>
-    <a asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+    <a asp-action="Index" class="btn btn-outline-secondary mt-3"><i class="bi bi-x-lg"></i> Cancel</a>
 </form>
 
 @section Scripts {

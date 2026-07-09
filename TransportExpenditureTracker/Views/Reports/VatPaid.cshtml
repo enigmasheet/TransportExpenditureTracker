@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-md-3">
         <div class="filter-sidebar">
-            <h6>Filters</h6>
+            <h5><i class="bi bi-funnel"></i> Filters</h5>
             <form method="get">
                 <div class="mb-2"><label class="form-label">Fiscal Year</label><select name="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears"><option value="">All</option></select></div>
                 <div class="mb-2"><label class="form-label">Month</label><select name="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths"><option value="">All</option></select></div>
@@ -17,7 +17,7 @@
                 <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search"></i> Filter</button>
             </form>
             <hr />
-            <h6>Export</h6>
+            <h5><i class="bi bi-download"></i> Export</h5>
             <a asp-action="Export" asp-route-format="Excel" asp-route-reportType="VatPaid" class="btn btn-success btn-sm w-100 mb-1"><i class="bi bi-file-earmark-excel"></i> Excel</a>
             <a asp-action="Export" asp-route-format="PDF" asp-route-reportType="VatPaid" class="btn btn-danger btn-sm w-100 mb-1"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
             <a asp-action="Export" asp-route-format="CSV" asp-route-reportType="VatPaid" class="btn btn-secondary btn-sm w-100"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</a>
@@ -52,6 +52,6 @@
 
 @section Scripts {
     <script>
-        $(document).ready(function () { $('#report-table').DataTable({ pageLength: 50, ordering: true }); });
+        $(document).ready(function () { $('#report-table').DataTable({ pageLength: 50, ordering: true, language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." } }); });
     </script>
 }

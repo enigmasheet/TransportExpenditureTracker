@@ -1,8 +1,8 @@
 @model List<ExpenseHeaderViewModel>
 @{ ViewData["Title"] = "Expenses"; }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="bi bi-receipt"></i> All Expenses</h4>
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-receipt"></i> @ViewData["Title"]</h4>
     <div>
         <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> New Expense</a>
         <a asp-action="Import" class="btn btn-info btn-sm"><i class="bi bi-upload"></i> Import</a>
@@ -34,5 +34,5 @@
 </div>
 
 @section Scripts {
-    <script>$(document).ready(function() { $('#expenses-table').DataTable({ order: [[5, 'desc']] }); });</script>
+    <script>$(document).ready(function() { $('#expenses-table').DataTable({ order: [[5, 'desc']], language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." } }); });</script>
 }

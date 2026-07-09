@@ -18,7 +18,7 @@
     <PackageReference Include="iTextSharp.LGPLv2.Core" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" />
+    <!-- Removed Identity.UI — using custom pages in Areas/Identity/Pages/ -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
@@ -28,6 +28,8 @@
     <PackageReference Include="NepDate" />
     <PackageReference Include="SendGrid" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>
 
 </Project>
