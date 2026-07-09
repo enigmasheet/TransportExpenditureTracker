@@ -1,0 +1,3 @@
+@model SupplierViewModel
+<input type="hidden" asp-for="SupplierId" />
+@await Html.PartialAsync("_SupplierForm.cshtml", Model)

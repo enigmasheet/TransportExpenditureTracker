@@ -9,6 +9,7 @@ public class ExportQueueViewModel
     public string? FilterJson { get; set; }
     public string Status { get; set; } = string.Empty;
     public string RecipientEmail { get; set; } = string.Empty;
+    public string? FilePath { get; set; }
     public DateTime? SentAt { get; set; }
     public string? ErrorMessage { get; set; }
 }

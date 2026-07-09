@@ -1,0 +1,3 @@
+@model ItemViewModel
+<input type="hidden" asp-for="ItemId" />
+@await Html.PartialAsync("_ItemForm.cshtml", Model)

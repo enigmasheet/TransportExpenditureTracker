@@ -46,6 +46,7 @@ public class ExportJobService : IExportJobService
                 ReportType = j.ReportType,
                 Status = j.Status,
                 RecipientEmail = j.RecipientEmail,
+                FilePath = j.FilePath,
                 SentAt = j.SentAt,
                 ErrorMessage = j.ErrorMessage
             })
@@ -64,6 +65,7 @@ public class ExportJobService : IExportJobService
                 ReportType = j.ReportType,
                 Status = j.Status,
                 RecipientEmail = j.RecipientEmail,
+                FilePath = j.FilePath,
                 SentAt = j.SentAt,
                 ErrorMessage = j.ErrorMessage
             })

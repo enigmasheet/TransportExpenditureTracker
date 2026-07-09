@@ -69,6 +69,7 @@ public static class WebAppBuilder
             builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, EmailSender>();
             builder.Services.AddHostedService<ExportBackgroundJob>();
 
+            builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
             builder.Services.AddControllersWithViews().AddApplicationPart(typeof(WebAppBuilder).Assembly);
             builder.Services.AddRazorPages();
 

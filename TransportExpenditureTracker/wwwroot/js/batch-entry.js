@@ -53,7 +53,7 @@ function removeLastRow() {
     if (rows.length > 1) {
         $(rows[rows.length - 1]).remove();
     } else {
-        alert('At least one row is required.');
+        showToast('warning', 'At least one row is required.');
     }
 }
 

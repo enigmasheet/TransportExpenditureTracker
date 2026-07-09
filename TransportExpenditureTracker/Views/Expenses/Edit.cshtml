@@ -80,7 +80,7 @@
         function removeRow(btn) {
             const tbody = $('#details-table tbody');
             if (tbody.find('tr').length > 1) $(btn).closest('tr').remove();
-            else alert('At least one detail row is required.');
+            else showToast('warning', 'At least one detail row is required.');
         }
         $(document).ready(function() {
             $('#details-table').on('input', '.qty, .rate, .taxable', function () { recalcRow($(this).closest('tr')); });

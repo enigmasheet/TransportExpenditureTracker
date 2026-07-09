@@ -1,0 +1,4 @@
+@model SupplierViewModel
+<p><strong>Supplier:</strong> @Model.SupplierName</p>
+<p><strong>Location:</strong> @(string.IsNullOrEmpty(Model.Location) ? "—" : Model.Location)</p>
+<p><strong>VAT No:</strong> @(string.IsNullOrEmpty(Model.VatNo) ? "—" : Model.VatNo)</p>

@@ -1,0 +1,3 @@
+@model ExpenseCategoryViewModel
+<input type="hidden" asp-for="CategoryId" />
+@await Html.PartialAsync("_CategoryForm.cshtml", Model)
