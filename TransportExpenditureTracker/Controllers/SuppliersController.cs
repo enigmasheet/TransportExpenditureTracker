@@ -79,4 +79,16 @@ public class SuppliersController : Controller
         var results = await _supplierService.SearchAsync(term);
         return PartialView("_SearchResults", results);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> SearchJson(string term)
+    {
+        var results = await _supplierService.SearchAsync(term);
+        var data = results.Select(s => new
+        {
+            id = s.SupplierId,
+            text = $"{s.SupplierName}{(string.IsNullOrEmpty(s.VatNo) ? "" : $" [{s.VatNo}]")}"
+        });
+        return Json(new { results = data });
+    }
 }

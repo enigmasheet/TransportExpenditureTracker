@@ -20,7 +20,17 @@
 }
 else
 {
-    <div class="alert alert-info">Found @Model.Rows.Count rows (@Model.DuplicateCount duplicates, @Model.ErrorCount errors)</div>
+    <div class="alert alert-info">
+        Found @Model.Rows.Count rows
+        (@Model.DuplicateCount duplicates, @Model.ErrorCount errors, @Model.WarningCount warnings)
+    </div>
+
+    @if (Model.WarningCount > 0)
+    {
+        <div class="alert alert-warning">
+            <strong>@Model.WarningCount rows have data mismatches</strong> (VAT or Total amount doesn't match calculated value). They will be imported with server-calculated values.
+        </div>
+    }
 
     @if (Model.Errors?.Any() == true)
     {
@@ -30,15 +40,35 @@ else
     <form asp-action="ImportConfirm" method="post">
         <div class="table-container" style="max-height:400px;overflow:auto">
             <table class="table table-sm table-bordered">
-                <thead><tr><th>Row</th><th>Miti</th><th>Invoice</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT</th><th>Total</th></tr></thead>
+                <thead><tr>
+                    <th>Row</th><th>Miti</th><th>Fiscal Year</th><th>Invoice</th>
+                    <th>Supplier</th><th>Item</th><th>Qty</th><th>Rate</th>
+                    <th>Taxable</th><th>VAT</th><th>Total</th><th>Flags</th>
+                </tr></thead>
                 <tbody>
                     @for (int i = 0; i < Model.Rows.Count; i++)
                     {
                         var r = Model.Rows[i];
-                        <tr class="@(r.IsDuplicate ? "table-warning" : r.ValidationError != null ? "table-danger" : "")">
+                        var rowClass = r.IsDuplicate || r.IsCrossRowDuplicate ? "table-warning" : r.ValidationError != null ? "table-danger" : "";
+                        <tr class="@rowClass">
                             <td>@r.RowIndex</td>
-                            <td>@r.Miti</td><td>@r.InvoiceNo</td><td>@r.SupplierName</td><td>@r.ItemName</td>
-                            <td>@r.Quantity</td><td>@r.Rate</td><td>@r.TaxableAmount</td><td>@r.VatAmount</td><td>@r.TotalAmount</td>
+                            <td>@r.Miti</td>
+                            <td>@r.FiscalYearName</td>
+                            <td>@r.InvoiceNo</td>
+                            <td>@r.SupplierName</td>
+                            <td>@r.ItemName</td>
+                            <td>@r.Quantity</td>
+                            <td>@r.Rate</td>
+                            <td>@r.TaxableAmount</td>
+                            <td>@r.VatAmount</td>
+                            <td>@r.TotalAmount</td>
+                            <td>
+                                @if (r.IsDuplicate) { <span class="badge bg-warning">Dup</span> }
+                                @if (r.IsCrossRowDuplicate) { <span class="badge bg-warning">Cross-Dup</span> }
+                                @if (r.IsVatMismatch) { <span class="badge bg-info">VAT</span> }
+                                @if (r.IsTotalMismatch) { <span class="badge bg-info">Total</span> }
+                                @if (!string.IsNullOrEmpty(r.ValidationError)) { <span class="badge bg-danger">Error</span> }
+                            </td>
                         </tr>
                     }
                 </tbody>

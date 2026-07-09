@@ -37,6 +37,10 @@ public class ExpenseHeader
 
     public DateTime? UpdatedAt { get; set; }
 
+    public int FiscalYearId { get; set; }
+
+    public FiscalYear FiscalYearNav { get; set; } = null!;
+
     public Supplier Supplier { get; set; } = null!;
 
     public ExpenseCategory Category { get; set; } = null!;

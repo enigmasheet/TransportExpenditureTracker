@@ -19,13 +19,13 @@
 </div>
 
 <div class="row g-3">
-    <div class="col-md-8"><div class="table-container"><h5>Monthly Expenditure</h5><canvas id="monthlyChart" height="250"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5>By Category</h5><canvas id="categoryChart" height="250"></canvas></div></div>
+    <div class="col-md-8"><div class="table-container"><h5>Monthly Expenditure</h5><div id="monthlyChartSpinner" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="monthlyChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5>By Category</h5><div id="categoryChartSpinner" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="categoryChart" height="250" class="d-none"></canvas></div></div>
 </div>
 <div class="row g-3 mt-2">
-    <div class="col-md-4"><div class="table-container"><h5>Top Suppliers</h5><canvas id="supplierChart" height="250"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5>VAT Paid</h5><canvas id="vatChart" height="250"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5>FY Comparison</h5><canvas id="fyChart" height="250"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5>Top Suppliers</h5><div id="supplierChartSpinner" class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="supplierChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5>VAT Paid</h5><div id="vatChartSpinner" class="text-center py-5"><div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="vatChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5>FY Comparison</h5><div id="fyChartSpinner" class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="fyChart" height="250" class="d-none"></canvas></div></div>
 </div>
 
 @section Scripts {

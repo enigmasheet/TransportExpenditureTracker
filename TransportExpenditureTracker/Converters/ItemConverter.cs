@@ -11,7 +11,7 @@ public class ItemConverter
         {
             ItemId = i.ItemId,
             ItemName = i.ItemName,
-            Unit = i.Unit
+            Unit = i.Unit ?? string.Empty
         };
     }
 

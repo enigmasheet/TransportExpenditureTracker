@@ -6,8 +6,8 @@ public class ReportRowViewModel
     public string Miti { get; set; } = string.Empty;
     public string InvoiceNo { get; set; } = string.Empty;
     public string SupplierName { get; set; } = string.Empty;
-    public string? Location { get; set; }
-    public string? VatNo { get; set; }
+    public string Location { get; set; } = string.Empty;
+    public string VatNo { get; set; } = string.Empty;
     public string ItemName { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     public decimal Quantity { get; set; }

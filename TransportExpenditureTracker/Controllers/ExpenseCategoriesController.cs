@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TransportExpenditureTracker.Converters;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.ViewModels;
@@ -11,16 +12,19 @@ namespace TransportExpenditureTracker.Controllers;
 public class ExpenseCategoriesController : Controller
 {
     private readonly ApplicationDbContext _ctx;
+    private readonly ExpenseCategoryConverter _converter;
 
-    public ExpenseCategoriesController(ApplicationDbContext ctx)
+    public ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCategoryConverter converter)
     {
         _ctx = ctx;
+        _converter = converter;
     }
 
     public async Task<IActionResult> Index()
     {
         var categories = await _ctx.ExpenseCategories.OrderBy(c => c.CategoryName).ToListAsync();
-        return View(categories);
+        var vms = categories.Select(_converter.ToViewModel).ToList();
+        return View(vms);
     }
 
     public IActionResult Create()
@@ -71,6 +75,7 @@ public class ExpenseCategoriesController : Controller
         var category = await _ctx.ExpenseCategories.FindAsync(id);
         if (category == null) return NotFound();
         var vm = new ExpenseCategoryViewModel { CategoryId = category.CategoryId, CategoryName = category.CategoryName };
+        ViewData["DeleteConfirm"] = $"Are you sure you want to delete category '{category.CategoryName}'?";
         return View(vm);
     }
 

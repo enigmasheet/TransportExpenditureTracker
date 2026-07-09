@@ -6,10 +6,10 @@ namespace TransportExpenditureTracker.Helper;
 
 public static class DropdownHelper
 {
-    public static void LoadFiscalYears(ApplicationDbContext ctx, ViewDataDictionary vd)
+    public static void LoadFiscalYears(ApplicationDbContext ctx, ViewDataDictionary vd, int? selected = null)
     {
         var years = ctx.FiscalYears.OrderByDescending(f => f.Id).ToList();
-        vd["FiscalYears"] = new SelectList(years, "Id", "Name");
+        vd["FiscalYears"] = new SelectList(years, "Id", "Name", selected);
     }
 
     public static void LoadNepaliMonths(ViewDataDictionary vd)

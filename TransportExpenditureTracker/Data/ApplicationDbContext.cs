@@ -25,8 +25,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasFilter("[VatNo] IS NOT NULL");
 
         builder.Entity<ExpenseHeader>()
-            .HasIndex(e => new { e.InvoiceNo, e.SupplierId })
+            .HasIndex(e => new { e.InvoiceNo, e.SupplierId, e.FiscalYearId })
             .IsUnique();
+
+        builder.Entity<ExpenseHeader>()
+            .HasOne(e => e.FiscalYearNav)
+            .WithMany()
+            .HasForeignKey(e => e.FiscalYearId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
 
         builder.Entity<ExpenseHeader>()
             .HasOne(e => e.Supplier)

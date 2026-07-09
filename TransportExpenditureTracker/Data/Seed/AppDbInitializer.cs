@@ -9,9 +9,12 @@ public static class AppDbInitializer
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var sp = scope.ServiceProvider;
+        var context = sp.GetRequiredService<ApplicationDbContext>();
+        var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = sp.GetRequiredService<RoleManager<IdentityRole>>();
+        var config = sp.GetRequiredService<IConfiguration>();
+        var logger = sp.GetRequiredService<ILogger<ApplicationDbContext>>();
 
         await context.Database.MigrateAsync();
 
@@ -24,30 +27,38 @@ public static class AppDbInitializer
             }
         }
 
-        var users = new (string Email, string Password, string Role, string FullName)[]
-        {
-            ("superadmin@ems.com", "Super@123", "SuperAdmin", "Super Admin"),
-            ("admin@ems.com", "Admin@123", "Admin", "Admin User"),
-            ("user@ems.com", "User@123", "User", "Normal User"),
-        };
+        var adminSection = config.GetSection("SuperAdmin");
+        var adminEmail = adminSection["Email"];
+        var adminPassword = adminSection["Password"];
 
-        foreach (var (email, password, role, fullName) in users)
+        if (!string.IsNullOrEmpty(adminEmail) && !string.IsNullOrEmpty(adminPassword))
         {
-            if (await userManager.FindByEmailAsync(email) == null)
+            if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
                 var appUser = new ApplicationUser
                 {
-                    UserName = email,
-                    Email = email,
-                    FullName = fullName,
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FullName = adminSection["FullName"] ?? "Super Admin",
                     EmailConfirmed = true
                 };
-                var result = await userManager.CreateAsync(appUser, password);
+                var result = await userManager.CreateAsync(appUser, adminPassword);
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(appUser, role);
+                    await userManager.AddToRoleAsync(appUser, "SuperAdmin");
+                    await userManager.AddToRoleAsync(appUser, "Admin");
+                    logger.LogInformation("SuperAdmin user '{Email}' created.", adminEmail);
+                }
+                else
+                {
+                    logger.LogWarning("Failed to create SuperAdmin user '{Email}': {Errors}",
+                        adminEmail, string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }
+        }
+        else
+        {
+            logger.LogWarning("SuperAdmin credentials not configured. Set SuperAdmin:Email and SuperAdmin:Password in configuration (appsettings, user secrets, or env vars).");
         }
 
         if (!await context.FiscalYears.AnyAsync())
@@ -78,7 +89,7 @@ public static class AppDbInitializer
             context.Items.AddRange(
                 new Item { ItemName = "Diesel", Unit = "Liters" },
                 new Item { ItemName = "Petrol", Unit = "Liters" },
-                new Item { ItemName = "Engine Oil", Unit = "Liters" },
+                new Item { ItemName = "Engine Oil", Unit = "" },
                 new Item { ItemName = "Tyres", Unit = "Piece" },
                 new Item { ItemName = "Battery", Unit = "Piece" },
                 new Item { ItemName = "Parts", Unit = "Piece" },
@@ -86,11 +97,11 @@ public static class AppDbInitializer
                 new Item { ItemName = "Stationary", Unit = "Piece" },
                 new Item { ItemName = "Internet", Unit = "Months" },
                 new Item { ItemName = "Insurance", Unit = "Year" },
-                new Item { ItemName = "Toll Charges", Unit = "Each" },
-                new Item { ItemName = "Parking", Unit = "Each" },
-                new Item { ItemName = "Cleaning", Unit = "Each" },
-                new Item { ItemName = "Servicing", Unit = "Hours" },
-                new Item { ItemName = "Maintenance", Unit = "Hours" }
+                new Item { ItemName = "Toll Charges", Unit = "" },
+                new Item { ItemName = "Parking", Unit = "" },
+                new Item { ItemName = "Cleaning", Unit = "" },
+                new Item { ItemName = "Servicing", Unit = "" },
+                new Item { ItemName = "Maintenance", Unit = "" }
             );
             await context.SaveChangesAsync();
         }

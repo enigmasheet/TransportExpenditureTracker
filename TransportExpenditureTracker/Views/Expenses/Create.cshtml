@@ -1,52 +1,147 @@
-@model ExpenseEntryViewModel
-@{ ViewData["Title"] = "New Expense"; }
+@model ExpenseBatchViewModel
+@{ ViewData["Title"] = "Batch Expense Entry"; }
 
-<h4><i class="bi bi-plus-circle"></i> New Expense</h4><hr/>
+<h4><i class="bi bi-plus-circle"></i> Batch Expense Entry</h4>
+<p class="text-muted">Enter all expenses for a specific fiscal year and month. Each row creates one expense record.</p>
+<hr/>
+
 <form asp-action="Create" method="post">
-    <div class="row g-3">
-        <div class="col-md-3"><label asp-for="InvoiceNo" class="form-label"></label><input asp-for="InvoiceNo" class="form-control" required/><span asp-validation-for="InvoiceNo" class="text-danger"></span></div>
-        <div class="col-md-3"><label asp-for="Miti" class="form-label"></label><input asp-for="Miti" class="form-control nepali-datepicker" required/><span asp-validation-for="Miti" class="text-danger"></span></div>
-        <div class="col-md-3"><label class="form-label">Fiscal Year</label><select asp-for="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears"><option value="">-- Select --</option></select></div>
-        <div class="col-md-3"><label class="form-label">Month</label><select asp-for="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths"><option value="">-- Select --</option></select></div>
-        <div class="col-md-4"><label class="form-label">Supplier</label><select asp-for="SupplierId" class="form-control supplier-select" asp-items="ViewBag.Suppliers"><option value="">-- Select --</option></select></div>
-        <div class="col-md-4"><label class="form-label">Category</label><select asp-for="CategoryId" class="form-control" asp-items="ViewBag.Categories"><option value="">-- Select --</option></select></div>
-        <div class="col-md-4"><label class="form-label">Payment Method</label><select asp-for="PaymentMethod" class="form-control" asp-items="ViewBag.PaymentMethods"><option value="">-- Select --</option></select></div>
-        <div class="col-12"><label asp-for="Remarks" class="form-label"></label><textarea asp-for="Remarks" class="form-control" rows="2"></textarea></div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="FiscalYearId" class="form-label"></label>
+                    <select asp-for="FiscalYearId" class="form-select" asp-items="ViewBag.FiscalYears">
+                        <option value="">-- Select --</option>
+                    </select>
+                    <span asp-validation-for="FiscalYearId" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="NepaliMonth" class="form-label">Month</label>
+                    <select asp-for="NepaliMonth" class="form-select" asp-items="ViewBag.NepaliMonths">
+                        <option value="">-- Select --</option>
+                    </select>
+                    <span asp-validation-for="NepaliMonth" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="DefaultCategoryId" class="form-label">Default Category</label>
+                    <select asp-for="DefaultCategoryId" class="form-select" asp-items="ViewBag.Categories">
+                        <option value="">-- Select --</option>
+                    </select>
+                    <span asp-validation-for="DefaultCategoryId" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="DefaultPaymentMethod" class="form-label">Default Payment</label>
+                    <select asp-for="DefaultPaymentMethod" class="form-select" asp-items="ViewBag.PaymentMethods">
+                        <option value="">-- Select --</option>
+                    </select>
+                    <span asp-validation-for="DefaultPaymentMethod" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <h5 class="mt-4">Details</h5>
-    <div class="table-container">
-        <table class="table table-sm" id="details-table">
-            <thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT</th><th>Total</th><th></th></tr></thead>
+    <div class="table-container" style="max-height:500px;overflow:auto">
+        <table class="table table-sm table-bordered" id="batch-table"
+               data-supplier-search-url="@Url.Action("SearchJson", "Suppliers")">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width:30px">#</th>
+                    <th style="width:110px">Miti</th>
+                    <th style="width:100px">Invoice No</th>
+                    <th style="width:180px">Supplier</th>
+                    <th style="width:140px">Item</th>
+                    <th style="width:70px">Qty</th>
+                    <th style="width:70px">Rate</th>
+                    <th style="width:90px">Taxable</th>
+                    <th style="width:80px">VAT</th>
+                    <th style="width:90px">Total</th>
+                </tr>
+            </thead>
             <tbody>
-                @if (Model.Details != null) {
-                    for (int i = 0; i < Model.Details.Count; i++)
+                @if (Model.Rows is not null)
+                {
+                    for (int i = 0; i < Model.Rows.Count; i++)
                     {
-                        <tr class="expense-row">
-                            <td><select asp-for="Details[i].ItemId" class="form-control form-control-sm item-select" asp-items="ViewBag.Items"><option value="">--</option></select></td>
-                            <td><input asp-for="Details[i].Quantity" class="form-control form-control-sm qty" /></td>
-                            <td><input asp-for="Details[i].Rate" class="form-control form-control-sm rate" /></td>
-                            <td><input asp-for="Details[i].TaxableAmount" class="form-control form-control-sm taxable" /></td>
-                            <td><input asp-for="Details[i].VatAmount" class="form-control form-control-sm vat" readonly /></td>
-                            <td><input asp-for="Details[i].TotalAmount" class="form-control form-control-sm total" readonly /></td>
-                            <td><button type="button" class="btn btn-sm btn-danger remove-row" onclick="removeRow(this)"><i class="bi bi-x"></i></button></td>
+                        var r = Model.Rows[i];
+                        <tr class="@(i == 0 ? "template-row" : "data-row")">
+                            <td class="row-num align-middle text-center">@(i + 1)</td>
+                            <td>
+                                <input asp-for="Rows[i].Miti" class="form-control form-control-sm nepali-datepicker" placeholder="YY/MM/DD" />
+                                <span asp-validation-for="Rows[i].Miti" class="text-danger small"></span>
+                            </td>
+                            <td>
+                                <input asp-for="Rows[i].InvoiceNo" class="form-control form-control-sm" placeholder="Invoice #" />
+                                <span asp-validation-for="Rows[i].InvoiceNo" class="text-danger small"></span>
+                            </td>
+                            <td>
+                                <select asp-for="Rows[i].SupplierId" class="form-control form-control-sm supplier-select"
+                                        asp-items="ViewBag.Suppliers">
+                                    <option value="">--</option>
+                                </select>
+                                <span asp-validation-for="Rows[i].SupplierId" class="text-danger small"></span>
+                            </td>
+                            <td>
+                                <select asp-for="Rows[i].ItemId" class="form-control form-control-sm item-select"
+                                        asp-items="ViewBag.Items">
+                                    <option value="">--</option>
+                                </select>
+                                <span asp-validation-for="Rows[i].ItemId" class="text-danger small"></span>
+                            </td>
+                            <td>
+                                <input asp-for="Rows[i].Quantity" class="form-control form-control-sm qty" />
+                            </td>
+                            <td>
+                                <input asp-for="Rows[i].Rate" class="form-control form-control-sm rate" />
+                            </td>
+                            <td class="align-middle text-end computed-taxable">—</td>
+                            <td class="align-middle text-end computed-vat">—</td>
+                            <td class="align-middle text-end computed-total">—</td>
                         </tr>
                     }
                 }
             </tbody>
         </table>
-        <button type="button" id="add-row-btn" class="btn btn-sm btn-success"><i class="bi bi-plus-lg"></i> Add Row</button>
     </div>
-    <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-save"></i> Save</button>
-    <a asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+
+    <div class="mt-2 d-flex gap-2">
+        <button type="button" id="add-rows-btn" class="btn btn-sm btn-success">
+            <i class="bi bi-plus-lg"></i> Add 5 Rows
+        </button>
+        <button type="button" id="remove-row-btn" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-dash-lg"></i> Remove Last Row
+        </button>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save All Expenses</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger mt-3"></div>
 </form>
 
 @section Scripts {
-    <script src="~/js/expense-entry.js" asp-append-version="true"></script>
+    <script src="~/js/batch-entry.js" asp-append-version="true"></script>
+    <partial name="_ValidationScriptsPartial" />
+
     <script>
-        $(document).ready(function() {
-            $('.supplier-select').select2({ width: '100%' });
-            $('.item-select').select2({ width: '100%' });
+        $(document).ready(function () {
+            $('.supplier-select').select2({
+                ajax: {
+                    url: '@Url.Action("SearchJson", "Suppliers")',
+                    dataType: 'json',
+                    delay: 300,
+                    data: function (params) { return { term: params.term }; },
+                    processResults: function (data) { return { results: data.results }; }
+                },
+                placeholder: 'Type name or VAT...',
+                minimumInputLength: 1,
+                width: '100%',
+                allowClear: true
+            });
+
+            $('.item-select').select2({ placeholder: '-- Select Item --', allowClear: true, width: '100%' });
             $('.nepali-datepicker').nepaliDatePicker({ dateFormat: '%y-%m-%d', ndpYear: true, ndpMonth: true, ndpYearCount: 100 });
         });
     </script>

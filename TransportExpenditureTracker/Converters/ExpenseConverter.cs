@@ -46,7 +46,8 @@ public class ExpenseConverter
             ExpenseId = h.ExpenseId,
             InvoiceNo = h.InvoiceNo,
             Miti = h.Miti,
-            FiscalYear = h.FiscalYear,
+            FiscalYear = h.FiscalYearNav?.Name ?? h.FiscalYear,
+            FiscalYearId = h.FiscalYearId,
             NepaliMonth = h.NepaliMonth,
             SupplierId = h.SupplierId,
             CategoryId = h.CategoryId,
@@ -68,7 +69,8 @@ public class ExpenseConverter
         {
             InvoiceNo = vm.InvoiceNo,
             Miti = vm.Miti,
-            FiscalYear = vm.FiscalYear,
+            FiscalYear = string.Empty,
+            FiscalYearId = vm.FiscalYearId,
             NepaliMonth = vm.NepaliMonth,
             SupplierId = vm.SupplierId,
             CategoryId = vm.CategoryId,
@@ -98,7 +100,8 @@ public class ExpenseConverter
     {
         existing.InvoiceNo = vm.InvoiceNo;
         existing.Miti = vm.Miti;
-        existing.FiscalYear = vm.FiscalYear;
+        existing.FiscalYear = string.Empty;
+        existing.FiscalYearId = vm.FiscalYearId;
         existing.NepaliMonth = vm.NepaliMonth;
         existing.SupplierId = vm.SupplierId;
         existing.CategoryId = vm.CategoryId;

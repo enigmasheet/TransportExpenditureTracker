@@ -14,6 +14,11 @@ public class CsvRowViewModel
     public decimal TaxableAmount { get; set; }
     public decimal VatAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public int FiscalYearId { get; set; }
+    public string? FiscalYearName { get; set; }
     public bool IsDuplicate { get; set; }
+    public bool IsCrossRowDuplicate { get; set; }
+    public bool IsVatMismatch { get; set; }
+    public bool IsTotalMismatch { get; set; }
     public string? ValidationError { get; set; }
 }

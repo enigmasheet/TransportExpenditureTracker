@@ -6,5 +6,6 @@ public class CsvPreviewViewModel
     public int TotalRows { get; set; }
     public int DuplicateCount { get; set; }
     public int ErrorCount { get; set; }
+    public int WarningCount { get; set; }
     public List<string> Errors { get; set; } = [];
 }

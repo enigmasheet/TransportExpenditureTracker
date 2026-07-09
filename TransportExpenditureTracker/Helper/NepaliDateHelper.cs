@@ -25,6 +25,20 @@ public static class NepaliDateHelper
         return result.ToString();
     }
 
+    public static readonly string[] NepaliMonthNames =
+    [
+        "Baisakh(1)", "Jestha(2)", "Ashad(3)", "Shrawan(4)",
+        "Bhadra(5)", "Ashwin(6)", "Kartik(7)", "Mangsir(8)",
+        "Poush(9)", "Magh(10)", "Falgun(11)", "Chaitra(12)"
+    ];
+
+    public static int? GetNepaliMonthNumber(string miti)
+    {
+        var parts = miti.Split('/');
+        if (parts.Length != 3) return null;
+        return int.Parse(ConvertToEnglishDigits(parts[1]));
+    }
+
     public static DateTime? ParseNepaliDate(string nepaliMiti)
     {
         try

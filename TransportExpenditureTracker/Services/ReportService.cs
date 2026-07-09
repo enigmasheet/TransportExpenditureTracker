@@ -38,11 +38,11 @@ public class ReportService : IReportService
 
     private IQueryable<ReportRowViewModel> GetBaseQuery(ReportFilterViewModel filters)
     {
-        var query = from h in _db.ExpenseHeaders
-                    join d in _db.ExpenseDetails on h.ExpenseId equals d.ExpenseId
-                    join s in _db.Suppliers on h.SupplierId equals s.SupplierId
-                    join c in _db.ExpenseCategories on h.CategoryId equals c.CategoryId
-                    join i in _db.Items on d.ItemId equals i.ItemId
+        var query = from h in _db.ExpenseHeaders.AsNoTracking()
+                    join d in _db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId
+                    join s in _db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId
+                    join c in _db.ExpenseCategories.AsNoTracking() on h.CategoryId equals c.CategoryId
+                    join i in _db.Items.AsNoTracking() on d.ItemId equals i.ItemId
                     select new ReportRowViewModel
                     {
                         Miti = h.Miti,
@@ -88,11 +88,11 @@ public class ReportService : IReportService
 
     private IQueryable<ReportRowViewModel> GetBaseQueryWithDetailFilters(ReportFilterViewModel filters)
     {
-        var query = from h in _db.ExpenseHeaders
-                    join d in _db.ExpenseDetails on h.ExpenseId equals d.ExpenseId
-                    join s in _db.Suppliers on h.SupplierId equals s.SupplierId
-                    join c in _db.ExpenseCategories on h.CategoryId equals c.CategoryId
-                    join i in _db.Items on d.ItemId equals i.ItemId
+        var query = from h in _db.ExpenseHeaders.AsNoTracking()
+                    join d in _db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId
+                    join s in _db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId
+                    join c in _db.ExpenseCategories.AsNoTracking() on h.CategoryId equals c.CategoryId
+                    join i in _db.Items.AsNoTracking() on d.ItemId equals i.ItemId
                     select new ReportRowViewModel
                     {
                         Miti = h.Miti,

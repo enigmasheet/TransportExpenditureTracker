@@ -40,10 +40,8 @@ builder.Services.AddHostedService<ExportBackgroundJob>();
 
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireSuperAdminRole", policy => policy.RequireRole("SuperAdmin"));
-});
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("RequireSuperAdminRole", policy => policy.RequireRole("SuperAdmin"));
 
 var app = builder.Build();
 
@@ -72,4 +70,4 @@ app.MapStaticAssets();
 app.MapControllerRoute(name: "default", pattern: "{controller=Dashboard}/{action=Index}/{id?}").WithStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 
-app.Run();
+await app.RunAsync();
