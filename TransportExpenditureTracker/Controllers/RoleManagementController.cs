@@ -2,18 +2,21 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Security.Claims;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.ViewModels;
 using static TransportExpenditureTracker.Helper.ControllerHelpers;
-using System.Linq;
 
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize(Policy = "RequireSuperAdminRole")]
-public class RoleManagementController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext ctx) : Controller
+public class RoleManagementController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext ctx, IAuditService audit) : Controller
 {
+    private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
     private static readonly string[] userNotFound = ["User not found."];
 
     public async Task<IActionResult> Index()
@@ -62,6 +65,10 @@ public class RoleManagementController(UserManager<ApplicationUser> userManager, 
         {
             await userManager.AddToRolesAsync(user, selectedRoles);
         }
+        var removedRoles = currentRoles.Except(selectedRoles).ToList();
+        var addedRoles = selectedRoles.Except(currentRoles).ToList();
+        var message = $"Updated roles for {user.Email}: removed [{string.Join(", ", removedRoles)}], added [{string.Join(", ", addedRoles)}]";
+        await audit.LogAsync("User", userId, "Update", null, null, CurrentUserId, message, "Information", null);
         return Json(new { success = true });
     }
 }

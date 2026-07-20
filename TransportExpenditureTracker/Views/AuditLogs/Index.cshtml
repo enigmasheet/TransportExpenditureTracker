@@ -1,0 +1,165 @@
+@model AuditLogFilter
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-journal-text"></i> @ViewData["Title"]</h4>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form id="filterForm" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small">Entity</label>
+                <select name="entityName" class="form-select form-select-sm" id="entityName">
+                    <option value="">All</option>
+                    @foreach (var name in (List<string>)ViewBag.EntityNames)
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Action</label>
+                <select name="action" class="form-select form-select-sm" id="action">
+                    <option value="">All</option>
+                    <option value="Create">Create</option>
+                    <option value="Update">Update</option>
+                    <option value="Delete">Delete</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Level</label>
+                <select name="logLevel" class="form-select form-select-sm" id="logLevel">
+                    <option value="">All</option>
+                    <option value="Information">Information</option>
+                    <option value="Warning">Warning</option>
+                    <option value="Error">Error</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">From</label>
+                <input type="date" name="fromDate" class="form-control form-control-sm" id="fromDate" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">To</label>
+                <input type="date" name="toDate" class="form-control form-control-sm" id="toDate" />
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="applyFilter"><i class="bi bi-search"></i> Filter</button>
+                <a href="@Url.Action("Export", "AuditLogs")" class="btn btn-sm btn-outline-success" id="exportBtn"><i class="bi bi-download"></i> CSV</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="table table-sm table-bordered" id="auditLogsTable" style="width:100%">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Entity</th>
+                <th>Action</th>
+                <th>Message</th>
+                <th>Level</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+@{
+    Func<object, object> spinnerBody = @<text><div class="text-center py-3"><output class="spinner-border"></output></div></text>;
+}
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig
+{
+    ModalId = "detailModal",
+    FormId = "detailForm",
+    Title = "<i class='bi bi-journal-text text-info'></i> Audit Log Detail",
+    SubmitText = "Close",
+    SubmitIcon = "bi-x",
+    SubmitClass = "btn-outline-secondary",
+    BodyContent = spinnerBody,
+    DialogClass = "modal-lg"
+})
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var table = $('#auditLogsTable').DataTable({
+                serverSide: true,
+                ordering: true,
+                pageLength: 25,
+                order: [[0, 'desc']],
+                language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." },
+                ajax: {
+                    url: '@Url.Action("GetData", "AuditLogs")',
+                    data: function (d) {
+                        d.entityName = $('#entityName').val();
+                        d.action = $('#action').val();
+                        d.logLevel = $('#logLevel').val();
+                        d.fromDate = $('#fromDate').val();
+                        d.toDate = $('#toDate').val();
+                        d.searchText = d.search?.value;
+                        d.page = (d.start / d.length) + 1;
+                        d.pageSize = d.length;
+                        d.sortColumn = d.columns[d.order[0]?.column]?.data;
+                        d.sortDirection = d.order[0]?.dir;
+                    },
+                    dataSrc: function (json) {
+                        json.recordsTotal = json.recordsTotal;
+                        json.recordsFiltered = json.recordsFiltered;
+                        return json.data;
+                    }
+                },
+                columns: [
+                    { data: 'timestamp', name: 'Timestamp' },
+                    { data: 'userName', name: 'User' },
+                    { data: 'entityName', name: 'EntityName' },
+                    { data: 'action', name: 'Action' },
+                    { data: 'message', name: 'Message', defaultContent: '' },
+                    {
+                        data: null,
+                        name: 'LogLevel',
+                        orderable: true,
+                        render: function (data) {
+                            return '<span class="badge bg-' + data.logLevelBadge + '">' + data.logLevel + '</span>';
+                        }
+                    }
+                ],
+                rowCallback: function (row, data) {
+                    $(row).css('cursor', 'pointer');
+                    $(row).on('click', function () {
+                        $('#detailModal').modal('show');
+                        var modalBody = $('#detailModal .modal-body');
+                        modalBody.html('<div class="text-center py-3"><output class="spinner-border"></output></div>');
+                        $.get('@Url.Action("Details", "AuditLogs")/' + data.auditLogId, function (html) {
+                            modalBody.html(html);
+                        });
+                    });
+                }
+            });
+
+            $('#applyFilter').on('click', function () {
+                table.ajax.reload();
+            });
+
+            $('#entityName, #action, #logLevel, #fromDate, #toDate').on('change', function () {
+                table.ajax.reload();
+            });
+
+            $('#exportBtn').on('click', function (e) {
+                e.preventDefault();
+                var params = $.param({
+                    entityName: $('#entityName').val(),
+                    action: $('#action').val(),
+                    logLevel: $('#logLevel').val(),
+                    fromDate: $('#fromDate').val(),
+                    toDate: $('#toDate').val()
+                });
+                window.location.href = '@Url.Action("Export", "AuditLogs")?' + params;
+            });
+        });
+    </script>
+}

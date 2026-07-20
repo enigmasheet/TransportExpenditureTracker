@@ -59,7 +59,15 @@
                         <li class="nav-item"><a class="nav-link" asp-controller="Exports" asp-action="Index"><i class="bi bi-envelope-paper"></i> Exports</a></li>
                         @if (User.Identity?.IsAuthenticated == true && User.IsInRole("SuperAdmin"))
                         {
-                            <li class="nav-item"><a class="nav-link" asp-controller="RoleManagement" asp-action="Index"><i class="bi bi-shield-lock"></i> Manage</a></li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="bi bi-shield-lock"></i> Admin</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-controller="RoleManagement" asp-action="Index"><i class="bi bi-people"></i> User Management</a></li>
+                                    <li><a class="dropdown-item" asp-controller="AuditLogs" asp-action="Index"><i class="bi bi-journal-text"></i> Audit Logs</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="Logs" asp-action="Index"><i class="bi bi-terminal"></i> Logs</a></li>
+                                </ul>
+                            </li>
                         }
                     </ul>
                     <partial name="_LoginPartial" />

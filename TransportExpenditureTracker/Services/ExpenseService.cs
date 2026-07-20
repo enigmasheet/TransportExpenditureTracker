@@ -209,6 +209,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
             }
         }
 
+        await audit.LogAsync("CsvImport", "batch", "Create", null, null, userId, $"CSV import completed: {summary.Inserted} inserted, {summary.Skipped} skipped, {summary.Errors} errors", summary.Errors > 0 ? "Error" : "Information", null);
         return summary;
     }
 
@@ -314,6 +315,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
             throw;
         }
 
+        await audit.LogAsync("BatchCreate", "batch", "Create", null, null, userId, $"Batch create completed: {summary.Inserted} inserted, {summary.Skipped} skipped, {summary.Errors} errors", summary.Errors > 0 ? "Error" : "Information", null);
         return summary;
     }
 

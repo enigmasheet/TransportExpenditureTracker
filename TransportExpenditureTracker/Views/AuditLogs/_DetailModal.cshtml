@@ -1,0 +1,58 @@
+@model AuditLogViewModel
+
+<div class="mb-3">
+    <table class="table table-sm table-bordered mb-0">
+        <tr>
+            <th class="w-25">Timestamp</th>
+            <td>@Model.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+        </tr>
+        <tr>
+            <th>User</th>
+            <td>@Model.UserName</td>
+        </tr>
+        <tr>
+            <th>Entity</th>
+            <td>@Model.EntityName</td>
+        </tr>
+        <tr>
+            <th>Entity ID</th>
+            <td>@Model.EntityId</td>
+        </tr>
+        <tr>
+            <th>Action</th>
+            <td>@Model.Action</td>
+        </tr>
+        <tr>
+            <th>Level</th>
+            <td><span class="badge bg-@Model.LogLevelBadge">@Model.LogLevel</span></td>
+        </tr>
+        <tr>
+            <th>Message</th>
+            <td>@(Model.Message ?? "-")</td>
+        </tr>
+        <tr>
+            <th>Remote IP</th>
+            <td>@(Model.RemoteIp ?? "-")</td>
+        </tr>
+    </table>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.OldValues) || !string.IsNullOrEmpty(Model.NewValues))
+{
+    <div class="row">
+        @if (!string.IsNullOrEmpty(Model.OldValues))
+        {
+            <div class="col-md-6">
+                <label class="form-label fw-bold small text-danger">Old Values</label>
+                <pre class="bg-light p-2 rounded" style="max-height:300px; overflow-y:auto; font-size:0.8rem;"><code>@Model.OldValues</code></pre>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.NewValues))
+        {
+            <div class="col-md-6">
+                <label class="form-label fw-bold small text-success">New Values</label>
+                <pre class="bg-light p-2 rounded" style="max-height:300px; overflow-y:auto; font-size:0.8rem;"><code>@Model.NewValues</code></pre>
+            </div>
+        }
+    </div>
+}

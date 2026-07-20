@@ -26,10 +26,11 @@ public static class WebAppBuilder
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore", Serilog.Events.LogEventLevel.Warning)
+            .Enrich.WithProperty("Application", "TransportExpenditureTracker")
             .WriteTo.File(
                 Path.Combine(logFolder, "app-.log"),
                 rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 30,
+                retainedFileCountLimit: 90,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
                 formatProvider: CultureInfo.InvariantCulture)
             .CreateLogger();
@@ -55,6 +56,7 @@ public static class WebAppBuilder
                 options.AccessDeniedPath = "/Identity/Account/AccessDenied";
             });
 
+            builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ISupplierService, SupplierService>();
             builder.Services.AddScoped<IExpenseService, ExpenseService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();

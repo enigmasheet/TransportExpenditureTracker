@@ -3,3 +3,9 @@ root = true
 [*.cs]
 dotnet_diagnostic.S6966.severity = warning
 dotnet_diagnostic.S6967.severity = warning
+
+[TransportExpenditureTracker/Data/Migrations/*.cs]
+dotnet_diagnostic.CA1861.severity = none
+
+[TransportExpenditureTracker/Areas/Identity/Pages/**/*.cshtml.cs]
+dotnet_diagnostic.CA1848.severity = none
