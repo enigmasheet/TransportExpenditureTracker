@@ -1,0 +1,55 @@
+@model List<ExportQueueViewModel>
+<table class="table table-sm table-bordered" id="exports-table">
+    <thead>
+        <tr>
+            <th>Requested At</th>
+            <th>Format</th>
+            <th>Report Type</th>
+            <th>Status</th>
+            <th>Recipient Email</th>
+            <th>Sent At</th>
+            <th>Error Message</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.RequestedAt.ToString("g")</td>
+                <td>@item.Format</td>
+                <td>@item.ReportType</td>
+                <td>
+                    @{
+                        var badgeClass = item.Status switch
+                        {
+                            "Completed" => "bg-success",
+                            "Processing" => "bg-warning text-dark",
+                            "Failed" => "bg-danger",
+                            "Queued" => "bg-info text-dark",
+                            _ => "bg-secondary"
+                        };
+                    }
+                    <span class="badge @badgeClass">@item.Status</span>
+                </td>
+                <td>@item.RecipientEmail</td>
+                <td>@(item.SentAt?.ToString("g") ?? "-")</td>
+                <td>@(item.ErrorMessage ?? "-")</td>
+                <td>
+                    @if (item.Status == "Completed" && !string.IsNullOrEmpty(item.FilePath))
+                    {
+                        <a asp-action="Download" asp-route-id="@item.ExportQueueId" class="btn btn-success btn-sm"><i class="bi bi-download"></i> Download</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+@if (!Model.Any())
+{
+    <div class="empty-state">
+        <i class="bi bi-envelope-paper"></i>
+        <h6>No exports yet</h6>
+        <p>Request an export from any report page.</p>
+    </div>
+}

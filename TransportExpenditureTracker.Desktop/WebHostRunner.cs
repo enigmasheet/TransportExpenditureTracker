@@ -36,7 +36,7 @@ public class WebHostRunner
         if (_app is null) return;
         await _app.StopAsync();
         await _app.DisposeAsync();
-        Log.CloseAndFlush();
+        await Log.CloseAndFlushAsync();
     }
 
     private static int GetRandomPort()

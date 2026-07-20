@@ -37,12 +37,14 @@ public class ExpensesController : Controller
 
     public async Task<IActionResult> Index()
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Expenses", null));
         var expenses = await _expenseService.GetAllAsync();
         return View(expenses);
     }
 
     public async Task<IActionResult> Details(int id)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Expenses", Url.Action("Index")), ("Details", null));
         var entryVm = await _expenseService.GetByIdAsync(id);
         if (entryVm == null) return NotFound();
         return View(entryVm);
@@ -50,6 +52,7 @@ public class ExpensesController : Controller
 
     public IActionResult Create()
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Expenses", Url.Action("Index")), ("New Batch Entry", null));
         DropdownHelper.LoadSuppliers(_ctx, ViewData);
         DropdownHelper.LoadCategories(_ctx, ViewData);
         DropdownHelper.LoadPaymentMethods(ViewData);
@@ -96,6 +99,7 @@ public class ExpensesController : Controller
 
     public async Task<IActionResult> Edit(int id)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Expenses", Url.Action("Index")), ("Edit", null));
         var entryVm = await _expenseService.GetByIdAsync(id);
         if (entryVm == null) return NotFound();
         DropdownHelper.LoadFiscalYears(_ctx, ViewData, entryVm.FiscalYearId);
@@ -136,6 +140,7 @@ public class ExpensesController : Controller
 
     public async Task<IActionResult> Delete(int id)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Expenses", Url.Action("Index")), ("Delete", null));
         var entryVm = await _expenseService.GetByIdAsync(id);
         if (entryVm == null) return NotFound();
         return View(entryVm);
@@ -168,6 +173,7 @@ public class ExpensesController : Controller
 
     public IActionResult Import()
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Expenses", Url.Action("Index")), ("Import", null));
         return View();
     }
 

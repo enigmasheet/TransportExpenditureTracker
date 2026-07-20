@@ -12,6 +12,7 @@ public class ExpenseHeaderViewModel
     public string? CategoryName { get; set; }
     public string? PaymentMethod { get; set; }
     public string? Remarks { get; set; }
+    public decimal TotalAmount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

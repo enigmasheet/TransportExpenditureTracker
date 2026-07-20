@@ -1,7 +1,9 @@
 @model ExpenseEntryViewModel
 @{ ViewData["Title"] = "Edit Expense"; }
 
-<h4 class="page-heading"><i class="bi bi-pencil"></i> Edit Expense</h4><hr/>
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-pencil"></i> Edit Expense</h4>
+</div>
 <form asp-action="Edit" asp-route-id="@Model.ExpenseId" method="post">
     <input type="hidden" asp-for="ExpenseId" />
     <div class="row g-3">

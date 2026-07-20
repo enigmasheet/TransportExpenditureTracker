@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Services.Interfaces;
 
 namespace TransportExpenditureTracker.Controllers;
@@ -19,6 +20,7 @@ public class ExportsController : Controller
 
     public async Task<IActionResult> Index()
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Exports", null));
         var jobs = await _exportJobService.GetAllAsync();
         return View(jobs);
     }
@@ -52,5 +54,11 @@ public class ExportsController : Controller
 
         var fileName = Path.GetFileName(job.FilePath);
         return PhysicalFile(job.FilePath, contentType, fileName);
+    }
+
+    public async Task<IActionResult> GetStatus()
+    {
+        var jobs = await _exportJobService.GetAllAsync();
+        return PartialView("_ExportTable", jobs);
     }
 }

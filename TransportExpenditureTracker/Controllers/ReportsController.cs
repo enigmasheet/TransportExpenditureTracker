@@ -50,6 +50,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> Daily(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Daily", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetDailyReportAsync(filters);
@@ -58,6 +59,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> Monthly(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Monthly", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetMonthlyReportAsync(filters);
@@ -66,6 +68,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> FiscalYear(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Fiscal Year", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetFiscalYearReportAsync(filters);
@@ -74,6 +77,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> SupplierWise(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Supplier-wise", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetSupplierWiseReportAsync(filters);
@@ -82,6 +86,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> CategoryWise(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Category-wise", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetCategoryWiseReportAsync(filters);
@@ -90,6 +95,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> ItemWise(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Item-wise", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetItemWiseReportAsync(filters);
@@ -98,6 +104,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> VatPaid(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("VAT Paid", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetVatPaidReportAsync(filters);
@@ -106,6 +113,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> PaymentMethod(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Payment Method", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetPaymentMethodReportAsync(filters);
@@ -114,6 +122,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> LocationWise(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Location-wise", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetLocationWiseReportAsync(filters);
@@ -122,6 +131,7 @@ public class ReportsController : Controller
 
     public async Task<IActionResult> DetailedLedger(ReportFilterViewModel filters)
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Reports", null), ("Detailed Ledger", null));
         LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await _reportService.GetDetailedLedgerAsync(filters);

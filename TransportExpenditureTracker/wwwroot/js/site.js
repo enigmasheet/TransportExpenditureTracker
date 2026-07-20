@@ -6,7 +6,8 @@ function formatInt(n) { return parseInt(n).toLocaleString('en-IN'); }
 function showToast(type, message) {
     var iconMap = { success: 'bi-check-circle-fill text-success', error: 'bi-exclamation-circle-fill text-danger', warning: 'bi-exclamation-triangle-fill text-warning', info: 'bi-info-circle-fill text-primary' };
     var icon = iconMap[type] || iconMap.info;
-    var toastHtml = '<div class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">'
+    var delay = type === 'error' ? 8000 : type === 'warning' ? 6000 : 3000;
+    var toastHtml = '<div class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="' + delay + '">'
         + '<div class="d-flex"><div class="toast-body"><i class="bi ' + icon + ' fs-5"></i> '
         + $('<span>').text(message).html()
         + '</div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';

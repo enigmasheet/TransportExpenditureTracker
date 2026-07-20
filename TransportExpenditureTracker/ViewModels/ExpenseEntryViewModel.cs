@@ -24,10 +24,12 @@ public class ExpenseEntryViewModel : IValidatableObject
     [Required(ErrorMessage = "Supplier is required")]
     [Range(1, int.MaxValue, ErrorMessage = "Please select a valid supplier")]
     public int SupplierId { get; set; }
+    public string? SupplierName { get; set; }
 
     [Required(ErrorMessage = "Category is required")]
     [Range(1, int.MaxValue, ErrorMessage = "Please select a valid category")]
     public int CategoryId { get; set; }
+    public string? CategoryName { get; set; }
 
     [Required(ErrorMessage = "Payment method is required")]
     [StringLength(30, ErrorMessage = "Payment method cannot exceed 30 characters")]

@@ -14,27 +14,37 @@ public class DashboardService : IDashboardService
         _db = db;
     }
 
-    public async Task<DashboardViewModel> GetDashboardAsync()
+    public async Task<DashboardViewModel> GetDashboardAsync(string? fiscalYear = null)
     {
         var now = DateTime.UtcNow;
-        var currentFiscalYear = now.Month >= 4 ? now.Year.ToString() : (now.Year - 1).ToString();
 
-        var totalExpenditure = await _db.ExpenseDetails.SumAsync(d => d.TotalAmount);
-        var totalVatPaid = await _db.ExpenseDetails.SumAsync(d => d.VatAmount);
-        var totalTaxableAmount = await _db.ExpenseDetails.SumAsync(d => d.TaxableAmount);
-        var totalInvoices = await _db.ExpenseHeaders.CountAsync();
+        var fiscalYears = await _db.FiscalYears
+            .OrderByDescending(f => f.Id)
+            .Select(f => f.Name)
+            .ToListAsync();
 
-        var thisMonthExpenses = await _db.ExpenseHeaders
+        var latestFy = fiscalYears.FirstOrDefault();
+        var selectedFy = fiscalYear ?? latestFy;
+
+        var query = _db.ExpenseHeaders.Where(h => h.FiscalYear == selectedFy);
+
+        var totalExpenditure = await query
+            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
+            .SumAsync();
+        var totalVatPaid = await query
+            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.VatAmount)
+            .SumAsync();
+        var totalTaxableAmount = await query
+            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TaxableAmount)
+            .SumAsync();
+        var totalInvoices = await query.CountAsync();
+
+        var thisMonthExpenses = await query
             .Where(h => h.EnglishDate.Year == now.Year && h.EnglishDate.Month == now.Month)
             .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
             .SumAsync();
 
-        var thisFiscalYearExpenses = await _db.ExpenseHeaders
-            .Where(h => h.FiscalYear == currentFiscalYear)
-            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
-            .SumAsync();
-
-        var topSupplierData = await _db.ExpenseHeaders
+        var topSupplierData = await query
             .GroupBy(h => h.SupplierId)
             .Select(g => new { SupplierId = g.Key, Total = g.SelectMany(h => h.Details).Sum(d => d.TotalAmount) })
             .OrderByDescending(x => x.Total)
@@ -54,8 +64,10 @@ public class DashboardService : IDashboardService
             TotalTaxableAmount = totalTaxableAmount,
             TotalInvoices = totalInvoices,
             ThisMonthExpenses = thisMonthExpenses,
-            ThisFiscalYearExpenses = thisFiscalYearExpenses,
-            TopSupplier = topSupplierName
+            ThisFiscalYearExpenses = totalExpenditure,
+            TopSupplier = topSupplierName,
+            FiscalYears = fiscalYears,
+            SelectedFiscalYear = selectedFy
         };
     }
 }

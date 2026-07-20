@@ -93,4 +93,17 @@ $(document).ready(function () {
 
     // Recalculate computed columns on page load (validation error return)
     $('#batch-table tbody tr').each(function () { recalcRow($(this)); });
+
+    // Warn before leaving with unsaved data
+    var formDirty = false;
+    $('#batch-form').on('change input', 'input, select', function () {
+        if (!formDirty) formDirty = true;
+    });
+    $('#batch-form').on('submit', function () { formDirty = false; });
+    $(window).on('beforeunload', function (e) {
+        if (formDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
 });

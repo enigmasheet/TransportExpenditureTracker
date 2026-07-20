@@ -13,6 +13,7 @@
         <thead>
             <tr>
                 <th>Category Name</th>
+                <th class="text-center">Expenses</th>
                 <th style="width:120px">Actions</th>
             </tr>
         </thead>
@@ -21,17 +22,26 @@
             {
                 <tr>
                     <td>@item.CategoryName</td>
+                    <td class="text-center">@item.ExpenseCount</td>
                     <td>
-                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-id="@item.CategoryId"><i class="bi bi-pencil"></i></button>
+                        <button type="button" class="btn btn-outline-primary btn-icon" title="Edit" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-id="@item.CategoryId"><i class="bi bi-pencil"></i></button>
                         @if (User.IsInRole("Admin"))
                         {
-                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal" data-id="@item.CategoryId"><i class="bi bi-trash"></i></button>
+                            <button type="button" class="btn btn-outline-danger btn-icon" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal" data-id="@item.CategoryId"><i class="bi bi-trash"></i></button>
                         }
                     </td>
                 </tr>
             }
         </tbody>
     </table>
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <i class="bi bi-tags"></i>
+            <h6>No categories found</h6>
+            <p>Add a category to get started.</p>
+        </div>
+    }
 </div>
 
 @{
@@ -72,4 +82,5 @@
             });
         });
     </script>
+    <partial name="_ValidationScriptsPartial" />
 }

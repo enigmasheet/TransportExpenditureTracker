@@ -14,6 +14,7 @@
             <tr>
                 <th>Item Name</th>
                 <th>Unit</th>
+                <th class="text-center">Used In</th>
                 <th style="width:120px">Actions</th>
             </tr>
         </thead>
@@ -23,17 +24,26 @@
                 <tr>
                     <td>@item.ItemName</td>
                     <td>@item.Unit</td>
+                    <td class="text-center">@item.ExpenseCount</td>
                     <td>
-                        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editItemModal" data-id="@item.ItemId"><i class="bi bi-pencil"></i></button>
+                        <button type="button" class="btn btn-outline-primary btn-icon" title="Edit" data-bs-toggle="modal" data-bs-target="#editItemModal" data-id="@item.ItemId"><i class="bi bi-pencil"></i></button>
                         @if (User.IsInRole("Admin"))
                         {
-                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteItemModal" data-id="@item.ItemId"><i class="bi bi-trash"></i></button>
+                            <button type="button" class="btn btn-outline-danger btn-icon" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteItemModal" data-id="@item.ItemId"><i class="bi bi-trash"></i></button>
                         }
                     </td>
                 </tr>
             }
         </tbody>
     </table>
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <i class="bi bi-box"></i>
+            <h6>No items found</h6>
+            <p>Add an item to get started.</p>
+        </div>
+    }
 </div>
 
 @{
@@ -74,4 +84,5 @@
             });
         });
     </script>
+    <partial name="_ValidationScriptsPartial" />
 }

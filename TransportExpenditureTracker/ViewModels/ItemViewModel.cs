@@ -12,4 +12,6 @@ public class ItemViewModel
 
     [StringLength(50, ErrorMessage = "Unit cannot exceed 50 characters")]
     public string Unit { get; set; } = string.Empty;
+
+    public int ExpenseCount { get; set; }
 }

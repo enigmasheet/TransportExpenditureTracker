@@ -4,5 +4,5 @@ namespace TransportExpenditureTracker.Services.Interfaces;
 
 public interface IDashboardService
 {
-    Task<DashboardViewModel> GetDashboardAsync();
+    Task<DashboardViewModel> GetDashboardAsync(string? fiscalYear = null);
 }

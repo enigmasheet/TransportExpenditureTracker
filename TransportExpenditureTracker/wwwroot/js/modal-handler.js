@@ -65,7 +65,7 @@ var ModalForm = {
             var $body = $(this).find('.modal-body');
             $body.html('<div class="text-center py-3"><div class="spinner-border" role="status"></div></div>');
 
-            $.get(loadUrl + '?' + paramName + '=' + id, function (html) {
+            $.get(loadUrl + '?' + paramName + '=' + encodeURIComponent(id), function (html) {
                 $body.html(html);
                 if ($.validator && $.validator.unobtrusive) {
                     $.validator.unobtrusive.parse($body);

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
@@ -22,7 +24,18 @@ public class SuppliersController : Controller
 
     public async Task<IActionResult> Index()
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Suppliers", null));
         var suppliers = await _supplierService.GetAllAsync();
+        var headerData = await _ctx.ExpenseHeaders
+            .Select(h => h.SupplierId)
+            .ToListAsync();
+        var counts = headerData
+            .GroupBy(id => id)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToList();
+        var countMap = counts.ToDictionary(c => c.Id, c => c.Count);
+        foreach (var s in suppliers)
+            s.ExpenseCount = countMap.GetValueOrDefault(s.SupplierId);
         return View(suppliers);
     }
 

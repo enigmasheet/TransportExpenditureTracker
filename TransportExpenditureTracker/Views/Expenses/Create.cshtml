@@ -1,11 +1,13 @@
 @model ExpenseBatchViewModel
 @{ ViewData["Title"] = "Batch Expense Entry"; }
 
-<h4 class="page-heading"><i class="bi bi-plus-circle"></i> Batch Expense Entry</h4>
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-plus-circle"></i> Batch Expense Entry</h4>
+</div>
 <p class="text-muted">Enter all expenses for a specific fiscal year and month. Each row creates one expense record.</p>
 <hr/>
 
-<form asp-action="Create" method="post">
+<form asp-action="Create" method="post" id="batch-form">
 
     <div class="d-flex gap-2 mb-2">
         <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#quickSupplierModal">
@@ -16,9 +18,9 @@
         </button>
     </div>
 
-    <div class="table-container" style="max-height:500px;overflow:auto">
+    <div class="table-container table-scrollable">
         <table class="table table-sm table-bordered" id="batch-table">
-            <thead class="table-dark">
+            <thead class="table-dark sticky-header">
                 <tr>
                     <th style="width:30px">#</th>
                     <th style="width:110px">Miti</th>

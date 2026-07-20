@@ -1,7 +1,9 @@
 @model CsvPreviewViewModel
 @{ ViewData["Title"] = "Import Expenses"; }
 
-<h4 class="page-heading"><i class="bi bi-upload"></i> Import Expenses</h4><hr/>
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-upload"></i> Import Expenses</h4>
+</div>
 
 @if (Model == null || Model.Rows == null || !Model.Rows.Any())
 {
@@ -38,7 +40,7 @@ else
     }
 
     <form asp-action="ImportConfirm" method="post">
-        <div class="table-container" style="max-height:400px;overflow:auto">
+        <div class="table-container table-scrollable">
             <table class="table table-sm table-bordered">
                 <thead><tr>
                     <th>Row</th><th>Miti</th><th>Fiscal Year</th><th>Invoice</th>

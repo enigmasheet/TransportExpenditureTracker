@@ -1,21 +1,40 @@
 @page
 @model IndexModel
-@{ ViewData["Title"] = "Profile"; }
+@{
+    ViewData["Title"] = "Profile";
+    Layout = "/Views/Shared/_Layout.cshtml";
+    ViewData["Breadcrumbs"] = new List<(string Label, string? Url)>
+    {
+        ("Home", Url.Action("Index", "Dashboard")),
+        ("Profile", null)
+    };
+}
 
 <div class="section-title">
-    <h4 class="page-heading"><i class="bi bi-gear"></i> Profile</h4>
+    <h4 class="page-heading"><i class="bi bi-person-circle"></i> Profile</h4>
 </div>
 
 <div class="row g-4">
     <div class="col-md-6">
-        <div class="table-container">
-            <h5>Account Information</h5>
-            <dl class="row mb-0">
-                <dt class="col-sm-4">Full Name</dt>
-                <dd class="col-sm-8">@Model.FullName</dd>
-                <dt class="col-sm-4">Email</dt>
-                <dd class="col-sm-8">@Model.Email</dd>
-            </dl>
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:56px;height:56px">
+                        <i class="bi bi-person-fill text-white fs-3"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">@Model.FullName</h5>
+                        <small class="text-muted">@Model.Email</small>
+                    </div>
+                </div>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-muted small text-uppercase fw-semibold">Full Name</dt>
+                    <dd class="col-sm-8">@Model.FullName</dd>
+                    <dt class="col-sm-4 text-muted small text-uppercase fw-semibold">Email</dt>
+                    <dd class="col-sm-8">@Model.Email</dd>
+                </dl>
+            </div>
         </div>
     </div>
 </div>

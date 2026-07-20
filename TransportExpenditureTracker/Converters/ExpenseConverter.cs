@@ -19,6 +19,7 @@ public class ExpenseConverter
             CategoryName = h.Category?.CategoryName ?? string.Empty,
             PaymentMethod = h.PaymentMethod,
             Remarks = h.Remarks,
+            TotalAmount = h.Details?.Sum(d => d.TotalAmount) ?? 0,
             CreatedAt = h.CreatedAt,
             UpdatedAt = h.UpdatedAt
         };
@@ -50,7 +51,9 @@ public class ExpenseConverter
             FiscalYearId = h.FiscalYearId,
             NepaliMonth = h.NepaliMonth,
             SupplierId = h.SupplierId,
+            SupplierName = h.Supplier?.SupplierName,
             CategoryId = h.CategoryId,
+            CategoryName = h.Category?.CategoryName,
             PaymentMethod = h.PaymentMethod,
             Remarks = h.Remarks
         };

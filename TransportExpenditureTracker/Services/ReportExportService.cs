@@ -60,14 +60,24 @@ public class ReportExportService : IReportExportService
 
     public byte[] GeneratePdf(List<ReportRowViewModel> data, string title)
     {
+        try
+        {
+            FontFactory.RegisterDirectories();
+        }
+        catch
+        {
+            // ignore font registration errors
+        }
+
         using var ms = new MemoryStream();
         var document = new Document(PageSize.A4.Rotate(), 10f, 10f, 20f, 20f);
         var writer = PdfWriter.GetInstance(document, ms);
         document.Open();
 
-        var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16);
-        var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9);
-        var cellFont = FontFactory.GetFont(FontFactory.HELVETICA, 8);
+        var bf = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        var titleFont = new Font(bf, 16, Font.BOLD);
+        var headerFont = new Font(bf, 9, Font.BOLD);
+        var cellFont = new Font(bf, 8, Font.NORMAL);
 
         document.Add(new Paragraph(title, titleFont));
         document.Add(new Paragraph(" "));

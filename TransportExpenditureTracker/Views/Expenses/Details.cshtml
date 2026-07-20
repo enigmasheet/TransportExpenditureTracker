@@ -1,46 +1,62 @@
 @model ExpenseEntryViewModel
 @{ ViewData["Title"] = "Expense Details"; }
 
-<h4 class="page-heading"><i class="bi bi-eye"></i> Expense Details</h4><hr/>
-
-<div class="row g-3 mb-4">
-    <div class="col-md-3"><label class="fw-bold">Invoice No</label><p>@Model.InvoiceNo</p></div>
-    <div class="col-md-3"><label class="fw-bold">Miti</label><p>@Model.Miti</p></div>
-    <div class="col-md-3"><label class="fw-bold">Fiscal Year</label><p>@Model.FiscalYear</p></div>
-    <div class="col-md-3"><label class="fw-bold">Month</label><p>@Model.NepaliMonth</p></div>
-    <div class="col-md-4"><label class="fw-bold">Supplier</label><p>@ViewBag.SupplierName</p></div>
-    <div class="col-md-4"><label class="fw-bold">Category</label><p>@ViewBag.CategoryName</p></div>
-    <div class="col-md-4"><label class="fw-bold">Payment Method</label><p>@Model.PaymentMethod</p></div>
-    @if (!string.IsNullOrEmpty(Model.Remarks))
-    {
-        <div class="col-12"><label class="fw-bold">Remarks</label><p>@Model.Remarks</p></div>
-    }
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-eye"></i> Expense Details</h4>
 </div>
 
-<h5>Details</h5>
+<div class="card shadow-sm border-0 rounded-3 mb-4">
+    <div class="card-body p-4">
+        <div class="row g-3">
+            <div class="col-md-3"><label class="form-label text-muted small text-uppercase fw-semibold">Invoice No</label><p class="fw-semibold mb-0">@Model.InvoiceNo</p></div>
+            <div class="col-md-3"><label class="form-label text-muted small text-uppercase fw-semibold">Miti</label><p class="fw-semibold mb-0">@Model.Miti</p></div>
+            <div class="col-md-3"><label class="form-label text-muted small text-uppercase fw-semibold">Fiscal Year</label><p class="fw-semibold mb-0">@Model.FiscalYear</p></div>
+            <div class="col-md-3"><label class="form-label text-muted small text-uppercase fw-semibold">Month</label><p class="fw-semibold mb-0">@Model.NepaliMonth</p></div>
+            <div class="col-md-4"><label class="form-label text-muted small text-uppercase fw-semibold">Supplier</label><p class="fw-semibold mb-0">@(Model.SupplierName ?? "-")</p></div>
+            <div class="col-md-4"><label class="form-label text-muted small text-uppercase fw-semibold">Category</label><p class="fw-semibold mb-0">@(Model.CategoryName ?? "-")</p></div>
+            <div class="col-md-4"><label class="form-label text-muted small text-uppercase fw-semibold">Payment Method</label><p class="fw-semibold mb-0">@Model.PaymentMethod</p></div>
+            @if (!string.IsNullOrEmpty(Model.Remarks))
+            {
+                <div class="col-12"><label class="form-label text-muted small text-uppercase fw-semibold">Remarks</label><p class="fw-semibold mb-0">@Model.Remarks</p></div>
+            }
+        </div>
+    </div>
+</div>
+
+<h5><i class="bi bi-receipt"></i> Line Items</h5>
 <div class="table-container">
-    <table class="table table-sm table-bordered">
+    <table class="table table-sm table-bordered" id="details-table">
         <thead><tr><th>#</th><th>Item</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT</th><th>Total</th></tr></thead>
         <tbody>
             @if (Model.Details != null)
             {
                 var index = 1;
+                decimal grandTotal = 0;
                 foreach (var d in Model.Details)
                 {
+                    grandTotal += d.TotalAmount;
                     <tr>
                         <td>@(index++)</td>
                         <td>@d.ItemName</td>
-                        <td>@d.Quantity</td>
-                        <td>@d.Rate.ToString("N2")</td>
-                        <td>@d.TaxableAmount.ToString("N2")</td>
-                        <td>@d.VatAmount.ToString("N2")</td>
-                        <td>@d.TotalAmount.ToString("N2")</td>
+                        <td class="text-end">@d.Quantity.ToString("N2")</td>
+                        <td class="text-end">@d.Rate.ToString("N2")</td>
+                        <td class="text-end">@d.TaxableAmount.ToString("N2")</td>
+                        <td class="text-end">@d.VatAmount.ToString("N2")</td>
+                        <td class="text-end">@d.TotalAmount.ToString("N2")</td>
                     </tr>
                 }
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="6" class="text-end">Grand Total:</td>
+                        <td class="text-end text-primary">Rs @grandTotal.ToString("N2")</td>
+                    </tr>
+                </tfoot>
             }
         </tbody>
     </table>
 </div>
 
-<a asp-action="Edit" asp-route-id="@Model.ExpenseId" class="btn btn-primary mt-3"><i class="bi bi-pencil"></i> Edit</a>
-<a asp-action="Index" class="btn btn-outline-secondary mt-3"><i class="bi bi-x-lg"></i> Back to List</a>
+<div class="d-flex gap-2 mt-3">
+    <a asp-action="Edit" asp-route-id="@Model.ExpenseId" class="btn btn-primary"><i class="bi bi-pencil"></i> Edit</a>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back to List</a>
+</div>

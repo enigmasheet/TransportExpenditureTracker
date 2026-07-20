@@ -4,19 +4,14 @@
     var userEmail = ViewBag.UserEmail as string;
 }
 
-<form id="rolesForm" asp-action="ManageRoles" asp-route-userId="@userId" method="post">
-    @Html.AntiForgeryToken()
-    <p class="mb-2"><strong>@userEmail</strong></p>
-    @for (int i = 0; i < Model.Count; i++)
-    {
-        <div class="form-check mb-2">
-            <input type="hidden" asp-for="@Model[i].RoleName" />
-            <input class="form-check-input" type="checkbox" asp-for="@Model[i].Selected" />
-            <label class="form-check-label" asp-for="@Model[i].Selected">@Model[i].RoleName</label>
-        </div>
-    }
-    <div class="mt-3">
-        <button type="submit" class="btn btn-primary"><i class="bi bi-floppy"></i> Save</button>
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+<input type="hidden" name="userId" value="@userId" />
+<p class="mb-2"><strong>@userEmail</strong></p>
+@for (int i = 0; i < Model.Count; i++)
+{
+    <div class="form-check mb-2">
+        <input type="hidden" name="@($"[{i}].RoleName")" value="@Model[i].RoleName" />
+        <input type="hidden" name="@($"[{i}].Selected")" value="false" />
+        <input class="form-check-input" type="checkbox" name="@($"[{i}].Selected")" value="true" @(Model[i].Selected ? "checked" : "") />
+        <label class="form-check-label">@Model[i].RoleName</label>
     </div>
-</form>
+}

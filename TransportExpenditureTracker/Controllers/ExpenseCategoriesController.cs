@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Converters;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.ViewModels;
 
@@ -23,8 +24,19 @@ public class ExpenseCategoriesController : Controller
 
     public async Task<IActionResult> Index()
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Categories", null));
         var categories = await _ctx.ExpenseCategories.OrderBy(c => c.CategoryName).ToListAsync();
         var vms = categories.Select(_converter.ToViewModel).ToList();
+        var headerData = await _ctx.ExpenseHeaders
+            .Select(h => h.CategoryId)
+            .ToListAsync();
+        var counts = headerData
+            .GroupBy(id => id)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .ToList();
+        var countMap = counts.ToDictionary(c => c.Id, c => c.Count);
+        foreach (var vm in vms)
+            vm.ExpenseCount = countMap.GetValueOrDefault(vm.CategoryId);
         return View(vms);
     }
 

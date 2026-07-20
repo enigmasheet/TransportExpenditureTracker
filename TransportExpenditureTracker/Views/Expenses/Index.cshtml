@@ -10,8 +10,11 @@
 </div>
 
 <div class="table-container">
-    <table class="table table-hover" id="expenses-table">
-        <thead><tr><th>Invoice No</th><th>Miti</th><th>Supplier</th><th>Category</th><th>Payment</th><th>Created</th><th>Actions</th></tr></thead>
+    <div id="expenses-table-loader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+    </div>
+    <table class="table table-hover table-bordered" id="expenses-table">
+        <thead><tr><th>Invoice No</th><th>Miti</th><th>Supplier</th><th>Category</th><th>Payment</th><th class="text-end">Amount</th><th>Created</th><th>Actions</th></tr></thead>
         <tbody>
             @foreach (var item in Model)
             {
@@ -21,18 +24,57 @@
                     <td>@item.SupplierName</td>
                     <td>@item.CategoryName</td>
                     <td>@item.PaymentMethod</td>
+                    <td class="text-end">Rs @item.TotalAmount.ToString("N2")</td>
                     <td>@item.CreatedAt.ToString("yyyy-MM-dd")</td>
                     <td>
-                        <a asp-action="Details" asp-route-id="@item.ExpenseId" class="btn btn-sm btn-outline-info"><i class="bi bi-eye"></i></a>
-                        <a asp-action="Edit" asp-route-id="@item.ExpenseId" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
-                        <a asp-action="Delete" asp-route-id="@item.ExpenseId" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                        <a asp-action="Details" asp-route-id="@item.ExpenseId" class="btn btn-sm btn-outline-info btn-icon" title="View"><i class="bi bi-eye"></i></a>
+                        <a asp-action="Edit" asp-route-id="@item.ExpenseId" class="btn btn-sm btn-outline-primary btn-icon" title="Edit"><i class="bi bi-pencil"></i></a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-action="Delete" asp-route-id="@item.ExpenseId" class="btn btn-sm btn-outline-danger btn-icon" title="Delete"><i class="bi bi-trash"></i></a>
+                        }
                     </td>
                 </tr>
             }
         </tbody>
+        @if (Model.Any())
+        {
+            <tfoot>
+                <tr class="fw-bold">
+                    <td colspan="5" class="text-end">Total:</td>
+                    <td class="text-end text-primary">Rs @Model.Sum(m => m.TotalAmount).ToString("N2")</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        }
     </table>
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <i class="bi bi-receipt"></i>
+            <h6>No expenses found</h6>
+            <p>Create a new expense to get started.</p>
+        </div>
+    }
 </div>
 
 @section Scripts {
-    <script>$(document).ready(function() { $('#expenses-table').DataTable({ order: [[5, 'desc']], language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." } }); });</script>
+    <script>
+        $(document).ready(function() {
+            var $loader = $('#expenses-table-loader');
+            var $table = $('#expenses-table');
+            if ($table.find('tbody tr').length > 0) {
+                $loader.removeClass('d-none');
+                $table.hide();
+                $table.on('init.dt', function () {
+                    $loader.addClass('d-none');
+                    $table.show();
+                });
+                $table.DataTable({
+                    order: [[6, 'desc']],
+                    language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
+                });
+            }
+        });
+    </script>
 }

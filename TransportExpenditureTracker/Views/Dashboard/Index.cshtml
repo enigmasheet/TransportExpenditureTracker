@@ -1,8 +1,20 @@
 @model DashboardViewModel
-@{ ViewData["Title"] = "Dashboard"; }
+@{
+    ViewData["Title"] = "Dashboard";
+    var fy = Model.SelectedFiscalYear;
+}
 
 <div class="section-title mb-4">
     <h4 class="page-heading"><i class="bi bi-speedometer2"></i> Dashboard</h4>
+    <form method="get" class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0 text-nowrap">Fiscal Year:</label>
+        <select name="fiscalYear" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+            @foreach (var f in Model.FiscalYears)
+            {
+                <option value="@f" selected="@(f == fy)">@f</option>
+            }
+        </select>
+    </form>
 </div>
 
 <div class="row g-3 mb-4">
@@ -11,19 +23,22 @@
     <div class="col-md-4"><div class="kpi-card kpi-warning"><div class="kpi-label"><i class="bi bi-calculator me-1"></i>Taxable Amount</div><div class="kpi-value text-warning">Rs @Model.TotalTaxableAmount.ToString("N2")</div></div></div>
     <div class="col-md-4"><div class="kpi-card kpi-info"><div class="kpi-label"><i class="bi bi-file-text me-1"></i>Total Invoices</div><div class="kpi-value text-info">@Model.TotalInvoices</div></div></div>
     <div class="col-md-4"><div class="kpi-card kpi-danger"><div class="kpi-label"><i class="bi bi-calendar-month me-1"></i>This Month</div><div class="kpi-value text-danger">Rs @Model.ThisMonthExpenses.ToString("N2")</div></div></div>
-    <div class="col-md-4"><div class="kpi-card kpi-primary" style="border-left-color:#6b7280"><div class="kpi-label"><i class="bi bi-calendar-range me-1"></i>This Fiscal Year</div><div class="kpi-value" style="color:#6b7280">Rs @Model.ThisFiscalYearExpenses.ToString("N2")</div></div></div>
+    <div class="col-md-4"><div class="kpi-card kpi-gray"><div class="kpi-label"><i class="bi bi-calendar-range me-1"></i>This Fiscal Year</div><div class="kpi-value" style="color:#6b7280">Rs @Model.ThisFiscalYearExpenses.ToString("N2")</div></div></div>
 </div>
 
 <div class="row g-3">
-    <div class="col-md-8"><div class="table-container"><h5><i class="bi bi-bar-chart-line text-primary"></i>Monthly Expenditure</h5><div id="monthlyChartSpinner" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="monthlyChart" height="250" class="d-none"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-pie-chart text-info"></i>By Category</h5><div id="categoryChartSpinner" class="text-center py-5"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="categoryChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-8"><div class="table-container"><h5><i class="bi bi-bar-chart-line text-primary"></i>Monthly Expenditure</h5><div id="monthlyChartSpinner" class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div><div id="monthlyChartEmpty" class="d-none empty-state"><i class="bi bi-bar-chart-line"></i><h6>No data</h6><p>No expenses recorded for this period.</p></div><canvas id="monthlyChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-pie-chart text-info"></i>By Category</h5><div id="categoryChartSpinner" class="text-center py-5"><div class="spinner-border text-info" role="status"><span class="visually-hidden">Loading...</span></div></div><div id="categoryChartEmpty" class="d-none empty-state"><i class="bi bi-pie-chart"></i><h6>No data</h6></div><canvas id="categoryChart" height="250" class="d-none"></canvas></div></div>
 </div>
 <div class="row g-3 mt-2">
-    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-people text-success"></i>Top Suppliers</h5><div id="supplierChartSpinner" class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="supplierChart" height="250" class="d-none"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-receipt text-warning"></i>VAT Paid</h5><div id="vatChartSpinner" class="text-center py-5"><div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="vatChart" height="250" class="d-none"></canvas></div></div>
-    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-arrow-left-right text-secondary"></i>FY Comparison</h5><div id="fyChartSpinner" class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div><canvas id="fyChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-people text-success"></i>Top Suppliers</h5><div id="supplierChartSpinner" class="text-center py-5"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div><div id="supplierChartEmpty" class="d-none empty-state"><i class="bi bi-people"></i><h6>No data</h6></div><canvas id="supplierChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-receipt text-warning"></i>VAT Paid</h5><div id="vatChartSpinner" class="text-center py-5"><div class="spinner-border text-warning" role="status"><span class="visually-hidden">Loading...</span></div></div><div id="vatChartEmpty" class="d-none empty-state"><i class="bi bi-receipt"></i><h6>No data</h6></div><canvas id="vatChart" height="250" class="d-none"></canvas></div></div>
+    <div class="col-md-4"><div class="table-container"><h5><i class="bi bi-arrow-left-right text-secondary"></i>FY Comparison</h5><div id="fyChartSpinner" class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div></div><div id="fyChartEmpty" class="d-none empty-state"><i class="bi bi-arrow-left-right"></i><h6>No data</h6></div><canvas id="fyChart" height="250" class="d-none"></canvas></div></div>
 </div>
 
 @section Scripts {
+    <script>
+        var fiscalYear = '@(fy ?? "")';
+    </script>
     <script src="~/js/dashboard-charts.js" asp-append-version="true"></script>
 }

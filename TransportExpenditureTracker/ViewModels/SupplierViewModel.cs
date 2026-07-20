@@ -15,4 +15,6 @@ public class SupplierViewModel
 
     [StringLength(50, ErrorMessage = "VAT number cannot exceed 50 characters")]
     public string? VatNo { get; set; }
+
+    public int ExpenseCount { get; set; }
 }

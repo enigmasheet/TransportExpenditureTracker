@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Services.Interfaces;
 
 namespace TransportExpenditureTracker.Controllers;
@@ -18,64 +19,105 @@ public class DashboardController : Controller
         _ctx = ctx;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? fiscalYear)
     {
-        var model = await _dashboardService.GetDashboardAsync();
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Dashboard", null));
+        var model = await _dashboardService.GetDashboardAsync(fiscalYear);
         return View(model);
     }
 
     [HttpGet]
-    public async Task<JsonResult> GetMonthlyChartData()
+    public async Task<JsonResult> GetMonthlyChartData(string? fiscalYear)
     {
-        var details = await _ctx.ExpenseDetails.Include(d => d.Expense).ToListAsync();
-        var data = details
-            .GroupBy(d => d.Expense.NepaliMonth ?? "")
-            .Select(g => new { month = g.Key, amount = g.Sum(d => d.TotalAmount) })
+        var query = from h in _ctx.ExpenseHeaders
+                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYear == fiscalYear
+                    group d by h.NepaliMonth into g
+                    select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
+
+        var data = await query.ToListAsync();
+
+        var sorted = data
+            .Where(d => d.label != null)
+            .Select(d => new
+            {
+                d.label,
+                d.value,
+                sort = d.label!.Contains('(') && d.label.EndsWith(')')
+                    ? int.Parse(d.label.Split('(', ')')[1])
+                    : 0
+            })
+            .OrderBy(d => d.sort)
+            .Select(d => new { d.label, d.value })
             .ToList();
-        return Json(data);
+
+        return Json(sorted);
     }
 
     [HttpGet]
-    public async Task<JsonResult> GetCategoryChartData()
+    public async Task<JsonResult> GetCategoryChartData(string? fiscalYear)
     {
-        var details = await _ctx.ExpenseDetails.Include(d => d.Expense).ThenInclude(e => e.Category).ToListAsync();
-        var data = details
-            .GroupBy(d => d.Expense.Category.CategoryName)
-            .Select(g => new { category = g.Key, amount = g.Sum(d => d.TotalAmount) })
-            .ToList();
-        return Json(data);
+        var query = from h in _ctx.ExpenseHeaders
+                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYear == fiscalYear
+                    group d by h.Category.CategoryName into g
+                    select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
+
+        var data = await query.ToListAsync();
+        return Json(data.OrderByDescending(d => d.value).ToList());
     }
 
     [HttpGet]
-    public async Task<JsonResult> GetSupplierChartData()
+    public async Task<JsonResult> GetSupplierChartData(string? fiscalYear)
     {
-        var details = await _ctx.ExpenseDetails.Include(d => d.Expense).ThenInclude(e => e.Supplier).ToListAsync();
-        var data = details
-            .GroupBy(d => d.Expense.Supplier.SupplierName)
-            .Select(g => new { supplier = g.Key, amount = g.Sum(d => d.TotalAmount) })
-            .ToList();
-        return Json(data);
+        var query = from h in _ctx.ExpenseHeaders
+                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYear == fiscalYear
+                    group d by h.Supplier.SupplierName into g
+                    select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
+
+        var data = await query.ToListAsync();
+        return Json(data.OrderByDescending(d => d.value).Take(10).ToList());
     }
 
     [HttpGet]
-    public async Task<JsonResult> GetVatChartData()
+    public async Task<JsonResult> GetVatChartData(string? fiscalYear)
     {
-        var details = await _ctx.ExpenseDetails.Include(d => d.Expense).ToListAsync();
-        var data = details
-            .GroupBy(d => d.Expense.NepaliMonth ?? "")
-            .Select(g => new { month = g.Key, vatAmount = g.Sum(d => d.VatAmount) })
+        var query = from h in _ctx.ExpenseHeaders
+                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYear == fiscalYear
+                    group d by h.NepaliMonth into g
+                    select new { label = g.Key, value = g.Sum(d => d.VatAmount) };
+
+        var data = await query.ToListAsync();
+
+        var sorted = data
+            .Where(d => d.label != null)
+            .Select(d => new
+            {
+                d.label,
+                d.value,
+                sort = d.label!.Contains('(') && d.label.EndsWith(')')
+                    ? int.Parse(d.label.Split('(', ')')[1])
+                    : 0
+            })
+            .OrderBy(d => d.sort)
+            .Select(d => new { d.label, d.value })
             .ToList();
-        return Json(data);
+
+        return Json(sorted);
     }
 
     [HttpGet]
-    public async Task<JsonResult> GetFyComparisonData()
+    public async Task<JsonResult> GetFyComparisonData(string? fiscalYear)
     {
-        var details = await _ctx.ExpenseDetails.Include(d => d.Expense).ToListAsync();
-        var data = details
-            .GroupBy(d => d.Expense.FiscalYear ?? "")
-            .Select(g => new { fy = g.Key, amount = g.Sum(d => d.TotalAmount) })
-            .ToList();
-        return Json(data);
+        var query = from h in _ctx.ExpenseHeaders
+                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYear == fiscalYear
+                    group d by h.FiscalYear into g
+                    select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
+
+        var data = await query.ToListAsync();
+        return Json(data.Where(d => d.label != null).OrderBy(d => d.label).ToList());
     }
 }

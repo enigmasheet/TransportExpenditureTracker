@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.ViewModels;
 
@@ -21,6 +22,7 @@ public class RoleManagementController : Controller
 
     public async Task<IActionResult> Index()
     {
+        this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("User Management", null));
         var users = await _userManager.Users.ToListAsync();
         var userRoles = new List<UserRolesViewModel>();
         foreach (var user in users)

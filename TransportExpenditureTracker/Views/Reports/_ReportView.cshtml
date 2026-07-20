@@ -48,7 +48,7 @@
                     <label class="form-label">Invoice No</label>
                     <input name="InvoiceNo" class="form-control" value="@f.InvoiceNo" />
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search"></i> Filter</button>
+                <button type="submit" class="btn btn-primary btn-sm w-100" onclick="this.classList.add('is-loading')"><i class="bi bi-search"></i> Filter</button>
             </form>
 
             <hr />
@@ -67,13 +67,13 @@
                 <input type="hidden" name="PaymentMethod" value="@f.PaymentMethod" />
                 <input type="hidden" name="FromDate" value="@f.FromDate?.ToString("yyyy-MM-dd")" />
                 <input type="hidden" name="ToDate" value="@f.ToDate?.ToString("yyyy-MM-dd")" />
-                <button type="submit" name="format" value="Excel" class="btn btn-success btn-sm w-100 mb-1">
+                <button type="submit" name="format" value="Excel" class="btn btn-success btn-sm w-100 mb-1" onclick="this.classList.add('is-loading')">
                     <i class="bi bi-file-earmark-excel"></i> Excel
                 </button>
-                <button type="submit" name="format" value="PDF" class="btn btn-danger btn-sm w-100 mb-1">
+                <button type="submit" name="format" value="PDF" class="btn btn-danger btn-sm w-100 mb-1" onclick="this.classList.add('is-loading')">
                     <i class="bi bi-file-earmark-pdf"></i> PDF
                 </button>
-                <button type="submit" name="format" value="CSV" class="btn btn-secondary btn-sm w-100 mb-1">
+                <button type="submit" name="format" value="CSV" class="btn btn-secondary btn-sm w-100 mb-1" onclick="this.classList.add('is-loading')">
                     <i class="bi bi-file-earmark-spreadsheet"></i> CSV
                 </button>
             </form>
@@ -93,7 +93,7 @@
                 <input type="hidden" name="PaymentMethod" value="@f.PaymentMethod" />
                 <input type="hidden" name="FromDate" value="@f.FromDate?.ToString("yyyy-MM-dd")" />
                 <input type="hidden" name="ToDate" value="@f.ToDate?.ToString("yyyy-MM-dd")" />
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-envelope"></i> Email CSV</button>
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100" onclick="this.classList.add('is-loading')"><i class="bi bi-envelope"></i> Email CSV</button>
             </form>
         </div>
     </div>
@@ -145,6 +145,17 @@
                                 <th class="text-end">@totalTaxable.ToString("N2")</th>
                                 <th class="text-end">@totalVat.ToString("N2")</th>
                                 <th class="text-end">@totalAmount.ToString("N2")</th>
+                            </tr>
+                        </tfoot>
+                    }
+                    @if (Model.Rows.Count == 0)
+                    {
+                        <tfoot>
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                    No data found for the selected filters.
+                                </td>
                             </tr>
                         </tfoot>
                     }
