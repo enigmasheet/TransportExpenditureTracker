@@ -39,7 +39,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasOne(e => e.Supplier)
             .WithMany()
             .HasForeignKey(e => e.SupplierId)
-            .OnDelete(DeleteBehavior.Cascade)
+            .OnDelete(DeleteBehavior.Restrict)
             .IsRequired();
 
         builder.Entity<ExpenseHeader>()
@@ -68,6 +68,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasForeignKey(d => d.ExpenseId)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
+
+        builder.Entity<ExpenseHeader>()
+            .HasIndex(e => e.EnglishDate);
+
+        builder.Entity<ExpenseHeader>()
+            .HasIndex(e => e.CreatedAt);
+
+        builder.Entity<AuditLog>()
+            .HasIndex(a => new { a.EntityName, a.EntityId });
+
+        builder.Entity<ExportQueue>()
+            .HasIndex(e => e.Status);
 
         builder.Entity<ExpenseDetail>(entity =>
         {

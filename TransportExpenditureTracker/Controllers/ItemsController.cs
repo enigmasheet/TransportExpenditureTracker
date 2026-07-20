@@ -2,38 +2,34 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TransportExpenditureTracker.Converters;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
+using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
+using System.Globalization;
+using static TransportExpenditureTracker.Helper.ControllerHelpers;
 
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize]
-public class ItemsController : Controller
+public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, IAuditService audit) : Controller
 {
-    private readonly ApplicationDbContext _ctx;
-    private readonly ItemConverter _converter;
-
-    public ItemsController(ApplicationDbContext ctx, ItemConverter converter)
-    {
-        _ctx = ctx;
-        _converter = converter;
-    }
-
+    private const string DeleteAction = "Delete";
+    private static readonly string[] ItemNameRequired = ["Item name is required."];
+    private static readonly string[] ItemNotFound = ["Item not found."];
+    private static readonly string[] ItemReferenced = ["Cannot delete: item is referenced in existing expense records."];
     public async Task<IActionResult> Index()
     {
         this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Items", null));
-        var items = await _ctx.Items.OrderBy(i => i.ItemName).ToListAsync();
-        var vms = items.Select(_converter.ToViewModel).ToList();
-        var allDetails = await _ctx.ExpenseDetails
-            .Select(d => new { d.ItemId, d.ExpenseId })
-            .ToListAsync();
-        var detailCounts = allDetails
+        var items = await ctx.Items.OrderBy(i => i.ItemName).ToListAsync();
+        var vms = items.Select(converter.ToViewModel).ToList();
+        var detailCounts = await ctx.ExpenseDetails
             .GroupBy(d => d.ItemId)
             .Select(g => new { Id = g.Key, Count = g.Select(d => d.ExpenseId).Distinct().Count() })
-            .ToList();
+            .ToListAsync();
         var countMap = detailCounts.ToDictionary(c => c.Id, c => c.Count);
         foreach (var vm in vms)
             vm.ExpenseCount = countMap.GetValueOrDefault(vm.ItemId);
@@ -52,8 +48,8 @@ public class ItemsController : Controller
         if (ModelState.IsValid)
         {
             var item = new Item { ItemName = vm.ItemName, Unit = vm.Unit };
-            _ctx.Items.Add(item);
-            await _ctx.SaveChangesAsync();
+            ctx.Items.Add(item);
+            await ctx.SaveChangesAsync();
             return Json(new { success = true });
         }
         return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
@@ -61,7 +57,8 @@ public class ItemsController : Controller
 
     public async Task<IActionResult> Edit(int id)
     {
-        var item = await _ctx.Items.FindAsync(id);
+        if (!ModelState.IsValid) return NotFound();
+        var item = await ctx.Items.FindAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         return View(vm);
@@ -74,11 +71,11 @@ public class ItemsController : Controller
         if (id != vm.ItemId) return NotFound();
         if (ModelState.IsValid)
         {
-            var item = await _ctx.Items.FindAsync(id);
+            var item = await ctx.Items.FindAsync(id);
             if (item == null) return NotFound();
             item.ItemName = vm.ItemName;
             item.Unit = vm.Unit;
-            await _ctx.SaveChangesAsync();
+            await ctx.SaveChangesAsync();
             TempData["Success"] = "Item updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -87,22 +84,35 @@ public class ItemsController : Controller
 
     public async Task<IActionResult> Delete(int id)
     {
-        var item = await _ctx.Items.FindAsync(id);
+        if (!ModelState.IsValid) return NotFound();
+        var item = await ctx.Items.FindAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         ViewData["DeleteConfirm"] = $"Are you sure you want to delete item '{item.ItemName}'?";
         return View(vm);
     }
 
-    [HttpPost, ActionName("Delete")]
+    [HttpPost, ActionName(DeleteAction)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var item = await _ctx.Items.FindAsync(id);
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = "Invalid request.";
+            return RedirectToAction(nameof(Index));
+        }
+        var item = await ctx.Items.FindAsync(id);
         if (item != null)
         {
-            _ctx.Items.Remove(item);
-            await _ctx.SaveChangesAsync();
+            var inUse = await ctx.ExpenseDetails.AnyAsync(d => d.ItemId == id);
+            if (inUse)
+            {
+                TempData["Error"] = $"Cannot delete '{item.ItemName}': it is referenced in existing expense records.";
+                return RedirectToAction(nameof(Index));
+            }
+            ctx.Items.Remove(item);
+            await ctx.SaveChangesAsync();
+            await audit.LogAsync("Item", id.ToString(CultureInfo.InvariantCulture), DeleteAction, item.ItemName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
             TempData["Success"] = "Item deleted successfully.";
         }
         return RedirectToAction(nameof(Index));
@@ -112,12 +122,14 @@ public class ItemsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuickCreate([FromBody] QuickItemRequest request)
     {
+        if (!ModelState.IsValid)
+            return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         if (string.IsNullOrWhiteSpace(request.ItemName))
-            return Json(new { success = false, errors = new { itemName = new[] { "Item name is required." } } });
+            return Json(new { success = false, errors = new { itemName = ItemNameRequired } });
 
         var item = new Item { ItemName = request.ItemName, Unit = request.Unit };
-        _ctx.Items.Add(item);
-        await _ctx.SaveChangesAsync();
+        ctx.Items.Add(item);
+        await ctx.SaveChangesAsync();
         var displayText = item.ItemName + (string.IsNullOrEmpty(item.Unit) ? "" : $" ({item.Unit})");
         return Json(new { success = true, id = item.ItemId, text = displayText });
     }
@@ -125,7 +137,8 @@ public class ItemsController : Controller
     [HttpGet]
     public async Task<IActionResult> GetForEdit(int id)
     {
-        var item = await _ctx.Items.FindAsync(id);
+        if (!ModelState.IsValid) return NotFound();
+        var item = await ctx.Items.FindAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         return PartialView("_ItemEditForm", vm);
@@ -135,23 +148,26 @@ public class ItemsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuickUpdate([FromBody] QuickItemUpdateRequest request)
     {
+        if (!ModelState.IsValid)
+            return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         if (string.IsNullOrWhiteSpace(request.ItemName))
-            return Json(new { success = false, errors = new { itemName = new[] { "Item name is required." } } });
+            return Json(new { success = false, errors = new { itemName = ItemNameRequired } });
 
-        var item = await _ctx.Items.FindAsync(request.ItemId);
+        var item = await ctx.Items.FindAsync(request.ItemId);
         if (item == null)
-            return Json(new { success = false, errors = new { general = new[] { "Item not found." } } });
+            return Json(new { success = false, errors = new { general = ItemNotFound } });
 
         item.ItemName = request.ItemName;
         item.Unit = request.Unit;
-        await _ctx.SaveChangesAsync();
+        await ctx.SaveChangesAsync();
         return Json(new { success = true });
     }
 
     [HttpGet]
     public async Task<IActionResult> GetDeleteInfo(int id)
     {
-        var item = await _ctx.Items.FindAsync(id);
+        if (!ModelState.IsValid) return NotFound();
+        var item = await ctx.Items.FindAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         return PartialView("_ItemDeleteInfo", vm);
@@ -161,23 +177,19 @@ public class ItemsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuickDelete([FromBody] QuickDeleteRequest request)
     {
-        var item = await _ctx.Items.FindAsync(request.Id);
+        if (!ModelState.IsValid)
+            return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
+        var item = await ctx.Items.FindAsync(request.Id);
         if (item != null)
         {
-            _ctx.Items.Remove(item);
-            await _ctx.SaveChangesAsync();
+            var inUse = await ctx.ExpenseDetails.AnyAsync(d => d.ItemId == request.Id);
+            if (inUse)
+                return Json(new { success = false, errors = new { general = ItemReferenced } });
+            ctx.Items.Remove(item);
+            await ctx.SaveChangesAsync();
+            await audit.LogAsync("Item", request.Id.ToString(CultureInfo.InvariantCulture), DeleteAction, item.ItemName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         }
         return Json(new { success = true });
-    }
-
-    private static Dictionary<string, string[]> GetModelStateErrors(ModelStateDictionary modelState)
-    {
-        return modelState
-            .Where(kv => kv.Value != null && kv.Value.Errors.Count > 0)
-            .ToDictionary(
-                kv => char.ToLowerInvariant(kv.Key[0]) + kv.Key.Substring(1),
-                kv => kv.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
-            );
     }
 
     public class QuickItemRequest
@@ -188,13 +200,10 @@ public class ItemsController : Controller
 
     public class QuickItemUpdateRequest
     {
+        [System.Text.Json.Serialization.JsonRequired]
         public int ItemId { get; set; }
+
         public string ItemName { get; set; } = string.Empty;
         public string? Unit { get; set; }
-    }
-
-    public class QuickDeleteRequest
-    {
-        public int Id { get; set; }
     }
 }

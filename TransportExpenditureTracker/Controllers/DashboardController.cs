@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Helper;
@@ -8,30 +9,22 @@ using TransportExpenditureTracker.Services.Interfaces;
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize]
-public class DashboardController : Controller
+public class DashboardController(IDashboardService dashboardService, ApplicationDbContext ctx) : Controller
 {
-    private readonly IDashboardService _dashboardService;
-    private readonly ApplicationDbContext _ctx;
-
-    public DashboardController(IDashboardService dashboardService, ApplicationDbContext ctx)
-    {
-        _dashboardService = dashboardService;
-        _ctx = ctx;
-    }
 
     public async Task<IActionResult> Index(string? fiscalYear)
     {
         this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Dashboard", null));
-        var model = await _dashboardService.GetDashboardAsync(fiscalYear);
+        var model = await dashboardService.GetDashboardAsync(fiscalYear);
         return View(model);
     }
 
     [HttpGet]
     public async Task<JsonResult> GetMonthlyChartData(string? fiscalYear)
     {
-        var query = from h in _ctx.ExpenseHeaders
-                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
-                    where fiscalYear == null || h.FiscalYear == fiscalYear
+        var query = from h in ctx.ExpenseHeaders
+                    from d in ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.NepaliMonth into g
                     select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
 
@@ -44,7 +37,7 @@ public class DashboardController : Controller
                 d.label,
                 d.value,
                 sort = d.label!.Contains('(') && d.label.EndsWith(')')
-                    ? int.Parse(d.label.Split('(', ')')[1])
+                    ? int.Parse(d.label.Split('(', ')', StringSplitOptions.None)[1], CultureInfo.InvariantCulture)
                     : 0
             })
             .OrderBy(d => d.sort)
@@ -57,9 +50,9 @@ public class DashboardController : Controller
     [HttpGet]
     public async Task<JsonResult> GetCategoryChartData(string? fiscalYear)
     {
-        var query = from h in _ctx.ExpenseHeaders
-                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
-                    where fiscalYear == null || h.FiscalYear == fiscalYear
+        var query = from h in ctx.ExpenseHeaders
+                    from d in ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.Category.CategoryName into g
                     select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
 
@@ -70,9 +63,9 @@ public class DashboardController : Controller
     [HttpGet]
     public async Task<JsonResult> GetSupplierChartData(string? fiscalYear)
     {
-        var query = from h in _ctx.ExpenseHeaders
-                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
-                    where fiscalYear == null || h.FiscalYear == fiscalYear
+        var query = from h in ctx.ExpenseHeaders
+                    from d in ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.Supplier.SupplierName into g
                     select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
 
@@ -83,9 +76,9 @@ public class DashboardController : Controller
     [HttpGet]
     public async Task<JsonResult> GetVatChartData(string? fiscalYear)
     {
-        var query = from h in _ctx.ExpenseHeaders
-                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
-                    where fiscalYear == null || h.FiscalYear == fiscalYear
+        var query = from h in ctx.ExpenseHeaders
+                    from d in ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.NepaliMonth into g
                     select new { label = g.Key, value = g.Sum(d => d.VatAmount) };
 
@@ -98,7 +91,7 @@ public class DashboardController : Controller
                 d.label,
                 d.value,
                 sort = d.label!.Contains('(') && d.label.EndsWith(')')
-                    ? int.Parse(d.label.Split('(', ')')[1])
+                    ? int.Parse(d.label.Split('(', ')', StringSplitOptions.None)[1], CultureInfo.InvariantCulture)
                     : 0
             })
             .OrderBy(d => d.sort)
@@ -111,10 +104,10 @@ public class DashboardController : Controller
     [HttpGet]
     public async Task<JsonResult> GetFyComparisonData(string? fiscalYear)
     {
-        var query = from h in _ctx.ExpenseHeaders
-                    from d in _ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
-                    where fiscalYear == null || h.FiscalYear == fiscalYear
-                    group d by h.FiscalYear into g
+        var query = from h in ctx.ExpenseHeaders
+                    from d in ctx.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+                    where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
+                    group d by h.FiscalYearNav.Name into g
                     select new { label = g.Key, value = g.Sum(d => d.TotalAmount) };
 
         var data = await query.ToListAsync();

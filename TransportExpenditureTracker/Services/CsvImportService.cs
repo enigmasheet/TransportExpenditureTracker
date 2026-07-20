@@ -98,7 +98,7 @@ public class CsvImportService : ICsvImportService
                 {
                     if (row.TaxableAmount > 0 && row.VatAmount > 0)
                     {
-                        var expectedVat = row.TaxableAmount * 0.13m;
+                        var expectedVat = row.TaxableAmount * AppConstants.VatRate;
                         if (Math.Abs(row.VatAmount - expectedVat) > 1.0m)
                             row.IsVatMismatch = true;
                     }

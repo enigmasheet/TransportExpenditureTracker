@@ -6,12 +6,12 @@
             <form id="@Model.FormId">
                 @if (Model.IncludeAntiforgery) { @Html.AntiForgeryToken() }
                 <div class="modal-header">
-                    <h5 class="modal-title">@Html.Raw(Model.Title)</h5>
+                    <h5 class="modal-title">@Model.Title</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     @if (Model.BodyContent != null) { @Model.BodyContent(null!) }
-                    else { <div class="text-center py-3"><div class="spinner-border" role="status"></div></div> }
+                    else { <div class="text-center py-3"><output class="spinner-border"></output></div> }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>

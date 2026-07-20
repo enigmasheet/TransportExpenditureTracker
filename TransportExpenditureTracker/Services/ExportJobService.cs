@@ -3,6 +3,7 @@ using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
+using static TransportExpenditureTracker.Models.ExportJobStatus;
 
 namespace TransportExpenditureTracker.Services;
 
@@ -23,7 +24,7 @@ public class ExportJobService : IExportJobService
             ReportType = reportType,
             FilterJson = filterJson,
             RecipientEmail = recipientEmail,
-            Status = "Pending",
+            Status = Pending,
             RequestedAt = DateTime.UtcNow
         };
 
@@ -36,7 +37,7 @@ public class ExportJobService : IExportJobService
     public async Task<List<ExportQueueViewModel>> GetPendingJobsAsync()
     {
         return await _db.ExportQueues
-            .Where(j => j.Status == "Pending")
+            .Where(j => j.Status == Pending)
             .OrderBy(j => j.RequestedAt)
             .Select(j => new ExportQueueViewModel
             {
@@ -82,7 +83,7 @@ public class ExportJobService : IExportJobService
             job.FilePath = filePath;
         if (error is not null)
             job.ErrorMessage = error;
-        if (status == "Completed")
+        if (status == Completed)
             job.SentAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();

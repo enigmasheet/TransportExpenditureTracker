@@ -13,40 +13,40 @@
             <h5><i class="bi bi-funnel"></i> Filters</h5>
             <form method="get">
                 <div class="mb-2">
-                    <label class="form-label">Fiscal Year</label>
-                    <select name="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears">
+                    <label class="form-label" for="FiscalYear">Fiscal Year</label>
+                    <select name="FiscalYear" id="FiscalYear" class="form-control" asp-items="ViewBag.FiscalYears">
                         <option value="">All</option>
                     </select>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label">Month</label>
-                    <select name="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths">
+                    <label class="form-label" for="NepaliMonth">Month</label>
+                    <select name="NepaliMonth" id="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths">
                         <option value="">All</option>
                     </select>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label">Supplier</label>
-                    <select name="SupplierId" class="form-control" asp-items="ViewBag.Suppliers">
+                    <label class="form-label" for="SupplierId">Supplier</label>
+                    <select name="SupplierId" id="SupplierId" class="form-control" asp-items="ViewBag.Suppliers">
                         <option value="">All</option>
                     </select>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label">Category</label>
-                    <select name="CategoryId" class="form-control" asp-items="ViewBag.Categories">
+                    <label class="form-label" for="CategoryId">Category</label>
+                    <select name="CategoryId" id="CategoryId" class="form-control" asp-items="ViewBag.Categories">
                         <option value="">All</option>
                     </select>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label">From</label>
-                    <input name="FromDate" type="date" class="form-control" value="@(f.FromDate?.ToString("yyyy-MM-dd"))" />
+                    <label class="form-label" for="FromDate">From</label>
+                    <input name="FromDate" id="FromDate" type="date" class="form-control" value="@(f.FromDate?.ToString("yyyy-MM-dd"))" />
                 </div>
                 <div class="mb-2">
-                    <label class="form-label">To</label>
-                    <input name="ToDate" type="date" class="form-control" value="@(f.ToDate?.ToString("yyyy-MM-dd"))" />
+                    <label class="form-label" for="ToDate">To</label>
+                    <input name="ToDate" id="ToDate" type="date" class="form-control" value="@(f.ToDate?.ToString("yyyy-MM-dd"))" />
                 </div>
                 <div class="mb-2">
-                    <label class="form-label">Invoice No</label>
-                    <input name="InvoiceNo" class="form-control" value="@f.InvoiceNo" />
+                    <label class="form-label" for="InvoiceNo">Invoice No</label>
+                    <input name="InvoiceNo" id="InvoiceNo" class="form-control" value="@f.InvoiceNo" />
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm w-100" onclick="this.classList.add('is-loading')"><i class="bi bi-search"></i> Filter</button>
             </form>
@@ -168,14 +168,16 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            $('#report-table').DataTable({
-                pageLength: 50,
-                ordering: true,
-                language: {
-                    search: "<i class='bi bi-search'></i> _INPUT_",
-                    searchPlaceholder: "Search..."
-                }
-            });
+            if (!$.fn.DataTable.isDataTable('#report-table')) {
+                $('#report-table').DataTable({
+                    pageLength: 50,
+                    ordering: true,
+                    language: {
+                        search: "<i class='bi bi-search'></i> _INPUT_",
+                        searchPlaceholder: "Search..."
+                    }
+                });
+            }
         });
     </script>
 }

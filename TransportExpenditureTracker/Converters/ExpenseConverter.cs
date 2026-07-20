@@ -13,7 +13,7 @@ public class ExpenseConverter
             InvoiceNo = h.InvoiceNo,
             Miti = h.Miti,
             EnglishDate = h.EnglishDate,
-            FiscalYear = h.FiscalYear,
+            FiscalYear = h.FiscalYearNav?.Name ?? string.Empty,
             NepaliMonth = h.NepaliMonth,
             SupplierName = h.Supplier?.SupplierName ?? string.Empty,
             CategoryName = h.Category?.CategoryName ?? string.Empty,
@@ -47,7 +47,7 @@ public class ExpenseConverter
             ExpenseId = h.ExpenseId,
             InvoiceNo = h.InvoiceNo,
             Miti = h.Miti,
-            FiscalYear = h.FiscalYearNav?.Name ?? h.FiscalYear,
+            FiscalYear = h.FiscalYearNav?.Name ?? string.Empty,
             FiscalYearId = h.FiscalYearId,
             NepaliMonth = h.NepaliMonth,
             SupplierId = h.SupplierId,
@@ -66,44 +66,10 @@ public class ExpenseConverter
         return vm;
     }
 
-    public ExpenseHeader ToHeaderModel(ExpenseEntryViewModel vm)
-    {
-        return new ExpenseHeader
-        {
-            InvoiceNo = vm.InvoiceNo,
-            Miti = vm.Miti,
-            FiscalYear = string.Empty,
-            FiscalYearId = vm.FiscalYearId,
-            NepaliMonth = vm.NepaliMonth,
-            SupplierId = vm.SupplierId,
-            CategoryId = vm.CategoryId,
-            Remarks = vm.Remarks,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-    }
-
-    public ExpenseDetail ToDetailModel(ExpenseEntryViewModel vm, int headerId)
-    {
-        var d = vm.Details.FirstOrDefault();
-
-        return new ExpenseDetail
-        {
-            ExpenseId = headerId,
-            ItemId = d?.ItemId ?? 0,
-            Quantity = d?.Quantity ?? 0,
-            Rate = d?.Rate ?? 0,
-            TaxableAmount = d?.TaxableAmount ?? 0,
-            VatAmount = d?.VatAmount ?? 0,
-            TotalAmount = d?.TotalAmount ?? 0
-        };
-    }
-
     public void UpdateHeaderModel(ExpenseEntryViewModel vm, ExpenseHeader existing)
     {
         existing.InvoiceNo = vm.InvoiceNo;
         existing.Miti = vm.Miti;
-        existing.FiscalYear = string.Empty;
         existing.FiscalYearId = vm.FiscalYearId;
         existing.NepaliMonth = vm.NepaliMonth;
         existing.SupplierId = vm.SupplierId;

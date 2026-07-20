@@ -14,8 +14,7 @@ public static class DropdownHelper
 
     public static void LoadNepaliMonths(ViewDataDictionary vd)
     {
-        var monthNames = new[] { "Baisakh(1)", "Jestha(2)", "Ashad(3)", "Shrawan(4)", "Bhadra(5)", "Ashwin(6)", "Kartik(7)", "Mangsir(8)", "Poush(9)", "Magh(10)", "Falgun(11)", "Chaitra(12)" };
-        vd["NepaliMonths"] = new SelectList(monthNames);
+        vd["NepaliMonths"] = new SelectList(NepaliDateHelper.NepaliMonthNames);
     }
 
     public static void LoadPaymentMethods(ViewDataDictionary vd)

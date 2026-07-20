@@ -15,77 +15,6 @@ public class ReportService : IReportService
         _db = db;
     }
 
-    private IQueryable<ExpenseHeader> ApplyHeaderFilters(IQueryable<ExpenseHeader> query, ReportFilterViewModel filters)
-    {
-        if (!string.IsNullOrEmpty(filters.FiscalYear))
-            query = query.Where(h => h.FiscalYear == filters.FiscalYear);
-        if (!string.IsNullOrEmpty(filters.NepaliMonth))
-            query = query.Where(h => h.NepaliMonth == filters.NepaliMonth);
-        if (filters.FromDate.HasValue)
-            query = query.Where(h => h.EnglishDate >= filters.FromDate.Value);
-        if (filters.ToDate.HasValue)
-            query = query.Where(h => h.EnglishDate <= filters.ToDate.Value);
-        if (filters.SupplierId.HasValue)
-            query = query.Where(h => h.SupplierId == filters.SupplierId.Value);
-        if (filters.CategoryId.HasValue)
-            query = query.Where(h => h.CategoryId == filters.CategoryId.Value);
-        if (!string.IsNullOrEmpty(filters.InvoiceNo))
-            query = query.Where(h => h.InvoiceNo.Contains(filters.InvoiceNo));
-        if (!string.IsNullOrEmpty(filters.PaymentMethod))
-            query = query.Where(h => h.PaymentMethod == filters.PaymentMethod);
-        return query;
-    }
-
-    private IQueryable<ReportRowViewModel> GetBaseQuery(ReportFilterViewModel filters)
-    {
-        var query = from h in _db.ExpenseHeaders.AsNoTracking()
-                    join d in _db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId
-                    join s in _db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId
-                    join c in _db.ExpenseCategories.AsNoTracking() on h.CategoryId equals c.CategoryId
-                    join i in _db.Items.AsNoTracking() on d.ItemId equals i.ItemId
-                    select new ReportRowViewModel
-                    {
-                        Miti = h.Miti,
-                        InvoiceNo = h.InvoiceNo,
-                        FiscalYear = h.FiscalYear,
-                        NepaliMonth = h.NepaliMonth,
-                        EnglishDate = h.EnglishDate,
-                        SupplierName = s.SupplierName,
-                        Location = s.Location ?? "",
-                        VatNo = s.VatNo ?? "",
-                        CategoryName = c.CategoryName,
-                        ItemName = i.ItemName,
-                        Unit = i.Unit ?? "",
-                        PaymentMethod = h.PaymentMethod,
-                        Quantity = d.Quantity,
-                        Rate = d.Rate,
-                        TaxableAmount = d.TaxableAmount,
-                        VatAmount = d.VatAmount,
-                        TotalAmount = d.TotalAmount
-                    };
-
-        if (!string.IsNullOrEmpty(filters.FiscalYear))
-            query = query.Where(r => r.FiscalYear == filters.FiscalYear);
-        if (!string.IsNullOrEmpty(filters.NepaliMonth))
-            query = query.Where(r => r.NepaliMonth == filters.NepaliMonth);
-        if (filters.FromDate.HasValue)
-            query = query.Where(r => r.EnglishDate >= filters.FromDate.Value);
-        if (filters.ToDate.HasValue)
-            query = query.Where(r => r.EnglishDate <= filters.ToDate.Value);
-        if (filters.SupplierId.HasValue)
-            query = query.Where(r => r.SupplierName != null); // supplier filter applied via headers
-        if (filters.ItemId.HasValue)
-            query = query.Where(r => r.ItemName != null); // item filter applied via join
-        if (!string.IsNullOrEmpty(filters.InvoiceNo))
-            query = query.Where(r => r.InvoiceNo.Contains(filters.InvoiceNo));
-        if (!string.IsNullOrEmpty(filters.PaymentMethod))
-            query = query.Where(r => r.PaymentMethod == filters.PaymentMethod);
-        if (!string.IsNullOrEmpty(filters.Location))
-            query = query.Where(r => r.Location.Contains(filters.Location));
-
-        return query;
-    }
-
     private IQueryable<ReportRowViewModel> GetBaseQueryWithDetailFilters(ReportFilterViewModel filters)
     {
         var query = from h in _db.ExpenseHeaders.AsNoTracking()
@@ -97,7 +26,7 @@ public class ReportService : IReportService
                     {
                         Miti = h.Miti,
                         InvoiceNo = h.InvoiceNo,
-                        FiscalYear = h.FiscalYear,
+                        FiscalYear = h.FiscalYearNav.Name,
                         NepaliMonth = h.NepaliMonth,
                         EnglishDate = h.EnglishDate,
                         SupplierName = s.SupplierName,

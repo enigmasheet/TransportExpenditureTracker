@@ -64,9 +64,9 @@ public class ReportExportService : IReportExportService
         {
             FontFactory.RegisterDirectories();
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore font registration errors
+            System.Diagnostics.Debug.WriteLine($"Font registration failed (non-critical): {ex.Message}");
         }
 
         using var ms = new MemoryStream();

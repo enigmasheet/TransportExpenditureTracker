@@ -1,6 +1,8 @@
 using System.Text.Json;
+using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
+using static TransportExpenditureTracker.Models.ExportJobStatus;
 
 namespace TransportExpenditureTracker.Services;
 
@@ -8,11 +10,13 @@ public class ExportBackgroundJob : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ExportBackgroundJob> _logger;
+    private readonly IConfiguration _configuration;
 
-    public ExportBackgroundJob(IServiceScopeFactory scopeFactory, ILogger<ExportBackgroundJob> logger)
+    public ExportBackgroundJob(IServiceScopeFactory scopeFactory, ILogger<ExportBackgroundJob> logger, IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _configuration = configuration;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,7 +35,7 @@ public class ExportBackgroundJob : BackgroundService
             {
                 _logger.LogInformation("Processing export job {JobId}: {Type}/{Format} for {Email}",
                     job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
-                await jobService.UpdateStatusAsync(job.ExportQueueId, "Processing", null, null);
+                await jobService.UpdateStatusAsync(job.ExportQueueId, Processing, null, null);
                 try
                 {
                     var filters = string.IsNullOrEmpty(job.FilterJson) ? new ReportFilterViewModel() : JsonSerializer.Deserialize<ReportFilterViewModel>(job.FilterJson);
@@ -48,11 +52,12 @@ public class ExportBackgroundJob : BackgroundService
                     var filePath = Path.Combine(tempDir, fileName);
                     await File.WriteAllBytesAsync(filePath, fileBytes, stoppingToken);
 
-                    await jobService.UpdateStatusAsync(job.ExportQueueId, "Completed", filePath, null);
+                    await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, null);
 
+                    var ccEmail = _configuration["ExportSettings:CcEmail"] ?? "";
                     await emailSender.SendEmailWithAttachmentAsync(
                         toEmail: job.RecipientEmail,
-                        ccEmail: "abhaymandal321@gmail.com",
+                        ccEmail: ccEmail,
                         subject: $"Your {job.ReportType} Export ({job.Format}) is ready",
                         body: $"Dear user,\n\nPlease find attached your requested {job.Format} export of the {job.ReportType} report.\n\n- Expense Tracker",
                         attachmentBytes: fileBytes,
@@ -64,7 +69,7 @@ public class ExportBackgroundJob : BackgroundService
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Export job {JobId} failed: {Message}", job.ExportQueueId, ex.Message);
-                    await jobService.UpdateStatusAsync(job.ExportQueueId, "Failed", null, ex.Message);
+                    await jobService.UpdateStatusAsync(job.ExportQueueId, Failed, null, ex.Message);
                 }
             }
 

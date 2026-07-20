@@ -1,33 +1,29 @@
-﻿// Site-wide utilities
-function formatNumber(n) { return parseFloat(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+﻿function formatNumber(n) { return parseFloat(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function formatInt(n) { return parseInt(n).toLocaleString('en-IN'); }
 
-// Toast notifications
 function showToast(type, message) {
-    var iconMap = { success: 'bi-check-circle-fill text-success', error: 'bi-exclamation-circle-fill text-danger', warning: 'bi-exclamation-triangle-fill text-warning', info: 'bi-info-circle-fill text-primary' };
-    var icon = iconMap[type] || iconMap.info;
-    var delay = type === 'error' ? 8000 : type === 'warning' ? 6000 : 3000;
-    var toastHtml = '<div class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="' + delay + '">'
+    const iconMap = { success: 'bi-check-circle-fill text-success', error: 'bi-exclamation-circle-fill text-danger', warning: 'bi-exclamation-triangle-fill text-warning', info: 'bi-info-circle-fill text-primary' };
+    const icon = iconMap[type] || iconMap.info;
+    const delay = type === 'error' ? 8000 : type === 'warning' ? 6000 : 3000;
+    const toastHtml = '<div class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="' + delay + '">'
         + '<div class="d-flex"><div class="toast-body"><i class="bi ' + icon + ' fs-5"></i> '
-        + $('<span>').text(message).html()
+        + message
         + '</div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';
-    var $toast = $(toastHtml).appendTo('#toastContainer');
+    const $toast = $(toastHtml).appendTo('#toastContainer');
     new bootstrap.Toast($toast[0]).show();
     $toast.on('hidden.bs.toast', function () { $(this).remove(); });
 }
 
-// Button loading state
-$.fn.loading = function (state) {
+$.fn.transportLoading = function (state) {
     if (state) { this.addClass('is-loading').prop('disabled', true); }
     else { this.removeClass('is-loading').prop('disabled', false); }
     return this;
 };
 
 $(document).ready(function () {
-    // Active nav highlighting
-    var currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+    const currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
     $('.navbar-nav a').each(function () {
-        var href = $(this).attr('href');
+        const href = $(this).attr('href');
         if (href && href !== '#' && currentPath === href.toLowerCase().split('?')[0].replace(/\/+$/, '')) {
             $(this).addClass('active');
             if ($(this).closest('.dropdown-menu').length) {
@@ -36,23 +32,21 @@ $(document).ready(function () {
         }
     });
 
-    // Convert TempData to toasts
-    var $td = $('#tempData');
+    const $td = $('#tempData');
     if ($td.length) {
-        var success = $td.data('success');
-        var error = $td.data('error');
-        var warning = $td.data('warning');
+        const success = $td.data('success');
+        const error = $td.data('error');
+        const warning = $td.data('warning');
         if (success) showToast('success', success);
         if (error) showToast('error', error);
         if (warning) showToast('warning', warning);
     }
 
-    // Auto-loading state on form submits
     $(document).on('submit', 'form', function (e) {
         if (e.isDefaultPrevented()) return;
-        var $btn = $(this).find('button[type="submit"]');
+        const $btn = $(this).find('button[type="submit"]');
         if ($btn.length && !$btn.hasClass('is-loading')) {
-            $btn.loading(true);
+            $btn.transportLoading(true);
         }
     });
 });

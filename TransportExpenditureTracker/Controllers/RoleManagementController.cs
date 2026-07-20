@@ -2,55 +2,46 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.ViewModels;
+using static TransportExpenditureTracker.Helper.ControllerHelpers;
+using System.Linq;
 
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize(Policy = "RequireSuperAdminRole")]
-public class RoleManagementController : Controller
+public class RoleManagementController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext ctx) : Controller
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
-
-    public RoleManagementController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
-    {
-        _userManager = userManager;
-        _roleManager = roleManager;
-    }
+    private static readonly string[] userNotFound = ["User not found."];
 
     public async Task<IActionResult> Index()
     {
         this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("User Management", null));
-        var users = await _userManager.Users.ToListAsync();
-        var userRoles = new List<UserRolesViewModel>();
-        foreach (var user in users)
+        var users = await userManager.Users.ToListAsync();
+        var roleAssignments = await ctx.UserRoles.ToListAsync();
+        var roleNames = await ctx.Roles.ToDictionaryAsync(r => r.Id, r => r.Name);
+        var userRoles = users.Select(u => new UserRolesViewModel
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            userRoles.Add(new UserRolesViewModel
-            {
-                UserId = user.Id,
-                Email = user.Email ?? "",
-                Roles = roles.ToList()
-            });
-        }
+            UserId = u.Id,
+            Email = u.Email ?? "",
+            Roles = [.. roleAssignments
+                .Where(ur => ur.UserId == u.Id)
+                .Select(ur => roleNames.GetValueOrDefault(ur.RoleId, "")!)]
+        }).ToList();
         return View(userRoles);
     }
 
     public async Task<IActionResult> ManageRoles(string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await userManager.FindByIdAsync(userId);
         if (user == null) return NotFound();
-        var model = new List<ManageUserRolesViewModel>();
-        foreach (var role in await _roleManager.Roles.ToListAsync())
+        var model = (await roleManager.Roles.ToListAsync()).Select(async role => new ManageUserRolesViewModel
         {
-            model.Add(new ManageUserRolesViewModel
-            {
-                RoleName = role.Name ?? "",
-                Selected = await _userManager.IsInRoleAsync(user, role.Name ?? "")
-            });
-        }
+            RoleName = role.Name ?? "",
+            Selected = await userManager.IsInRoleAsync(user, role.Name ?? "")
+        }).ToList();
         ViewBag.UserEmail = user.Email;
         ViewBag.UserId = userId;
         return PartialView(model);
@@ -60,14 +51,16 @@ public class RoleManagementController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ManageRoles(List<ManageUserRolesViewModel> model, string userId)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return Json(new { success = false, errors = new { UserId = new[] { "User not found." } } });
-        var currentRoles = await _userManager.GetRolesAsync(user);
-        await _userManager.RemoveFromRolesAsync(user, currentRoles);
+        if (!ModelState.IsValid)
+            return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
+        var user = await userManager.FindByIdAsync(userId);
+        if (user == null) return Json(new { success = false, errors = new { UserId = userNotFound } });
+        var currentRoles = await userManager.GetRolesAsync(user);
+        await userManager.RemoveFromRolesAsync(user, currentRoles);
         var selectedRoles = model.Where(r => r.Selected).Select(r => r.RoleName).ToList();
         if (selectedRoles.Count > 0)
         {
-            await _userManager.AddToRolesAsync(user, selectedRoles);
+            await userManager.AddToRolesAsync(user, selectedRoles);
         }
         return Json(new { success = true });
     }

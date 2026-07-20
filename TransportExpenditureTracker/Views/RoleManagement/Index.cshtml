@@ -45,7 +45,7 @@
 
 @{
     Func<object, object> rolesBody = @<text>
-        <div class="text-center py-3"><div class="spinner-border" role="status"></div></div>
+        <div class="text-center py-3"><output class="spinner-border"></output></div>
     </text>;
 }
 @await Html.PartialAsync("_ModalForm", new ModalFormConfig

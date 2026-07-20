@@ -61,7 +61,6 @@ public class ExpenseService : IExpenseService
                 InvoiceNo = vm.InvoiceNo,
                 Miti = vm.Miti,
                 EnglishDate = NepaliDateHelper.ParseNepaliDate(vm.Miti) ?? DateTime.UtcNow,
-                FiscalYear = string.Empty,
                 NepaliMonth = vm.NepaliMonth,
                 SupplierId = vm.SupplierId,
                 CategoryId = vm.CategoryId,
@@ -79,7 +78,7 @@ public class ExpenseService : IExpenseService
                 foreach (var d in vm.Details)
                 {
                     var taxable = d.TaxableAmount > 0 ? d.TaxableAmount : d.Quantity * d.Rate;
-                    var vat = Math.Round(taxable * 0.13m, 2);
+                    var vat = Math.Round(taxable * AppConstants.VatRate, 2);
                     var total = Math.Round(taxable + vat, 2);
 
                     var detail = new ExpenseDetail
@@ -124,7 +123,6 @@ public class ExpenseService : IExpenseService
             existing.InvoiceNo = vm.InvoiceNo;
             existing.Miti = vm.Miti;
             existing.EnglishDate = NepaliDateHelper.ParseNepaliDate(vm.Miti) ?? existing.EnglishDate;
-            existing.FiscalYear = string.Empty;
             existing.NepaliMonth = vm.NepaliMonth;
             existing.SupplierId = vm.SupplierId;
             existing.CategoryId = vm.CategoryId;
@@ -141,7 +139,7 @@ public class ExpenseService : IExpenseService
                 foreach (var d in vm.Details)
                 {
                     var taxable = d.TaxableAmount > 0 ? d.TaxableAmount : d.Quantity * d.Rate;
-                    var vat = Math.Round(taxable * 0.13m, 2);
+                    var vat = Math.Round(taxable * AppConstants.VatRate, 2);
                     var total = Math.Round(taxable + vat, 2);
 
                     var detail = new ExpenseDetail
@@ -273,7 +271,6 @@ public class ExpenseService : IExpenseService
                     InvoiceNo = row.InvoiceNo,
                     Miti = row.Miti,
                     EnglishDate = englishDate,
-                    FiscalYear = fiscalYear.Name,
                     FiscalYearId = fiscalYear.Id,
                     SupplierId = supplier.SupplierId,
                     CategoryId = 1,
@@ -284,7 +281,7 @@ public class ExpenseService : IExpenseService
                 await _db.SaveChangesAsync();
 
                 var taxable = row.TaxableAmount > 0 ? row.TaxableAmount : row.Quantity * row.Rate;
-                var vat = Math.Round(taxable * 0.13m, 2);
+                var vat = Math.Round(taxable * AppConstants.VatRate, 2);
                 var total = Math.Round(taxable + vat, 2);
 
                 var detail = new ExpenseDetail
@@ -328,90 +325,101 @@ public class ExpenseService : IExpenseService
 
         var allFiscalYears = await _db.FiscalYears.ToListAsync();
 
-        foreach (var row in vm.Rows)
+        try
         {
-            try
+            foreach (var row in vm.Rows)
             {
-                if (row.SupplierId <= 0 || row.ItemId <= 0 || string.IsNullOrWhiteSpace(row.Miti))
+                try
                 {
-                    summary.Skipped++;
-                    summary.SkippedReasons.Add($"Row {row.RowIndex}: Missing required fields");
-                    continue;
+                    if (row.SupplierId <= 0 || row.ItemId <= 0 || string.IsNullOrWhiteSpace(row.Miti))
+                    {
+                        summary.Skipped++;
+                        summary.SkippedReasons.Add($"Row {row.RowIndex}: Missing required fields");
+                        continue;
+                    }
+
+                    var fiscalYear = FiscalYearHelper.GetFiscalYear(row.Miti, allFiscalYears);
+                    if (fiscalYear is null)
+                    {
+                        summary.Skipped++;
+                        summary.SkippedReasons.Add($"Row {row.RowIndex}: Could not determine fiscal year from Miti");
+                        continue;
+                    }
+
+                    var mitiParts = row.Miti.Split('/');
+                    var monthIndex = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(mitiParts[1])) - 1;
+                    var nepaliMonth = NepaliDateHelper.NepaliMonthNames[monthIndex];
+
+                    var englishDate = NepaliDateHelper.ParseNepaliDate(row.Miti) ?? DateTime.UtcNow;
+
+                    var supplier = await _db.Suppliers.FindAsync(row.SupplierId);
+                    if (supplier is null)
+                    {
+                        summary.Skipped++;
+                        summary.SkippedReasons.Add($"Row {row.RowIndex}: Supplier not found");
+                        continue;
+                    }
+
+                    var item = await _db.Items.FindAsync(row.ItemId);
+                    if (item is null)
+                    {
+                        summary.Skipped++;
+                        summary.SkippedReasons.Add($"Row {row.RowIndex}: Item not found");
+                        continue;
+                    }
+
+                    var taxableAmount = Math.Round(row.Quantity * row.Rate, 2);
+                    var vatAmount = Math.Round(taxableAmount * AppConstants.VatRate, 2);
+                    var totalAmount = Math.Round(taxableAmount + vatAmount, 2);
+
+                    var header = new ExpenseHeader
+                    {
+                        InvoiceNo = row.InvoiceNo,
+                        Miti = row.Miti,
+                        EnglishDate = englishDate,
+                        FiscalYearId = fiscalYear.Id,
+                        NepaliMonth = nepaliMonth,
+                        SupplierId = row.SupplierId,
+                        CategoryId = row.CategoryId ?? 1,
+                        PaymentMethod = row.PaymentMethod ?? "Cash",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _db.ExpenseHeaders.Add(header);
+                    await _db.SaveChangesAsync();
+
+                    var detail = new ExpenseDetail
+                    {
+                        ExpenseId = header.ExpenseId,
+                        ItemId = row.ItemId,
+                        Quantity = row.Quantity,
+                        Rate = row.Rate,
+                        TaxableAmount = taxableAmount,
+                        VatAmount = vatAmount,
+                        TotalAmount = totalAmount
+                    };
+                    _db.ExpenseDetails.Add(detail);
+                    await _db.SaveChangesAsync();
+
+                    summary.Inserted++;
                 }
-
-                var fiscalYear = FiscalYearHelper.GetFiscalYear(row.Miti, allFiscalYears);
-                if (fiscalYear is null)
+                catch (Exception ex)
                 {
-                    summary.Skipped++;
-                    summary.SkippedReasons.Add($"Row {row.RowIndex}: Could not determine fiscal year from Miti");
-                    continue;
+                    summary.Errors++;
+                    summary.ErrorMessages.Add($"Row {row.RowIndex}: {ex.Message}");
                 }
-
-                var mitiParts = row.Miti.Split('/');
-                var monthIndex = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(mitiParts[1])) - 1;
-                var nepaliMonth = NepaliDateHelper.NepaliMonthNames[monthIndex];
-
-                var englishDate = NepaliDateHelper.ParseNepaliDate(row.Miti) ?? DateTime.UtcNow;
-
-                var supplier = await _db.Suppliers.FindAsync(row.SupplierId);
-                if (supplier is null)
-                {
-                    summary.Skipped++;
-                    summary.SkippedReasons.Add($"Row {row.RowIndex}: Supplier not found");
-                    continue;
-                }
-
-                var item = await _db.Items.FindAsync(row.ItemId);
-                if (item is null)
-                {
-                    summary.Skipped++;
-                    summary.SkippedReasons.Add($"Row {row.RowIndex}: Item not found");
-                    continue;
-                }
-
-                var taxableAmount = Math.Round(row.Quantity * row.Rate, 2);
-                var vatAmount = Math.Round(taxableAmount * 0.13m, 2);
-                var totalAmount = Math.Round(taxableAmount + vatAmount, 2);
-
-                var header = new ExpenseHeader
-                {
-                    InvoiceNo = row.InvoiceNo,
-                    Miti = row.Miti,
-                    EnglishDate = englishDate,
-                    FiscalYear = fiscalYear.Name,
-                    FiscalYearId = fiscalYear.Id,
-                    NepaliMonth = nepaliMonth,
-                    SupplierId = row.SupplierId,
-                    CategoryId = row.CategoryId ?? 1,
-                    PaymentMethod = row.PaymentMethod ?? "Cash",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _db.ExpenseHeaders.Add(header);
-                await _db.SaveChangesAsync();
-
-                var detail = new ExpenseDetail
-                {
-                    ExpenseId = header.ExpenseId,
-                    ItemId = row.ItemId,
-                    Quantity = row.Quantity,
-                    Rate = row.Rate,
-                    TaxableAmount = taxableAmount,
-                    VatAmount = vatAmount,
-                    TotalAmount = totalAmount
-                };
-                _db.ExpenseDetails.Add(detail);
-                await _db.SaveChangesAsync();
-
-                summary.Inserted++;
             }
-            catch (Exception ex)
-            {
-                summary.Errors++;
-                summary.ErrorMessages.Add($"Row {row.RowIndex}: {ex.Message}");
-            }
+
+            if (summary.Errors == 0)
+                await transaction.CommitAsync();
+            else
+                await transaction.RollbackAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
         }
 
-        await transaction.CommitAsync();
         return summary;
     }
 }

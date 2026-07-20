@@ -48,7 +48,7 @@
 
 @{
     Func<object, object> createBody = @<text>@await Html.PartialAsync("~/Views/Items/_ItemForm.cshtml", new ItemViewModel())</text>;
-    Func<object, object> spinnerBody = @<text><div class="text-center py-3"><div class="spinner-border" role="status"></div></div></text>;
+    Func<object, object> spinnerBody = @<text><div class="text-center py-3"><output class="spinner-border"></output></div></text>;
 }
 @await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "createItemModal", FormId = "createItemForm", Title = "<i class='bi bi-plus-lg text-primary'></i> Add Item", BodyContent = createBody })
 @await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "editItemModal", FormId = "editItemForm", Title = "<i class='bi bi-pencil text-warning'></i> Edit Item", SubmitText = "Update", BodyContent = spinnerBody })

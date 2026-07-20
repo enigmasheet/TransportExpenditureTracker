@@ -26,7 +26,7 @@ public class DashboardService : IDashboardService
         var latestFy = fiscalYears.FirstOrDefault();
         var selectedFy = fiscalYear ?? latestFy;
 
-        var query = _db.ExpenseHeaders.Where(h => h.FiscalYear == selectedFy);
+        var query = _db.ExpenseHeaders.Where(h => h.FiscalYearNav.Name == selectedFy);
 
         var totalExpenditure = await query
             .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)

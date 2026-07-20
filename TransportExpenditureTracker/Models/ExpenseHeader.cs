@@ -18,9 +18,6 @@ public class ExpenseHeader
     public DateTime EnglishDate { get; set; }
 
     [MaxLength(20)]
-    public string FiscalYear { get; set; } = null!;
-
-    [MaxLength(20)]
     public string? NepaliMonth { get; set; }
 
     public int SupplierId { get; set; }

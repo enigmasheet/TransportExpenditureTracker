@@ -64,7 +64,6 @@ public static class WebAppBuilder
             builder.Services.AddScoped<ExpenseConverter>();
             builder.Services.AddScoped<ItemConverter>();
             builder.Services.AddScoped<ExpenseCategoryConverter>();
-            builder.Services.AddScoped<ReportConverter>();
 
             builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, EmailSender>();
             builder.Services.AddTransient<EmailSender>();
@@ -110,7 +109,7 @@ public static class WebAppBuilder
         catch (Exception ex)
         {
             Log.Fatal(ex, "Application failed to start");
-            throw;
+            throw new InvalidOperationException("Application failed to start", ex);
         }
     }
 }

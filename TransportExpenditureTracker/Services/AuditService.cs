@@ -5,14 +5,9 @@ using TransportExpenditureTracker.Services.Interfaces;
 
 namespace TransportExpenditureTracker.Services;
 
-public class AuditService : IAuditService
+public class AuditService(ApplicationDbContext db) : IAuditService
 {
-    private readonly ApplicationDbContext _db;
-
-    public AuditService(ApplicationDbContext db)
-    {
-        _db = db;
-    }
+    private readonly ApplicationDbContext _db = db;
 
     public async Task LogAsync(string entityName, string entityId, string action, string? oldValues, string? newValues, string userId)
     {

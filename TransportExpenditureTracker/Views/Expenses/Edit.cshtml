@@ -10,10 +10,10 @@
         <div class="col-md-3"><label asp-for="InvoiceNo" class="form-label"></label><input asp-for="InvoiceNo" class="form-control" required/><span asp-validation-for="InvoiceNo" class="text-danger"></span></div>
         <div class="col-md-3"><label asp-for="Miti" class="form-label"></label><input asp-for="Miti" class="form-control nepali-datepicker" required/><span asp-validation-for="Miti" class="text-danger"></span></div>
         <div class="col-md-3"><label asp-for="FiscalYearId" class="form-label"></label><select asp-for="FiscalYearId" class="form-control" asp-items="ViewBag.FiscalYears"><option value="">-- Select --</option></select><span asp-validation-for="FiscalYearId" class="text-danger"></span></div>
-        <div class="col-md-3"><label class="form-label">Month</label><select asp-for="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths"><option value="">-- Select --</option></select></div>
-        <div class="col-md-4"><label class="form-label">Supplier</label><select asp-for="SupplierId" class="form-control supplier-select" asp-items="ViewBag.Suppliers"><option value="">-- Select --</option></select></div>
-        <div class="col-md-4"><label class="form-label">Category</label><select asp-for="CategoryId" class="form-control" asp-items="ViewBag.Categories"><option value="">-- Select --</option></select></div>
-        <div class="col-md-4"><label class="form-label">Payment Method</label><select asp-for="PaymentMethod" class="form-control" asp-items="ViewBag.PaymentMethods"><option value="">-- Select --</option></select></div>
+        <div class="col-md-3"><label class="form-label" for="NepaliMonth">Month</label><select asp-for="NepaliMonth" class="form-control" asp-items="ViewBag.NepaliMonths"><option value="">-- Select --</option></select></div>
+        <div class="col-md-4"><label class="form-label" for="SupplierId">Supplier</label><select asp-for="SupplierId" class="form-control supplier-select" asp-items="ViewBag.Suppliers"><option value="">-- Select --</option></select></div>
+        <div class="col-md-4"><label class="form-label" for="CategoryId">Category</label><select asp-for="CategoryId" class="form-control" asp-items="ViewBag.Categories"><option value="">-- Select --</option></select></div>
+        <div class="col-md-4"><label class="form-label" for="PaymentMethod">Payment Method</label><select asp-for="PaymentMethod" class="form-control" asp-items="ViewBag.PaymentMethods"><option value="">-- Select --</option></select></div>
         <div class="col-12"><label asp-for="Remarks" class="form-label"></label><textarea asp-for="Remarks" class="form-control" rows="2"></textarea></div>
     </div>
 

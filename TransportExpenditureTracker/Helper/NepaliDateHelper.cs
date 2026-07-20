@@ -32,13 +32,6 @@ public static class NepaliDateHelper
         "Poush(9)", "Magh(10)", "Falgun(11)", "Chaitra(12)"
     ];
 
-    public static int? GetNepaliMonthNumber(string miti)
-    {
-        var parts = miti.Split('/');
-        if (parts.Length != 3) return null;
-        return int.Parse(ConvertToEnglishDigits(parts[1]));
-    }
-
     public static DateTime? ParseNepaliDate(string nepaliMiti)
     {
         try
@@ -53,7 +46,7 @@ public static class NepaliDateHelper
             var nepaliDate = new NepaliDate(year, month, day);
             return nepaliDate.EnglishDate;
         }
-        catch
+        catch (Exception)
         {
             return null;
         }

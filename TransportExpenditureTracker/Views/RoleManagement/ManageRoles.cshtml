@@ -11,7 +11,7 @@
     <div class="form-check mb-2">
         <input type="hidden" name="@($"[{i}].RoleName")" value="@Model[i].RoleName" />
         <input type="hidden" name="@($"[{i}].Selected")" value="false" />
-        <input class="form-check-input" type="checkbox" name="@($"[{i}].Selected")" value="true" @(Model[i].Selected ? "checked" : "") />
-        <label class="form-check-label">@Model[i].RoleName</label>
+        <input class="form-check-input" type="checkbox" name="@($"[{i}].Selected")" id="role_@i" value="true" @(Model[i].Selected ? "checked" : "") />
+        <label class="form-check-label" for="role_@i">@Model[i].RoleName</label>
     </div>
 }
