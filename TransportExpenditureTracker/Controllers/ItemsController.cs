@@ -1,21 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Security.Claims;
 using TransportExpenditureTracker.Converters;
-using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
-using System.Globalization;
 using static TransportExpenditureTracker.Helper.ControllerHelpers;
 
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize]
-public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, IAuditService audit) : Controller
+public class ItemsController(IItemDataManager itemDataManager, ItemConverter converter, IAuditService audit) : Controller
 {
     private const string DeleteAction = "Delete";
     private static readonly string[] ItemNameRequired = ["Item name is required."];
@@ -24,13 +22,9 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
     public async Task<IActionResult> Index()
     {
         this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Items", null));
-        var items = await ctx.Items.OrderBy(i => i.ItemName).ToListAsync();
+        var items = await itemDataManager.GetAllAsync();
         var vms = items.Select(converter.ToViewModel).ToList();
-        var detailCounts = await ctx.ExpenseDetails
-            .GroupBy(d => d.ItemId)
-            .Select(g => new { Id = g.Key, Count = g.Select(d => d.ExpenseId).Distinct().Count() })
-            .ToListAsync();
-        var countMap = detailCounts.ToDictionary(c => c.Id, c => c.Count);
+        var countMap = await itemDataManager.GetDetailCountsAsync();
         foreach (var vm in vms)
             vm.ExpenseCount = countMap.GetValueOrDefault(vm.ItemId);
         return View(vms);
@@ -48,8 +42,7 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
         if (ModelState.IsValid)
         {
             var item = new Item { ItemName = vm.ItemName, Unit = vm.Unit };
-            ctx.Items.Add(item);
-            await ctx.SaveChangesAsync();
+            await itemDataManager.AddAsync(item);
             return Json(new { success = true });
         }
         return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
@@ -58,7 +51,7 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
     public async Task<IActionResult> Edit(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var item = await ctx.Items.FindAsync(id);
+        var item = await itemDataManager.GetByIdAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         return View(vm);
@@ -71,11 +64,11 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
         if (id != vm.ItemId) return NotFound();
         if (ModelState.IsValid)
         {
-            var item = await ctx.Items.FindAsync(id);
+            var item = await itemDataManager.GetByIdAsync(id);
             if (item == null) return NotFound();
             item.ItemName = vm.ItemName;
             item.Unit = vm.Unit;
-            await ctx.SaveChangesAsync();
+            await itemDataManager.UpdateAsync(item);
             TempData["Success"] = "Item updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -85,7 +78,7 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
     public async Task<IActionResult> Delete(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var item = await ctx.Items.FindAsync(id);
+        var item = await itemDataManager.GetByIdAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         ViewData["DeleteConfirm"] = $"Are you sure you want to delete item '{item.ItemName}'?";
@@ -101,17 +94,16 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
             TempData["Error"] = "Invalid request.";
             return RedirectToAction(nameof(Index));
         }
-        var item = await ctx.Items.FindAsync(id);
+        var item = await itemDataManager.GetByIdAsync(id);
         if (item != null)
         {
-            var inUse = await ctx.ExpenseDetails.AnyAsync(d => d.ItemId == id);
+            var inUse = await itemDataManager.IsReferencedAsync(id);
             if (inUse)
             {
                 TempData["Error"] = $"Cannot delete '{item.ItemName}': it is referenced in existing expense records.";
                 return RedirectToAction(nameof(Index));
             }
-            ctx.Items.Remove(item);
-            await ctx.SaveChangesAsync();
+            await itemDataManager.DeleteAsync(id);
             await audit.LogAsync("Item", id.ToString(CultureInfo.InvariantCulture), DeleteAction, item.ItemName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
             TempData["Success"] = "Item deleted successfully.";
         }
@@ -128,8 +120,7 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
             return Json(new { success = false, errors = new { itemName = ItemNameRequired } });
 
         var item = new Item { ItemName = request.ItemName, Unit = request.Unit };
-        ctx.Items.Add(item);
-        await ctx.SaveChangesAsync();
+        await itemDataManager.AddAsync(item);
         var displayText = item.ItemName + (string.IsNullOrEmpty(item.Unit) ? "" : $" ({item.Unit})");
         return Json(new { success = true, id = item.ItemId, text = displayText });
     }
@@ -138,7 +129,7 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
     public async Task<IActionResult> GetForEdit(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var item = await ctx.Items.FindAsync(id);
+        var item = await itemDataManager.GetByIdAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         return PartialView("_ItemEditForm", vm);
@@ -153,13 +144,13 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
         if (string.IsNullOrWhiteSpace(request.ItemName))
             return Json(new { success = false, errors = new { itemName = ItemNameRequired } });
 
-        var item = await ctx.Items.FindAsync(request.ItemId);
+        var item = await itemDataManager.GetByIdAsync(request.ItemId);
         if (item == null)
             return Json(new { success = false, errors = new { general = ItemNotFound } });
 
         item.ItemName = request.ItemName;
         item.Unit = request.Unit;
-        await ctx.SaveChangesAsync();
+        await itemDataManager.UpdateAsync(item);
         return Json(new { success = true });
     }
 
@@ -167,7 +158,7 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
     public async Task<IActionResult> GetDeleteInfo(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var item = await ctx.Items.FindAsync(id);
+        var item = await itemDataManager.GetByIdAsync(id);
         if (item == null) return NotFound();
         var vm = new ItemViewModel { ItemId = item.ItemId, ItemName = item.ItemName, Unit = item.Unit ?? string.Empty };
         return PartialView("_ItemDeleteInfo", vm);
@@ -179,31 +170,15 @@ public class ItemsController(ApplicationDbContext ctx, ItemConverter converter, 
     {
         if (!ModelState.IsValid)
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
-        var item = await ctx.Items.FindAsync(request.Id);
+        var item = await itemDataManager.GetByIdAsync(request.Id);
         if (item != null)
         {
-            var inUse = await ctx.ExpenseDetails.AnyAsync(d => d.ItemId == request.Id);
+            var inUse = await itemDataManager.IsReferencedAsync(request.Id);
             if (inUse)
                 return Json(new { success = false, errors = new { general = ItemReferenced } });
-            ctx.Items.Remove(item);
-            await ctx.SaveChangesAsync();
+            await itemDataManager.DeleteAsync(request.Id);
             await audit.LogAsync("Item", request.Id.ToString(CultureInfo.InvariantCulture), DeleteAction, item.ItemName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         }
         return Json(new { success = true });
-    }
-
-    public class QuickItemRequest
-    {
-        public string ItemName { get; set; } = string.Empty;
-        public string? Unit { get; set; }
-    }
-
-    public class QuickItemUpdateRequest
-    {
-        [System.Text.Json.Serialization.JsonRequired]
-        public int ItemId { get; set; }
-
-        public string ItemName { get; set; } = string.Empty;
-        public string? Unit { get; set; }
     }
 }

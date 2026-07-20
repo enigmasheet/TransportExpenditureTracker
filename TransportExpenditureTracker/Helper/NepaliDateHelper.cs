@@ -1,3 +1,4 @@
+using System.Globalization;
 using NepDate;
 using System.Text;
 
@@ -39,9 +40,9 @@ public static class NepaliDateHelper
             var parts = nepaliMiti.Split('/');
             if (parts.Length != 3) return null;
 
-            var year = int.Parse(ConvertToEnglishDigits(parts[0]));
-            var month = int.Parse(ConvertToEnglishDigits(parts[1]));
-            var day = int.Parse(ConvertToEnglishDigits(parts[2]));
+            var year = int.Parse(ConvertToEnglishDigits(parts[0]), CultureInfo.InvariantCulture);
+            var month = int.Parse(ConvertToEnglishDigits(parts[1]), CultureInfo.InvariantCulture);
+            var day = int.Parse(ConvertToEnglishDigits(parts[2]), CultureInfo.InvariantCulture);
 
             var nepaliDate = new NepaliDate(year, month, day);
             return nepaliDate.EnglishDate;

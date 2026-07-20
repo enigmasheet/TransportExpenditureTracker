@@ -72,7 +72,7 @@ public class ReportService : IReportService
         return query;
     }
 
-    private async Task<List<ReportRowViewModel>> GetPagedAsync(IQueryable<ReportRowViewModel> query, ReportFilterViewModel filters)
+    private static async Task<List<ReportRowViewModel>> GetPagedAsync(IQueryable<ReportRowViewModel> query, ReportFilterViewModel filters)
     {
         var skip = (filters.PageNumber - 1) * filters.PageSize;
         var items = await query.Skip(skip).Take(filters.PageSize).ToListAsync();

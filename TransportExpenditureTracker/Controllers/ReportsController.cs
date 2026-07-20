@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text.Json;
-using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
@@ -16,15 +15,15 @@ public class ReportsController(
     IReportService reportService,
     IReportExportService reportExportService,
     IExportJobService exportJobService,
-    ApplicationDbContext ctx) : Controller
+    IReportDataManager reportDataManager) : Controller
 {
     private const string CtlDashboard = "Dashboard";
     private const string ReportsLabel = "Reports";
     private const string HomeLabel = "Home";
-    private void LoadDropdowns(ReportFilterViewModel? filters = null)
+    private async Task LoadDropdowns(ReportFilterViewModel? filters = null)
     {
-        var years = ctx.FiscalYears.OrderByDescending(f => f.Id).Select(f => f.Name).ToList();
-        ViewData["FiscalYears"] = new SelectList(years, filters?.FiscalYear);
+        var fiscalYears = await reportDataManager.GetFiscalYearsAsync();
+        ViewData["FiscalYears"] = new SelectList(fiscalYears.Select(f => f.Name).ToList(), filters?.FiscalYear);
 
         DropdownHelper.LoadNepaliMonths(ViewData);
         if (!string.IsNullOrEmpty(filters?.NepaliMonth))
@@ -34,16 +33,19 @@ public class ReportsController(
                 filters.NepaliMonth);
         }
 
-        DropdownHelper.LoadSuppliers(ctx, ViewData, filters?.SupplierId);
-        DropdownHelper.LoadCategories(ctx, ViewData, filters?.CategoryId);
-        DropdownHelper.LoadItems(ctx, ViewData, filters?.ItemId);
+        var suppliers = await reportDataManager.GetSuppliersAsync();
+        DropdownHelper.LoadSuppliers(suppliers, ViewData, filters?.SupplierId);
+        var categories = await reportDataManager.GetCategoriesAsync();
+        DropdownHelper.LoadCategories(categories, ViewData, filters?.CategoryId);
+        var items = await reportDataManager.GetItemsAsync();
+        DropdownHelper.LoadItems(items, ViewData, filters?.ItemId);
     }
 
     public async Task<IActionResult> Daily(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Daily", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetDailyReportAsync(filters);
         return View(model);
@@ -53,7 +55,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Monthly", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetMonthlyReportAsync(filters);
         return View(model);
@@ -63,7 +65,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Fiscal Year", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetFiscalYearReportAsync(filters);
         return View(model);
@@ -73,7 +75,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Supplier-wise", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetSupplierWiseReportAsync(filters);
         return View(model);
@@ -83,7 +85,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Category-wise", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetCategoryWiseReportAsync(filters);
         return View(model);
@@ -93,7 +95,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Item-wise", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetItemWiseReportAsync(filters);
         return View(model);
@@ -103,7 +105,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("VAT Paid", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetVatPaidReportAsync(filters);
         return View(model);
@@ -113,7 +115,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Payment Method", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetPaymentMethodReportAsync(filters);
         return View(model);
@@ -123,7 +125,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Location-wise", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetLocationWiseReportAsync(filters);
         return View(model);
@@ -133,7 +135,7 @@ public class ReportsController(
     {
         if (!ModelState.IsValid) return BadRequest();
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Detailed Ledger", null));
-        LoadDropdowns(filters);
+        await LoadDropdowns(filters);
         ViewBag.Filter = filters;
         var model = await reportService.GetDetailedLedgerAsync(filters);
         return View(model);

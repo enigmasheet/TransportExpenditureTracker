@@ -24,7 +24,7 @@ public class ItemConverter
         };
     }
 
-    public void UpdateModel(ItemViewModel vm, Item existing)
+    public static void UpdateModel(ItemViewModel vm, Item existing)
     {
         existing.ItemName = vm.ItemName;
         existing.Unit = vm.Unit;

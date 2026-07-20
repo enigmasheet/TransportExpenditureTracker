@@ -6,7 +6,7 @@ using static TransportExpenditureTracker.Models.ExportJobStatus;
 
 namespace TransportExpenditureTracker.Services;
 
-public class ExportBackgroundJob : BackgroundService
+public partial class ExportBackgroundJob : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ExportBackgroundJob> _logger;
@@ -30,11 +30,10 @@ public class ExportBackgroundJob : BackgroundService
             var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
 
             var pendingJobs = await jobService.GetPendingJobsAsync();
-            _logger.LogInformation("Export check: {Count} pending jobs", pendingJobs.Count);
+            Logs.PendingJobsCount(_logger, pendingJobs.Count);
             foreach (var job in pendingJobs)
             {
-                _logger.LogInformation("Processing export job {JobId}: {Type}/{Format} for {Email}",
-                    job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
+                Logs.ProcessingJob(_logger, job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
                 await jobService.UpdateStatusAsync(job.ExportQueueId, Processing, null, null);
                 try
                 {
@@ -63,17 +62,31 @@ public class ExportBackgroundJob : BackgroundService
                         attachmentBytes: fileBytes,
                         attachmentFileName: fileName
                     );
-                    _logger.LogInformation("Export job {JobId} completed, email sent to {Email}",
-                        job.ExportQueueId, job.RecipientEmail);
+                    Logs.JobCompleted(_logger, job.ExportQueueId, job.RecipientEmail);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Export job {JobId} failed: {Message}", job.ExportQueueId, ex.Message);
+                    Logs.JobFailed(_logger, job.ExportQueueId, ex.Message, ex);
                     await jobService.UpdateStatusAsync(job.ExportQueueId, Failed, null, ex.Message);
                 }
             }
 
             await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
         }
+    }
+
+    private static partial class Logs
+    {
+        [LoggerMessage(LogLevel.Information, Message = "Export check: {Count} pending jobs")]
+        public static partial void PendingJobsCount(ILogger logger, int count);
+
+        [LoggerMessage(LogLevel.Information, Message = "Processing export job {JobId}: {Type}/{Format} for {Email}")]
+        public static partial void ProcessingJob(ILogger logger, int jobId, string type, string format, string email);
+
+        [LoggerMessage(LogLevel.Information, Message = "Export job {JobId} completed, email sent to {Email}")]
+        public static partial void JobCompleted(ILogger logger, int jobId, string email);
+
+        [LoggerMessage(LogLevel.Error, Message = "Export job {JobId} failed: {Message}")]
+        public static partial void JobFailed(ILogger logger, int jobId, string message, Exception exception);
     }
 }

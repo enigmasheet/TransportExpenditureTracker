@@ -9,14 +9,9 @@ public static class ControllerHelpers
         return modelState
             .Where(kv => kv.Value != null && kv.Value.Errors.Count > 0)
             .ToDictionary(
-                kv => char.ToLowerInvariant(kv.Key[0]) + kv.Key.Substring(1),
+                kv => char.ToLowerInvariant(kv.Key[0]) + kv.Key[1..],
                 kv => kv.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
             );
     }
 }
 
-public class QuickDeleteRequest
-{
-    [System.Text.Json.Serialization.JsonRequired]
-    public int Id { get; set; }
-}

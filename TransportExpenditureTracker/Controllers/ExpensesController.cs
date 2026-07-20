@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text.Json;
 using TransportExpenditureTracker.Converters;
-using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
@@ -12,7 +11,7 @@ using TransportExpenditureTracker.ViewModels;
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize]
-public partial class ExpensesController(IExpenseService expenseService, ICsvImportService csvImportService, ApplicationDbContext ctx, ExpenseConverter expenseConverter, ILogger<ExpensesController> logger) : Controller
+public partial class ExpensesController(IExpenseService expenseService, ICsvImportService csvImportService, IExpenseDataManager expenseDataManager, ExpenseConverter expenseConverter, ILogger<ExpensesController> logger) : Controller
 {
     private const string CtlDashboard = "Dashboard";
     private const string ExpensesLabel = "Expenses";
@@ -36,13 +35,16 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
         return View(entryVm);
     }
 
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ExpensesLabel, Url.Action(nameof(Index))), ("New Batch Entry", null));
-        DropdownHelper.LoadSuppliers(ctx, ViewData);
-        DropdownHelper.LoadCategories(ctx, ViewData);
+        var suppliers = await expenseDataManager.GetSuppliersAsync();
+        DropdownHelper.LoadSuppliers(suppliers, ViewData);
+        var categories = await expenseDataManager.GetCategoriesAsync();
+        DropdownHelper.LoadCategories(categories, ViewData);
         DropdownHelper.LoadPaymentMethods(ViewData);
-        DropdownHelper.LoadItems(ctx, ViewData);
+        var items = await expenseDataManager.GetItemsAsync();
+        DropdownHelper.LoadItems(items, ViewData);
 
         var vm = new ExpenseBatchViewModel
         {
@@ -57,7 +59,6 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
     {
         vm.Rows = [.. vm.Rows.Where(r => !string.IsNullOrWhiteSpace(r.InvoiceNo) || r.Quantity > 0 || r.Rate > 0)];
 
-        // Clear ModelState errors for removed rows and re-validate
         var rowKeys = ModelState.Keys.Where(k => k.StartsWith("Rows[", StringComparison.OrdinalIgnoreCase)).ToList();
         foreach (var key in rowKeys) ModelState.Remove(key);
         TryValidateModel(vm);
@@ -76,8 +77,10 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
 
         Logs.BatchCreateValidationFailed(logger, CurrentUserId, string.Join("; ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
 
-        DropdownHelper.LoadSuppliers(ctx, ViewData);
-        DropdownHelper.LoadItems(ctx, ViewData);
+        var suppliers = await expenseDataManager.GetSuppliersAsync();
+        DropdownHelper.LoadSuppliers(suppliers, ViewData);
+        var items = await expenseDataManager.GetItemsAsync();
+        DropdownHelper.LoadItems(items, ViewData);
         return View(vm);
     }
 
@@ -87,12 +90,16 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ExpensesLabel, Url.Action(nameof(Index))), ("Edit", null));
         var entryVm = await expenseService.GetByIdAsync(id);
         if (entryVm == null) return NotFound();
-        DropdownHelper.LoadFiscalYears(ctx, ViewData, entryVm.FiscalYearId);
+        var fiscalYears = await expenseDataManager.GetFiscalYearsAsync();
+        DropdownHelper.LoadFiscalYears(fiscalYears, ViewData, entryVm.FiscalYearId);
         DropdownHelper.LoadNepaliMonths(ViewData);
-        DropdownHelper.LoadSuppliers(ctx, ViewData, entryVm.SupplierId);
-        DropdownHelper.LoadCategories(ctx, ViewData, entryVm.CategoryId);
+        var suppliers = await expenseDataManager.GetSuppliersAsync();
+        DropdownHelper.LoadSuppliers(suppliers, ViewData, entryVm.SupplierId);
+        var categories = await expenseDataManager.GetCategoriesAsync();
+        DropdownHelper.LoadCategories(categories, ViewData, entryVm.CategoryId);
         DropdownHelper.LoadPaymentMethods(ViewData);
-        DropdownHelper.LoadItems(ctx, ViewData);
+        var items = await expenseDataManager.GetItemsAsync();
+        DropdownHelper.LoadItems(items, ViewData);
         return View(entryVm);
     }
 
@@ -114,12 +121,16 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
                 return RedirectToAction(nameof(Index));
             }
         }
-        DropdownHelper.LoadFiscalYears(ctx, ViewData, vm.FiscalYearId);
+        var fiscalYears = await expenseDataManager.GetFiscalYearsAsync();
+        DropdownHelper.LoadFiscalYears(fiscalYears, ViewData, vm.FiscalYearId);
         DropdownHelper.LoadNepaliMonths(ViewData);
-        DropdownHelper.LoadSuppliers(ctx, ViewData, vm.SupplierId);
-        DropdownHelper.LoadCategories(ctx, ViewData, vm.CategoryId);
+        var suppliers = await expenseDataManager.GetSuppliersAsync();
+        DropdownHelper.LoadSuppliers(suppliers, ViewData, vm.SupplierId);
+        var categories = await expenseDataManager.GetCategoriesAsync();
+        DropdownHelper.LoadCategories(categories, ViewData, vm.CategoryId);
         DropdownHelper.LoadPaymentMethods(ViewData);
-        DropdownHelper.LoadItems(ctx, ViewData);
+        var items = await expenseDataManager.GetItemsAsync();
+        DropdownHelper.LoadItems(items, ViewData);
         return View(vm);
     }
 
@@ -153,11 +164,7 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
             var all = await expenseService.GetAllAsync();
             return PartialView("_SearchResults", all);
         }
-        var results = await ctx.ExpenseHeaders
-            .Include(e => e.Supplier)
-            .Include(e => e.Category)
-            .Where(e => e.InvoiceNo.Contains(term) || e.Supplier.SupplierName.Contains(term) || (e.Remarks != null && e.Remarks.Contains(term)))
-            .ToListAsync();
+        var results = await expenseDataManager.SearchAsync(term);
         var vms = results.Select(e => expenseConverter.ToHeaderViewModel(e)).ToList();
         return PartialView("_SearchResults", vms);
     }

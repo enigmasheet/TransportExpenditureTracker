@@ -1,19 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.EntityFrameworkCore;
-using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
-using System.Globalization;
 using static TransportExpenditureTracker.Helper.ControllerHelpers;
 
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize]
-public class SuppliersController(ISupplierService supplierService, ApplicationDbContext ctx) : Controller
+public class SuppliersController(ISupplierService supplierService, ISupplierDataManager supplierDataManager) : Controller
 {
     private static readonly string[] SupplierNameRequired = ["Supplier name is required."];
     private static readonly string[] SupplierNotFound = ["Supplier not found."];
@@ -22,11 +19,7 @@ public class SuppliersController(ISupplierService supplierService, ApplicationDb
     {
         this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Suppliers", null));
         var suppliers = await supplierService.GetAllAsync();
-        var counts = await ctx.ExpenseHeaders
-            .GroupBy(h => h.SupplierId)
-            .Select(g => new { Id = g.Key, Count = g.Count() })
-            .ToListAsync();
-        var countMap = counts.ToDictionary(c => c.Id, c => c.Count);
+        var countMap = await supplierDataManager.GetHeaderCountsAsync();
         foreach (var s in suppliers)
             s.ExpenseCount = countMap.GetValueOrDefault(s.SupplierId);
         return View(suppliers);
@@ -85,7 +78,7 @@ public class SuppliersController(ISupplierService supplierService, ApplicationDb
             TempData["Error"] = "Invalid request.";
             return RedirectToAction(nameof(Index));
         }
-        var inUse = await ctx.ExpenseHeaders.AnyAsync(h => h.SupplierId == id);
+        var inUse = await supplierDataManager.IsReferencedAsync(id);
         if (inUse)
         {
             TempData["Error"] = "Cannot delete: supplier is referenced in existing expense records.";
@@ -129,8 +122,7 @@ public class SuppliersController(ISupplierService supplierService, ApplicationDb
             Location = request.Location,
             VatNo = request.VatNo
         };
-        ctx.Suppliers.Add(supplier);
-        await ctx.SaveChangesAsync();
+        await supplierDataManager.AddAsync(supplier);
         return Json(new { success = true, id = supplier.SupplierId, text = supplier.SupplierName });
     }
 
@@ -152,14 +144,14 @@ public class SuppliersController(ISupplierService supplierService, ApplicationDb
         if (string.IsNullOrWhiteSpace(request.SupplierName))
             return Json(new { success = false, errors = new { supplierName = SupplierNameRequired } });
 
-        var supplier = await ctx.Suppliers.FindAsync(request.SupplierId);
+        var supplier = await supplierDataManager.GetByIdAsync(request.SupplierId);
         if (supplier == null)
             return Json(new { success = false, errors = new { general = SupplierNotFound } });
 
         supplier.SupplierName = request.SupplierName;
         supplier.Location = request.Location;
         supplier.VatNo = request.VatNo;
-        await ctx.SaveChangesAsync();
+        await supplierDataManager.UpdateAsync(supplier);
         return Json(new { success = true });
     }
 
@@ -178,31 +170,10 @@ public class SuppliersController(ISupplierService supplierService, ApplicationDb
     {
         if (!ModelState.IsValid)
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
-        var inUse = await ctx.ExpenseHeaders.AnyAsync(h => h.SupplierId == request.Id);
+        var inUse = await supplierDataManager.IsReferencedAsync(request.Id);
         if (inUse)
             return Json(new { success = false, errors = new { general = SupplierReferenced } });
-        var supplier = await ctx.Suppliers.FindAsync(request.Id);
-        if (supplier != null)
-        {
-            ctx.Suppliers.Remove(supplier);
-            await ctx.SaveChangesAsync();
-        }
+        await supplierDataManager.DeleteByIdAsync(request.Id);
         return Json(new { success = true });
-    }
-
-    public class QuickSupplierRequest
-    {
-        public string SupplierName { get; set; } = string.Empty;
-        public string? Location { get; set; }
-        public string? VatNo { get; set; }
-    }
-
-    public class QuickSupplierUpdateRequest
-    {
-        [System.Text.Json.Serialization.JsonRequired]
-        public int SupplierId { get; set; }
-        public string SupplierName { get; set; } = string.Empty;
-        public string? Location { get; set; }
-        public string? VatNo { get; set; }
     }
 }

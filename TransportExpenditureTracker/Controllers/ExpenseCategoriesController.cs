@@ -1,21 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Security.Claims;
 using TransportExpenditureTracker.Converters;
-using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
-using System.Globalization;
 using static TransportExpenditureTracker.Helper.ControllerHelpers;
 
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize(Roles = "Admin")]
-public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCategoryConverter converter, IAuditService audit) : Controller
+public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDataManager, ExpenseCategoryConverter converter, IAuditService audit) : Controller
 {
     private const string DeleteAction = "Delete";
     private static readonly string[] CategoryNameRequired = ["Category name is required."];
@@ -25,13 +23,9 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
     public async Task<IActionResult> Index()
     {
         this.SetBreadcrumbs(("Home", Url.Action("Index", "Dashboard")), ("Categories", null));
-        var categories = await ctx.ExpenseCategories.OrderBy(c => c.CategoryName).ToListAsync();
+        var categories = await categoryDataManager.GetAllAsync();
         var vms = categories.Select(converter.ToViewModel).ToList();
-        var counts = await ctx.ExpenseHeaders
-            .GroupBy(h => h.CategoryId)
-            .Select(g => new { Id = g.Key, Count = g.Count() })
-            .ToListAsync();
-        var countMap = counts.ToDictionary(c => c.Id, c => c.Count);
+        var countMap = await categoryDataManager.GetHeaderCountsAsync();
         foreach (var vm in vms)
             vm.ExpenseCount = countMap.GetValueOrDefault(vm.CategoryId);
         return View(vms);
@@ -49,8 +43,7 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
         if (ModelState.IsValid)
         {
             var category = new ExpenseCategory { CategoryName = vm.CategoryName };
-            ctx.ExpenseCategories.Add(category);
-            await ctx.SaveChangesAsync();
+            await categoryDataManager.AddAsync(category);
             return Json(new { success = true });
         }
         return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
@@ -59,7 +52,7 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
     public async Task<IActionResult> Edit(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var category = await ctx.ExpenseCategories.FindAsync(id);
+        var category = await categoryDataManager.GetByIdAsync(id);
         if (category == null) return NotFound();
         var vm = new ExpenseCategoryViewModel { CategoryId = category.CategoryId, CategoryName = category.CategoryName };
         return View(vm);
@@ -72,10 +65,10 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
         if (id != vm.CategoryId) return NotFound();
         if (ModelState.IsValid)
         {
-            var category = await ctx.ExpenseCategories.FindAsync(id);
+            var category = await categoryDataManager.GetByIdAsync(id);
             if (category == null) return NotFound();
             category.CategoryName = vm.CategoryName;
-            await ctx.SaveChangesAsync();
+            await categoryDataManager.UpdateAsync(category);
             return RedirectToAction(nameof(Index));
         }
         return View(vm);
@@ -84,7 +77,7 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
     public async Task<IActionResult> Delete(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var category = await ctx.ExpenseCategories.FindAsync(id);
+        var category = await categoryDataManager.GetByIdAsync(id);
         if (category == null) return NotFound();
         var vm = new ExpenseCategoryViewModel { CategoryId = category.CategoryId, CategoryName = category.CategoryName };
         ViewData["DeleteConfirm"] = $"Are you sure you want to delete category '{category.CategoryName}'?";
@@ -100,17 +93,16 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
             TempData["Error"] = "Invalid request.";
             return RedirectToAction(nameof(Index));
         }
-        var category = await ctx.ExpenseCategories.FindAsync(id);
+        var category = await categoryDataManager.GetByIdAsync(id);
         if (category != null)
         {
-            var inUse = await ctx.ExpenseHeaders.AnyAsync(h => h.CategoryId == id);
+            var inUse = await categoryDataManager.IsReferencedAsync(id);
             if (inUse)
             {
                 TempData["Error"] = $"Cannot delete '{category.CategoryName}': it is referenced in existing expense records.";
                 return RedirectToAction(nameof(Index));
             }
-            ctx.ExpenseCategories.Remove(category);
-            await ctx.SaveChangesAsync();
+            await categoryDataManager.DeleteAsync(id);
             await audit.LogAsync("ExpenseCategory", id.ToString(CultureInfo.InvariantCulture), DeleteAction, category.CategoryName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         }
         return RedirectToAction(nameof(Index));
@@ -120,7 +112,7 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
     public async Task<IActionResult> GetForEdit(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var category = await ctx.ExpenseCategories.FindAsync(id);
+        var category = await categoryDataManager.GetByIdAsync(id);
         if (category == null) return NotFound();
         var vm = new ExpenseCategoryViewModel { CategoryId = category.CategoryId, CategoryName = category.CategoryName };
         return PartialView("_CategoryEditForm", vm);
@@ -135,12 +127,12 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
         if (string.IsNullOrWhiteSpace(request.CategoryName))
             return Json(new { success = false, errors = new { categoryName = CategoryNameRequired } });
 
-        var category = await ctx.ExpenseCategories.FindAsync(request.CategoryId);
+        var category = await categoryDataManager.GetByIdAsync(request.CategoryId);
         if (category == null)
             return Json(new { success = false, errors = new { general = CategoryNotFound } });
 
         category.CategoryName = request.CategoryName;
-        await ctx.SaveChangesAsync();
+        await categoryDataManager.UpdateAsync(category);
         return Json(new { success = true });
     }
 
@@ -148,7 +140,7 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
     public async Task<IActionResult> GetDeleteInfo(int id)
     {
         if (!ModelState.IsValid) return NotFound();
-        var category = await ctx.ExpenseCategories.FindAsync(id);
+        var category = await categoryDataManager.GetByIdAsync(id);
         if (category == null) return NotFound();
         var vm = new ExpenseCategoryViewModel { CategoryId = category.CategoryId, CategoryName = category.CategoryName };
         return PartialView("_CategoryDeleteInfo", vm);
@@ -160,23 +152,15 @@ public class ExpenseCategoriesController(ApplicationDbContext ctx, ExpenseCatego
     {
         if (!ModelState.IsValid)
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
-        var category = await ctx.ExpenseCategories.FindAsync(request.Id);
+        var category = await categoryDataManager.GetByIdAsync(request.Id);
         if (category != null)
         {
-            var inUse = await ctx.ExpenseHeaders.AnyAsync(h => h.CategoryId == request.Id);
+            var inUse = await categoryDataManager.IsReferencedAsync(request.Id);
             if (inUse)
                 return Json(new { success = false, errors = new { general = CategoryInUse } });
-            ctx.ExpenseCategories.Remove(category);
-            await ctx.SaveChangesAsync();
+            await categoryDataManager.DeleteAsync(request.Id);
             await audit.LogAsync("ExpenseCategory", request.Id.ToString(CultureInfo.InvariantCulture), DeleteAction, category.CategoryName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         }
         return Json(new { success = true });
-    }
-
-    public class QuickCategoryUpdateRequest
-    {
-        [System.Text.Json.Serialization.JsonRequired]
-        public int CategoryId { get; set; }
-        public string CategoryName { get; set; } = string.Empty;
     }
 }

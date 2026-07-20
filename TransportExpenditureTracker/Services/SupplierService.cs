@@ -1,65 +1,46 @@
-using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Converters;
-using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class SupplierService : ISupplierService
+public class SupplierService(ISupplierDataManager supplierDataManager, SupplierConverter converter) : ISupplierService
 {
-    private readonly ApplicationDbContext _db;
-    private readonly SupplierConverter _converter;
-
-    public SupplierService(ApplicationDbContext db, SupplierConverter converter)
-    {
-        _db = db;
-        _converter = converter;
-    }
-
     public async Task<List<SupplierViewModel>> GetAllAsync()
     {
-        var suppliers = await _db.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
-        return suppliers.Select(_converter.ToViewModel).ToList();
+        var suppliers = await supplierDataManager.GetAllAsync();
+        return [.. suppliers.Select(converter.ToViewModel)];
     }
 
     public async Task<SupplierViewModel?> GetByIdAsync(int id)
     {
-        var supplier = await _db.Suppliers.FindAsync(id);
-        return supplier is null ? null : _converter.ToViewModel(supplier);
+        var supplier = await supplierDataManager.GetByIdAsync(id);
+        return supplier is null ? null : converter.ToViewModel(supplier);
     }
 
     public async Task AddAsync(SupplierViewModel vm)
     {
-        var model = _converter.ToModel(vm);
-        _db.Suppliers.Add(model);
-        await _db.SaveChangesAsync();
+        var model = converter.ToModel(vm);
+        await supplierDataManager.AddAsync(model);
     }
 
     public async Task UpdateAsync(SupplierViewModel vm)
     {
-        var existing = await _db.Suppliers.FindAsync(vm.SupplierId);
+        var existing = await supplierDataManager.GetByIdAsync(vm.SupplierId);
         if (existing is null) return;
-        _converter.UpdateModel(vm, existing);
-        await _db.SaveChangesAsync();
+        SupplierConverter.UpdateModel(vm, existing);
+        await supplierDataManager.UpdateAsync(existing);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var supplier = await _db.Suppliers.FindAsync(id);
-        if (supplier is null) return;
-        _db.Suppliers.Remove(supplier);
-        await _db.SaveChangesAsync();
+        await supplierDataManager.DeleteByIdAsync(id);
     }
 
     public async Task<List<SupplierViewModel>> SearchAsync(string term)
     {
-        var query = _db.Suppliers.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(term))
-        {
-            query = query.Where(s => s.SupplierName.Contains(term) || (s.VatNo != null && s.VatNo.Contains(term)));
-        }
-        var results = await query.OrderBy(s => s.SupplierName).ToListAsync();
-        return results.Select(_converter.ToViewModel).ToList();
+        var results = await supplierDataManager.SearchAsync(term);
+        return [.. results.Select(converter.ToViewModel)];
     }
 }

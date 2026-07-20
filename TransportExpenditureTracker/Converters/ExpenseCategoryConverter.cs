@@ -22,7 +22,7 @@ public class ExpenseCategoryConverter
         };
     }
 
-    public void UpdateModel(ExpenseCategoryViewModel vm, ExpenseCategory existing)
+    public static void UpdateModel(ExpenseCategoryViewModel vm, ExpenseCategory existing)
     {
         existing.CategoryName = vm.CategoryName;
     }

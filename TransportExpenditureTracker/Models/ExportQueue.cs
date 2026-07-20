@@ -2,7 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TransportExpenditureTracker.Models;
 
+#pragma warning disable CA1711 // Rename type name so that it does not end in 'Queue'
 public class ExportQueue
+#pragma warning restore CA1711
 {
     public int ExportQueueId { get; set; }
 

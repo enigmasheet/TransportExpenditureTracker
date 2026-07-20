@@ -6,6 +6,15 @@ namespace TransportExpenditureTracker.Data.Seed;
 
 public static class AppDbInitializer
 {
+    private static readonly Action<ILogger, string, Exception?> LogSuperAdminCreated =
+        LoggerMessage.Define<string>(LogLevel.Information, EventIds.SuperAdminCreated, "SuperAdmin user '{Email}' created.");
+
+    private static readonly Action<ILogger, string, string, Exception?> LogSuperAdminFailed =
+        LoggerMessage.Define<string, string>(LogLevel.Warning, EventIds.SuperAdminFailed, "Failed to create SuperAdmin user '{Email}': {Errors}");
+
+    private static readonly Action<ILogger, Exception?> LogSuperAdminNotConfigured =
+        LoggerMessage.Define(LogLevel.Warning, EventIds.SuperAdminNotConfigured, "SuperAdmin credentials not configured. Set SuperAdmin:Email and SuperAdmin:Password in configuration (appsettings, user secrets, or env vars).");
+
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
@@ -47,18 +56,17 @@ public static class AppDbInitializer
                 {
                     await userManager.AddToRoleAsync(appUser, "SuperAdmin");
                     await userManager.AddToRoleAsync(appUser, "Admin");
-                    logger.LogInformation("SuperAdmin user '{Email}' created.", adminEmail);
+                    LogSuperAdminCreated(logger, adminEmail, null);
                 }
                 else
                 {
-                    logger.LogWarning("Failed to create SuperAdmin user '{Email}': {Errors}",
-                        adminEmail, string.Join(", ", result.Errors.Select(e => e.Description)));
+                    LogSuperAdminFailed(logger, adminEmail, string.Join(", ", result.Errors.Select(e => e.Description)), null);
                 }
             }
         }
         else
         {
-            logger.LogWarning("SuperAdmin credentials not configured. Set SuperAdmin:Email and SuperAdmin:Password in configuration (appsettings, user secrets, or env vars).");
+            LogSuperAdminNotConfigured(logger, null);
         }
 
         if (!await context.FiscalYears.AnyAsync())
@@ -105,5 +113,12 @@ public static class AppDbInitializer
             );
             await context.SaveChangesAsync();
         }
+    }
+
+    private static partial class EventIds
+    {
+        public static readonly EventId SuperAdminCreated = new(1, nameof(SuperAdminCreated));
+        public static readonly EventId SuperAdminFailed = new(2, nameof(SuperAdminFailed));
+        public static readonly EventId SuperAdminNotConfigured = new(3, nameof(SuperAdminNotConfigured));
     }
 }

@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using System.Globalization;
 using TransportExpenditureTracker.Converters;
 using TransportExpenditureTracker.Data;
 using TransportExpenditureTracker.Data.Seed;
+using TransportExpenditureTracker.DataManagers;
+using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services;
 using TransportExpenditureTracker.Services.Interfaces;
@@ -27,7 +30,8 @@ public static class WebAppBuilder
                 Path.Combine(logFolder, "app-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 30,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                formatProvider: CultureInfo.InvariantCulture)
             .CreateLogger();
 
         try
@@ -59,6 +63,13 @@ public static class WebAppBuilder
             builder.Services.AddScoped<ICsvImportService, CsvImportService>();
             builder.Services.AddScoped<IAuditService, AuditService>();
             builder.Services.AddScoped<IExportJobService, ExportJobService>();
+
+            builder.Services.AddScoped<IItemDataManager, ItemDataManager>();
+            builder.Services.AddScoped<IExpenseCategoryDataManager, ExpenseCategoryDataManager>();
+            builder.Services.AddScoped<ISupplierDataManager, SupplierDataManager>();
+            builder.Services.AddScoped<IExpenseDataManager, ExpenseDataManager>();
+            builder.Services.AddScoped<IDashboardDataManager, DashboardDataManager>();
+            builder.Services.AddScoped<IReportDataManager, ReportDataManager>();
 
             builder.Services.AddScoped<SupplierConverter>();
             builder.Services.AddScoped<ExpenseConverter>();

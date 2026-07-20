@@ -73,7 +73,7 @@ public class ExportJobService : IExportJobService
             .ToListAsync();
     }
 
-    public async Task UpdateStatusAsync(int id, string status, string? filePath, string? error)
+    public async Task UpdateStatusAsync(int id, string status, string? filePath, string? errorMessage)
     {
         var job = await _db.ExportQueues.FindAsync(id);
         if (job is null) return;
@@ -81,8 +81,8 @@ public class ExportJobService : IExportJobService
         job.Status = status;
         if (filePath is not null)
             job.FilePath = filePath;
-        if (error is not null)
-            job.ErrorMessage = error;
+        if (errorMessage is not null)
+            job.ErrorMessage = errorMessage;
         if (status == Completed)
             job.SentAt = DateTime.UtcNow;
 

@@ -26,7 +26,7 @@ public class SupplierConverter
         };
     }
 
-    public void UpdateModel(SupplierViewModel vm, Supplier existing)
+    public static void UpdateModel(SupplierViewModel vm, Supplier existing)
     {
         existing.SupplierName = vm.SupplierName;
         existing.Location = vm.Location;

@@ -60,13 +60,13 @@ public class ExpenseConverter
 
         if (h.Details != null)
         {
-            vm.Details = h.Details.Select(ToDetailViewModel).ToList();
+            vm.Details = [.. h.Details.Select(ToDetailViewModel)];
         }
 
         return vm;
     }
 
-    public void UpdateHeaderModel(ExpenseEntryViewModel vm, ExpenseHeader existing)
+    public static void UpdateHeaderModel(ExpenseEntryViewModel vm, ExpenseHeader existing)
     {
         existing.InvoiceNo = vm.InvoiceNo;
         existing.Miti = vm.Miti;

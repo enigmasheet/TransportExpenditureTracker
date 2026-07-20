@@ -95,17 +95,17 @@ public class ReportExportService : IReportExportService
 
         foreach (var item in data)
         {
-            table.AddCell(new PdfPCell(new Phrase(item.Sno.ToString(), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.Sno.ToString(CultureInfo.InvariantCulture), cellFont)));
             table.AddCell(new PdfPCell(new Phrase(item.Miti, cellFont)));
             table.AddCell(new PdfPCell(new Phrase(item.InvoiceNo, cellFont)));
             table.AddCell(new PdfPCell(new Phrase(item.SupplierName, cellFont)));
             table.AddCell(new PdfPCell(new Phrase(item.ItemName, cellFont)));
             table.AddCell(new PdfPCell(new Phrase(item.CategoryName, cellFont)));
-            table.AddCell(new PdfPCell(new Phrase(item.Quantity.ToString("N2"), cellFont)));
-            table.AddCell(new PdfPCell(new Phrase(item.Rate.ToString("N2"), cellFont)));
-            table.AddCell(new PdfPCell(new Phrase(item.TaxableAmount.ToString("N2"), cellFont)));
-            table.AddCell(new PdfPCell(new Phrase(item.VatAmount.ToString("N2"), cellFont)));
-            table.AddCell(new PdfPCell(new Phrase(item.TotalAmount.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.Quantity.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.Rate.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.TaxableAmount.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.VatAmount.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(item.TotalAmount.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
         }
 
         if (data.Count > 0)
@@ -115,9 +115,9 @@ public class ReportExportService : IReportExportService
             var total = data.Sum(x => x.TotalAmount);
 
             table.AddCell(new PdfPCell(new Phrase("Total", headerFont)) { Colspan = 8 });
-            table.AddCell(new PdfPCell(new Phrase(totalTaxable.ToString("N2"), cellFont)));
-            table.AddCell(new PdfPCell(new Phrase(totalVat.ToString("N2"), cellFont)));
-            table.AddCell(new PdfPCell(new Phrase(total.ToString("N2"), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(totalTaxable.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(totalVat.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
+            table.AddCell(new PdfPCell(new Phrase(total.ToString("N2", CultureInfo.InvariantCulture), cellFont)));
         }
 
         document.Add(table);

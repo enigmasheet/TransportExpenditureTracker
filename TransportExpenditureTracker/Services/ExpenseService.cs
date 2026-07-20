@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Text.Json;
 using TransportExpenditureTracker.Converters;
 using TransportExpenditureTracker.Data;
@@ -9,22 +10,11 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class ExpenseService : IExpenseService
+public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit) : IExpenseService
 {
-    private readonly ApplicationDbContext _db;
-    private readonly ExpenseConverter _converter;
-    private readonly IAuditService _audit;
-
-    public ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit)
-    {
-        _db = db;
-        _converter = converter;
-        _audit = audit;
-    }
-
     public async Task<List<ExpenseHeaderViewModel>> GetAllAsync()
     {
-        var headers = await _db.ExpenseHeaders
+        var headers = await db.ExpenseHeaders
             .AsNoTracking()
             .Include(h => h.Supplier)
             .Include(h => h.Category)
@@ -34,12 +24,12 @@ public class ExpenseService : IExpenseService
             .OrderByDescending(h => h.EnglishDate)
             .ToListAsync();
 
-        return headers.Select(_converter.ToHeaderViewModel).ToList();
+        return [.. headers.Select(converter.ToHeaderViewModel)];
     }
 
     public async Task<ExpenseEntryViewModel?> GetByIdAsync(int id)
     {
-        var header = await _db.ExpenseHeaders
+        var header = await db.ExpenseHeaders
             .AsNoTracking()
             .Include(h => h.Supplier)
             .Include(h => h.Category)
@@ -48,12 +38,12 @@ public class ExpenseService : IExpenseService
             .ThenInclude(d => d.Item)
             .FirstOrDefaultAsync(h => h.ExpenseId == id);
 
-        return header is null ? null : _converter.ToEntryViewModel(header);
+        return header is null ? null : converter.ToEntryViewModel(header);
     }
 
     public async Task AddAsync(ExpenseEntryViewModel vm, string userId)
     {
-        using var transaction = await _db.Database.BeginTransactionAsync();
+        using var transaction = await db.Database.BeginTransactionAsync();
         try
         {
             var header = new ExpenseHeader
@@ -70,35 +60,22 @@ public class ExpenseService : IExpenseService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _db.ExpenseHeaders.Add(header);
-            await _db.SaveChangesAsync();
+            db.ExpenseHeaders.Add(header);
+            await db.SaveChangesAsync();
 
             if (vm.Details is not null)
             {
                 foreach (var d in vm.Details)
                 {
-                    var taxable = d.TaxableAmount > 0 ? d.TaxableAmount : d.Quantity * d.Rate;
-                    var vat = Math.Round(taxable * AppConstants.VatRate, 2);
-                    var total = Math.Round(taxable + vat, 2);
-
-                    var detail = new ExpenseDetail
-                    {
-                        ExpenseId = header.ExpenseId,
-                        ItemId = d.ItemId,
-                        Quantity = d.Quantity,
-                        Rate = d.Rate,
-                        TaxableAmount = taxable,
-                        VatAmount = vat,
-                        TotalAmount = total
-                    };
-                    _db.ExpenseDetails.Add(detail);
+                    var detail = CreateDetail(header.ExpenseId, d);
+                    db.ExpenseDetails.Add(detail);
                 }
             }
 
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            await _audit.LogAsync("ExpenseHeader", header.ExpenseId.ToString(), "Create", null, JsonSerializer.Serialize(vm), userId);
+            await audit.LogAsync("ExpenseHeader", header.ExpenseId.ToString(CultureInfo.InvariantCulture), "Create", null, JsonSerializer.Serialize(vm), userId);
         }
         catch
         {
@@ -109,15 +86,15 @@ public class ExpenseService : IExpenseService
 
     public async Task UpdateAsync(ExpenseEntryViewModel vm, string userId)
     {
-        var existing = await _db.ExpenseHeaders
+        var existing = await db.ExpenseHeaders
             .Include(h => h.Details)
             .FirstOrDefaultAsync(h => h.ExpenseId == vm.ExpenseId);
 
         if (existing is null) return;
 
-        var oldValues = JsonSerializer.Serialize(_converter.ToEntryViewModel(existing));
+        var oldValues = JsonSerializer.Serialize(converter.ToEntryViewModel(existing));
 
-        using var transaction = await _db.Database.BeginTransactionAsync();
+        using var transaction = await db.Database.BeginTransactionAsync();
         try
         {
             existing.InvoiceNo = vm.InvoiceNo;
@@ -131,36 +108,23 @@ public class ExpenseService : IExpenseService
             existing.Remarks = vm.Remarks;
             existing.UpdatedAt = DateTime.UtcNow;
 
-            _db.ExpenseDetails.RemoveRange(existing.Details);
-            await _db.SaveChangesAsync();
+            db.ExpenseDetails.RemoveRange(existing.Details);
+            await db.SaveChangesAsync();
 
             if (vm.Details is not null)
             {
                 foreach (var d in vm.Details)
                 {
-                    var taxable = d.TaxableAmount > 0 ? d.TaxableAmount : d.Quantity * d.Rate;
-                    var vat = Math.Round(taxable * AppConstants.VatRate, 2);
-                    var total = Math.Round(taxable + vat, 2);
-
-                    var detail = new ExpenseDetail
-                    {
-                        ExpenseId = existing.ExpenseId,
-                        ItemId = d.ItemId,
-                        Quantity = d.Quantity,
-                        Rate = d.Rate,
-                        TaxableAmount = taxable,
-                        VatAmount = vat,
-                        TotalAmount = total
-                    };
-                    _db.ExpenseDetails.Add(detail);
+                    var detail = CreateDetail(existing.ExpenseId, d);
+                    db.ExpenseDetails.Add(detail);
                 }
             }
 
-            await _db.SaveChangesAsync();
+            await db.SaveChangesAsync();
             await transaction.CommitAsync();
 
             var newValues = JsonSerializer.Serialize(vm);
-            await _audit.LogAsync("ExpenseHeader", existing.ExpenseId.ToString(), "Update", oldValues, newValues, userId);
+            await audit.LogAsync("ExpenseHeader", existing.ExpenseId.ToString(CultureInfo.InvariantCulture), "Update", oldValues, newValues, userId);
         }
         catch
         {
@@ -171,23 +135,23 @@ public class ExpenseService : IExpenseService
 
     public async Task DeleteAsync(int id, string userId)
     {
-        var existing = await _db.ExpenseHeaders
+        var existing = await db.ExpenseHeaders
             .Include(h => h.Details)
             .FirstOrDefaultAsync(h => h.ExpenseId == id);
 
         if (existing is null) return;
 
-        var oldValues = JsonSerializer.Serialize(_converter.ToEntryViewModel(existing));
+        var oldValues = JsonSerializer.Serialize(converter.ToEntryViewModel(existing));
 
-        _db.ExpenseHeaders.Remove(existing);
-        await _db.SaveChangesAsync();
+        db.ExpenseHeaders.Remove(existing);
+        await db.SaveChangesAsync();
 
-        await _audit.LogAsync("ExpenseHeader", id.ToString(), "Delete", oldValues, null, userId);
+        await audit.LogAsync("ExpenseHeader", id.ToString(CultureInfo.InvariantCulture), "Delete", oldValues, null, userId);
     }
 
     public async Task<bool> IsDuplicateInvoiceAsync(string invoiceNo, int supplierId, int fiscalYearId, int? excludeId = null)
     {
-        var query = _db.ExpenseHeaders.AsNoTracking()
+        var query = db.ExpenseHeaders.AsNoTracking()
             .Where(h => h.InvoiceNo == invoiceNo && h.SupplierId == supplierId && h.FiscalYearId == fiscalYearId);
         if (excludeId.HasValue)
             query = query.Where(h => h.ExpenseId != excludeId.Value);
@@ -202,67 +166,17 @@ public class ExpenseService : IExpenseService
         {
             try
             {
-                if (row.IsDuplicate || row.IsCrossRowDuplicate || !string.IsNullOrEmpty(row.ValidationError))
-                {
-                    summary.Skipped++;
-                    summary.SkippedReasons.Add($"Row {row.RowIndex}: {(row.IsDuplicate || row.IsCrossRowDuplicate ? "Duplicate entry" : row.ValidationError)}");
+                if (SkipDuplicateOrInvalid(row, summary))
                     continue;
-                }
 
-                Supplier? supplier = await _db.Suppliers.FirstOrDefaultAsync(s => s.SupplierName == row.SupplierName);
-                if (supplier is null)
-                {
-                    if (autoCreate)
-                    {
-                        supplier = new Supplier
-                        {
-                            SupplierName = row.SupplierName,
-                            Location = row.Location,
-                            VatNo = row.VatNo
-                        };
-                        _db.Suppliers.Add(supplier);
-                        await _db.SaveChangesAsync();
-                    }
-                    else
-                    {
-                        summary.Skipped++;
-                        summary.SkippedReasons.Add($"Row {row.RowIndex}: Supplier '{row.SupplierName}' not found");
-                        continue;
-                    }
-                }
+                var supplier = await ResolveSupplierAsync(row, autoCreate, summary);
+                if (supplier is null) continue;
 
-                Item? item = await _db.Items.FirstOrDefaultAsync(i => i.ItemName == row.ItemName);
-                if (item is null)
-                {
-                    if (autoCreate)
-                    {
-                        item = new Item { ItemName = row.ItemName };
-                        _db.Items.Add(item);
-                        await _db.SaveChangesAsync();
-                    }
-                    else
-                    {
-                        summary.Skipped++;
-                        summary.SkippedReasons.Add($"Row {row.RowIndex}: Item '{row.ItemName}' not found");
-                        continue;
-                    }
-                }
+                var item = await ResolveItemAsync(row, autoCreate, summary);
+                if (item is null) continue;
 
-                FiscalYear? fiscalYear = null;
-                if (row.FiscalYearId > 0)
-                    fiscalYear = await _db.FiscalYears.FindAsync(row.FiscalYearId);
-                else
-                {
-                    var fyName = FiscalYearHelper.GetFiscalYearName(row.Miti);
-                    fiscalYear = await _db.FiscalYears.FirstOrDefaultAsync(f => f.Name == fyName);
-                }
-
-                if (fiscalYear is null)
-                {
-                    summary.Skipped++;
-                    summary.SkippedReasons.Add($"Row {row.RowIndex}: Fiscal year not found for Miti '{row.Miti}'");
-                    continue;
-                }
+                var fiscalYear = await ResolveFiscalYearAsync(row, summary);
+                if (fiscalYear is null) continue;
 
                 var englishDate = NepaliDateHelper.ParseNepaliDate(row.Miti) ?? DateTime.UtcNow;
 
@@ -277,34 +191,14 @@ public class ExpenseService : IExpenseService
                     PaymentMethod = "Cash",
                     CreatedAt = DateTime.UtcNow
                 };
-                _db.ExpenseHeaders.Add(header);
-                await _db.SaveChangesAsync();
+                db.ExpenseHeaders.Add(header);
+                await db.SaveChangesAsync();
 
-                var taxable = row.TaxableAmount > 0 ? row.TaxableAmount : row.Quantity * row.Rate;
-                var vat = Math.Round(taxable * AppConstants.VatRate, 2);
-                var total = Math.Round(taxable + vat, 2);
+                var detail = CreateDetailFromRow(header.ExpenseId, item.ItemId, row);
+                db.ExpenseDetails.Add(detail);
+                await db.SaveChangesAsync();
 
-                var detail = new ExpenseDetail
-                {
-                    ExpenseId = header.ExpenseId,
-                    ItemId = item.ItemId,
-                    Quantity = row.Quantity,
-                    Rate = row.Rate,
-                    TaxableAmount = taxable,
-                    VatAmount = vat,
-                    TotalAmount = total
-                };
-                _db.ExpenseDetails.Add(detail);
-                await _db.SaveChangesAsync();
-
-                if (row.IsVatMismatch || row.IsTotalMismatch)
-                {
-                    summary.WarningCount++;
-                    var reasons = new List<string>();
-                    if (row.IsVatMismatch) reasons.Add("VAT amount mismatch");
-                    if (row.IsTotalMismatch) reasons.Add("Total amount mismatch");
-                    summary.Warnings.Add($"Row {row.RowIndex}: {string.Join(", ", reasons)} (imported with server-calculated values)");
-                }
+                AddWarnings(row, summary);
 
                 summary.Inserted++;
             }
@@ -320,10 +214,10 @@ public class ExpenseService : IExpenseService
 
     public async Task<ImportSummaryViewModel> BatchCreateAsync(ExpenseBatchViewModel vm, string userId)
     {
-        using var transaction = await _db.Database.BeginTransactionAsync();
+        using var transaction = await db.Database.BeginTransactionAsync();
         var summary = new ImportSummaryViewModel();
 
-        var allFiscalYears = await _db.FiscalYears.ToListAsync();
+        var allFiscalYears = await db.FiscalYears.ToListAsync();
 
         try
         {
@@ -347,12 +241,12 @@ public class ExpenseService : IExpenseService
                     }
 
                     var mitiParts = row.Miti.Split('/');
-                    var monthIndex = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(mitiParts[1])) - 1;
+                    var monthIndex = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(mitiParts[1]), CultureInfo.InvariantCulture) - 1;
                     var nepaliMonth = NepaliDateHelper.NepaliMonthNames[monthIndex];
 
                     var englishDate = NepaliDateHelper.ParseNepaliDate(row.Miti) ?? DateTime.UtcNow;
 
-                    var supplier = await _db.Suppliers.FindAsync(row.SupplierId);
+                    var supplier = await db.Suppliers.FindAsync(row.SupplierId);
                     if (supplier is null)
                     {
                         summary.Skipped++;
@@ -360,7 +254,7 @@ public class ExpenseService : IExpenseService
                         continue;
                     }
 
-                    var item = await _db.Items.FindAsync(row.ItemId);
+                    var item = await db.Items.FindAsync(row.ItemId);
                     if (item is null)
                     {
                         summary.Skipped++;
@@ -384,8 +278,8 @@ public class ExpenseService : IExpenseService
                         PaymentMethod = row.PaymentMethod ?? "Cash",
                         CreatedAt = DateTime.UtcNow
                     };
-                    _db.ExpenseHeaders.Add(header);
-                    await _db.SaveChangesAsync();
+                    db.ExpenseHeaders.Add(header);
+                    await db.SaveChangesAsync();
 
                     var detail = new ExpenseDetail
                     {
@@ -397,8 +291,8 @@ public class ExpenseService : IExpenseService
                         VatAmount = vatAmount,
                         TotalAmount = totalAmount
                     };
-                    _db.ExpenseDetails.Add(detail);
-                    await _db.SaveChangesAsync();
+                    db.ExpenseDetails.Add(detail);
+                    await db.SaveChangesAsync();
 
                     summary.Inserted++;
                 }
@@ -421,5 +315,130 @@ public class ExpenseService : IExpenseService
         }
 
         return summary;
+    }
+
+    private static bool SkipDuplicateOrInvalid(CsvRowViewModel row, ImportSummaryViewModel summary)
+    {
+        if (row.IsDuplicate || row.IsCrossRowDuplicate || !string.IsNullOrEmpty(row.ValidationError))
+        {
+            summary.Skipped++;
+            summary.SkippedReasons.Add($"Row {row.RowIndex}: {(row.IsDuplicate || row.IsCrossRowDuplicate ? "Duplicate entry" : row.ValidationError)}");
+            return true;
+        }
+        return false;
+    }
+
+    private async Task<Supplier?> ResolveSupplierAsync(CsvRowViewModel row, bool autoCreate, ImportSummaryViewModel summary)
+    {
+        var supplier = await db.Suppliers.FirstOrDefaultAsync(s => s.SupplierName == row.SupplierName);
+        if (supplier is null)
+        {
+            if (autoCreate)
+            {
+                supplier = new Supplier
+                {
+                    SupplierName = row.SupplierName,
+                    Location = row.Location,
+                    VatNo = row.VatNo
+                };
+                db.Suppliers.Add(supplier);
+                await db.SaveChangesAsync();
+            }
+            else
+            {
+                summary.Skipped++;
+                summary.SkippedReasons.Add($"Row {row.RowIndex}: Supplier '{row.SupplierName}' not found");
+                return null;
+            }
+        }
+        return supplier;
+    }
+
+    private async Task<Item?> ResolveItemAsync(CsvRowViewModel row, bool autoCreate, ImportSummaryViewModel summary)
+    {
+        var item = await db.Items.FirstOrDefaultAsync(i => i.ItemName == row.ItemName);
+        if (item is null)
+        {
+            if (autoCreate)
+            {
+                item = new Item { ItemName = row.ItemName };
+                db.Items.Add(item);
+                await db.SaveChangesAsync();
+            }
+            else
+            {
+                summary.Skipped++;
+                summary.SkippedReasons.Add($"Row {row.RowIndex}: Item '{row.ItemName}' not found");
+                return null;
+            }
+        }
+        return item;
+    }
+
+    private async Task<FiscalYear?> ResolveFiscalYearAsync(CsvRowViewModel row, ImportSummaryViewModel summary)
+    {
+        FiscalYear? fiscalYear = null;
+        if (row.FiscalYearId > 0)
+            fiscalYear = await db.FiscalYears.FindAsync(row.FiscalYearId);
+        else
+        {
+            var fyName = FiscalYearHelper.GetFiscalYearName(row.Miti);
+            fiscalYear = await db.FiscalYears.FirstOrDefaultAsync(f => f.Name == fyName);
+        }
+
+        if (fiscalYear is null)
+        {
+            summary.Skipped++;
+            summary.SkippedReasons.Add($"Row {row.RowIndex}: Fiscal year not found for Miti '{row.Miti}'");
+        }
+        return fiscalYear;
+    }
+
+    private static void AddWarnings(CsvRowViewModel row, ImportSummaryViewModel summary)
+    {
+        if (row.IsVatMismatch || row.IsTotalMismatch)
+        {
+            summary.WarningCount++;
+            var reasons = new List<string>();
+            if (row.IsVatMismatch) reasons.Add("VAT amount mismatch");
+            if (row.IsTotalMismatch) reasons.Add("Total amount mismatch");
+            summary.Warnings.Add($"Row {row.RowIndex}: {string.Join(", ", reasons)} (imported with server-calculated values)");
+        }
+    }
+
+    private static ExpenseDetail CreateDetail(int expenseId, ExpenseDetailViewModel d)
+    {
+        var taxable = d.TaxableAmount > 0 ? d.TaxableAmount : d.Quantity * d.Rate;
+        var vat = Math.Round(taxable * AppConstants.VatRate, 2);
+        var total = Math.Round(taxable + vat, 2);
+
+        return new ExpenseDetail
+        {
+            ExpenseId = expenseId,
+            ItemId = d.ItemId,
+            Quantity = d.Quantity,
+            Rate = d.Rate,
+            TaxableAmount = taxable,
+            VatAmount = vat,
+            TotalAmount = total
+        };
+    }
+
+    private static ExpenseDetail CreateDetailFromRow(int expenseId, int itemId, CsvRowViewModel row)
+    {
+        var taxable = row.TaxableAmount > 0 ? row.TaxableAmount : row.Quantity * row.Rate;
+        var vat = Math.Round(taxable * AppConstants.VatRate, 2);
+        var total = Math.Round(taxable + vat, 2);
+
+        return new ExpenseDetail
+        {
+            ExpenseId = expenseId,
+            ItemId = itemId,
+            Quantity = row.Quantity,
+            Rate = row.Rate,
+            TaxableAmount = taxable,
+            VatAmount = vat,
+            TotalAmount = total
+        };
     }
 }
