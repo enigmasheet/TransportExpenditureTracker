@@ -365,6 +365,11 @@ namespace TransportExpenditureTracker.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("ExpenseId");
 
                     b.HasIndex("CategoryId");
@@ -377,7 +382,9 @@ namespace TransportExpenditureTracker.Data.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.HasIndex("InvoiceNo", "SupplierId", "FiscalYearId")
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("InvoiceNo", "SupplierId", "FiscalYearId", "UserId")
                         .IsUnique();
 
                     b.ToTable("ExpenseHeaders");
@@ -425,9 +432,16 @@ namespace TransportExpenditureTracker.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("ExportQueueId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("ExportQueues");
                 });

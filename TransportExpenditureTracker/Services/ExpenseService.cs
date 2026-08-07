@@ -10,11 +10,14 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit) : IExpenseService
+public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit, Interfaces.ICurrentUserService currentUser) : IExpenseService
 {
+    private IQueryable<ExpenseHeader> ScopedQuery =>
+        currentUser.IsAdmin ? db.ExpenseHeaders : db.ExpenseHeaders.Where(h => h.UserId == currentUser.UserId);
+
     public async Task<List<ExpenseHeaderViewModel>> GetAllAsync()
     {
-        var headers = await db.ExpenseHeaders
+        var headers = await ScopedQuery
             .AsNoTracking()
             .Include(h => h.Supplier)
             .Include(h => h.Category)
@@ -29,7 +32,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
 
     public async Task<ExpenseEntryViewModel?> GetByIdAsync(int id)
     {
-        var header = await db.ExpenseHeaders
+        var header = await ScopedQuery
             .AsNoTracking()
             .Include(h => h.Supplier)
             .Include(h => h.Category)
@@ -55,6 +58,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                 SupplierId = vm.SupplierId,
                 CategoryId = vm.CategoryId,
                 FiscalYearId = vm.FiscalYearId,
+                UserId = userId,
                 PaymentMethod = vm.PaymentMethod ?? string.Empty,
                 Remarks = vm.Remarks,
                 CreatedAt = DateTime.UtcNow
@@ -84,13 +88,15 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         }
     }
 
-    public async Task UpdateAsync(ExpenseEntryViewModel vm, string userId)
+    public async Task<bool> UpdateAsync(ExpenseEntryViewModel vm, string userId)
     {
         var existing = await db.ExpenseHeaders
             .Include(h => h.Details)
             .FirstOrDefaultAsync(h => h.ExpenseId == vm.ExpenseId);
 
-        if (existing is null) return;
+        if (existing is null) return false;
+
+        if (!currentUser.IsAdmin && existing.UserId != userId) return false;
 
         var oldValues = JsonSerializer.Serialize(converter.ToEntryViewModel(existing));
 
@@ -125,6 +131,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
 
             var newValues = JsonSerializer.Serialize(vm);
             await audit.LogAsync("ExpenseHeader", existing.ExpenseId.ToString(CultureInfo.InvariantCulture), "Update", oldValues, newValues, userId);
+            return true;
         }
         catch
         {
@@ -133,13 +140,15 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         }
     }
 
-    public async Task DeleteAsync(int id, string userId)
+    public async Task<bool> DeleteAsync(int id, string userId)
     {
         var existing = await db.ExpenseHeaders
             .Include(h => h.Details)
             .FirstOrDefaultAsync(h => h.ExpenseId == id);
 
-        if (existing is null) return;
+        if (existing is null) return false;
+
+        if (!currentUser.IsAdmin && existing.UserId != userId) return false;
 
         var oldValues = JsonSerializer.Serialize(converter.ToEntryViewModel(existing));
 
@@ -147,11 +156,12 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         await db.SaveChangesAsync();
 
         await audit.LogAsync("ExpenseHeader", id.ToString(CultureInfo.InvariantCulture), "Delete", oldValues, null, userId);
+        return true;
     }
 
     public async Task<bool> IsDuplicateInvoiceAsync(string invoiceNo, int supplierId, int fiscalYearId, int? excludeId = null)
     {
-        var query = db.ExpenseHeaders.AsNoTracking()
+        var query = ScopedQuery
             .Where(h => h.InvoiceNo == invoiceNo && h.SupplierId == supplierId && h.FiscalYearId == fiscalYearId);
         if (excludeId.HasValue)
             query = query.Where(h => h.ExpenseId != excludeId.Value);
@@ -179,16 +189,19 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                 if (fiscalYear is null) continue;
 
                 var englishDate = NepaliDateHelper.ParseNepaliDate(row.Miti) ?? DateTime.UtcNow;
+                var defaultCategoryId = await GetDefaultCategoryIdAsync();
 
                 var header = new ExpenseHeader
                 {
                     InvoiceNo = row.InvoiceNo,
                     Miti = row.Miti,
                     EnglishDate = englishDate,
+                    NepaliMonth = GetSafeNepaliMonth(row.Miti),
                     FiscalYearId = fiscalYear.Id,
                     SupplierId = supplier.SupplierId,
-                    CategoryId = 1,
+                    CategoryId = defaultCategoryId,
                     PaymentMethod = "Cash",
+                    UserId = userId,
                     CreatedAt = DateTime.UtcNow
                 };
                 db.ExpenseHeaders.Add(header);
@@ -241,10 +254,6 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                         continue;
                     }
 
-                    var mitiParts = row.Miti.Split('/');
-                    var monthIndex = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(mitiParts[1]), CultureInfo.InvariantCulture) - 1;
-                    var nepaliMonth = NepaliDateHelper.NepaliMonthNames[monthIndex];
-
                     var englishDate = NepaliDateHelper.ParseNepaliDate(row.Miti) ?? DateTime.UtcNow;
 
                     var supplier = await db.Suppliers.FindAsync(row.SupplierId);
@@ -263,9 +272,9 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                         continue;
                     }
 
-                    var taxableAmount = Math.Round(row.Quantity * row.Rate, 2);
-                    var vatAmount = Math.Round(taxableAmount * AppConstants.VatRate, 2);
-                    var totalAmount = Math.Round(taxableAmount + vatAmount, 2);
+                    var taxableAmount = RoundMoney(row.Quantity * row.Rate);
+                    var vatAmount = RoundMoney(taxableAmount * AppConstants.VatRate);
+                    var totalAmount = RoundMoney(taxableAmount + vatAmount);
 
                     var header = new ExpenseHeader
                     {
@@ -273,10 +282,11 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                         Miti = row.Miti,
                         EnglishDate = englishDate,
                         FiscalYearId = fiscalYear.Id,
-                        NepaliMonth = nepaliMonth,
+                        NepaliMonth = GetSafeNepaliMonth(row.Miti),
                         SupplierId = row.SupplierId,
-                        CategoryId = row.CategoryId ?? 1,
+                        CategoryId = row.CategoryId ?? await GetDefaultCategoryIdAsync(),
                         PaymentMethod = row.PaymentMethod ?? "Cash",
+                        UserId = userId,
                         CreatedAt = DateTime.UtcNow
                     };
                     db.ExpenseHeaders.Add(header);
@@ -411,8 +421,8 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
     private static ExpenseDetail CreateDetail(int expenseId, ExpenseDetailViewModel d)
     {
         var taxable = d.TaxableAmount > 0 ? d.TaxableAmount : d.Quantity * d.Rate;
-        var vat = Math.Round(taxable * AppConstants.VatRate, 2);
-        var total = Math.Round(taxable + vat, 2);
+        var vat = RoundMoney(taxable * AppConstants.VatRate);
+        var total = RoundMoney(taxable + vat);
 
         return new ExpenseDetail
         {
@@ -429,8 +439,8 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
     private static ExpenseDetail CreateDetailFromRow(int expenseId, int itemId, CsvRowViewModel row)
     {
         var taxable = row.TaxableAmount > 0 ? row.TaxableAmount : row.Quantity * row.Rate;
-        var vat = Math.Round(taxable * AppConstants.VatRate, 2);
-        var total = Math.Round(taxable + vat, 2);
+        var vat = RoundMoney(taxable * AppConstants.VatRate);
+        var total = RoundMoney(taxable + vat);
 
         return new ExpenseDetail
         {
@@ -442,5 +452,26 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
             VatAmount = vat,
             TotalAmount = total
         };
+    }
+
+    private static decimal RoundMoney(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
+
+    private static string? GetSafeNepaliMonth(string miti)
+    {
+        var parts = miti.Split('/');
+        if (parts.Length != 3) return null;
+        if (!int.TryParse(NepaliDateHelper.ConvertToEnglishDigits(parts[1]), NumberStyles.None, CultureInfo.InvariantCulture, out var month))
+            return null;
+        if (month < 1 || month > 12) return null;
+        return NepaliDateHelper.NepaliMonthNames[month - 1];
+    }
+
+    private async Task<int> GetDefaultCategoryIdAsync()
+    {
+        var category = await db.ExpenseCategories.AsNoTracking()
+            .OrderBy(c => c.CategoryName == "Miscellaneous" ? 0 : 1)
+            .ThenBy(c => c.CategoryId)
+            .FirstOrDefaultAsync();
+        return category?.CategoryId ?? 1;
     }
 }

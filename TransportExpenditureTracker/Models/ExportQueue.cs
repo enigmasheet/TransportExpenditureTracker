@@ -8,6 +8,9 @@ public class ExportQueue
 {
     public int ExportQueueId { get; set; }
 
+    [MaxLength(450)]
+    public string UserId { get; set; } = string.Empty;
+
     public DateTime RequestedAt { get; set; }
 
     [MaxLength(10)]

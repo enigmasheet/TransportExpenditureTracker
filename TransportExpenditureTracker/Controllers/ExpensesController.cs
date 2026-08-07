@@ -116,7 +116,11 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
             }
             else
             {
-                await expenseService.UpdateAsync(vm, CurrentUserId);
+                if (!await expenseService.UpdateAsync(vm, CurrentUserId))
+                {
+                    TempData["Error"] = "Expense not found or you do not have permission to edit it.";
+                    return RedirectToAction(nameof(Index));
+                }
                 TempData["Success"] = "Expense updated successfully.";
                 return RedirectToAction(nameof(Index));
             }
@@ -152,7 +156,10 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
             TempData["Error"] = "Invalid request.";
             return RedirectToAction(nameof(Index));
         }
-        await expenseService.DeleteAsync(id, CurrentUserId);
+        if (!await expenseService.DeleteAsync(id, CurrentUserId))
+        {
+            TempData["Error"] = "Expense not found or you do not have permission to delete it.";
+        }
         return RedirectToAction(nameof(Index));
     }
 

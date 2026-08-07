@@ -5,19 +5,17 @@ using TransportExpenditureTracker.Models;
 
 namespace TransportExpenditureTracker.DataManagers;
 
-public class DashboardDataManager : IDashboardDataManager
+public class DashboardDataManager(ApplicationDbContext db, TransportExpenditureTracker.Services.Interfaces.ICurrentUserService currentUser) : IDashboardDataManager
 {
-    private readonly ApplicationDbContext _db;
-
-    public DashboardDataManager(ApplicationDbContext db)
-    {
-        _db = db;
-    }
+    private IQueryable<ExpenseHeader> ScopedHeaders =>
+        currentUser.IsAdmin
+        ? db.ExpenseHeaders
+        : db.ExpenseHeaders.Where(h => h.UserId == currentUser.UserId);
 
     public async Task<List<ChartDataPoint>> GetMonthlyChartDataAsync(string? fiscalYear)
     {
-        var query = from h in _db.ExpenseHeaders
-                    from d in _db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+        var query = from h in ScopedHeaders
+                    from d in db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
                     where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.NepaliMonth into g
                     select new ChartDataPoint(g.Key, g.Sum(d => d.TotalAmount));
@@ -28,8 +26,8 @@ public class DashboardDataManager : IDashboardDataManager
 
     public async Task<List<ChartDataPoint>> GetCategoryChartDataAsync(string? fiscalYear)
     {
-        var query = from h in _db.ExpenseHeaders
-                    from d in _db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+        var query = from h in ScopedHeaders
+                    from d in db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
                     where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.Category.CategoryName into g
                     select new ChartDataPoint(g.Key, g.Sum(d => d.TotalAmount));
@@ -40,8 +38,8 @@ public class DashboardDataManager : IDashboardDataManager
 
     public async Task<List<ChartDataPoint>> GetSupplierChartDataAsync(string? fiscalYear)
     {
-        var query = from h in _db.ExpenseHeaders
-                    from d in _db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+        var query = from h in ScopedHeaders
+                    from d in db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
                     where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.Supplier.SupplierName into g
                     select new ChartDataPoint(g.Key, g.Sum(d => d.TotalAmount));
@@ -52,8 +50,8 @@ public class DashboardDataManager : IDashboardDataManager
 
     public async Task<List<ChartDataPoint>> GetVatChartDataAsync(string? fiscalYear)
     {
-        var query = from h in _db.ExpenseHeaders
-                    from d in _db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+        var query = from h in ScopedHeaders
+                    from d in db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
                     where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.NepaliMonth into g
                     select new ChartDataPoint(g.Key, g.Sum(d => d.VatAmount));
@@ -64,8 +62,8 @@ public class DashboardDataManager : IDashboardDataManager
 
     public async Task<List<ChartDataPoint>> GetFyComparisonDataAsync(string? fiscalYear)
     {
-        var query = from h in _db.ExpenseHeaders
-                    from d in _db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
+        var query = from h in ScopedHeaders
+                    from d in db.ExpenseDetails.Where(d => d.ExpenseId == h.ExpenseId)
                     where fiscalYear == null || h.FiscalYearNav.Name == fiscalYear
                     group d by h.FiscalYearNav.Name into g
                     select new ChartDataPoint(g.Key, g.Sum(d => d.TotalAmount));

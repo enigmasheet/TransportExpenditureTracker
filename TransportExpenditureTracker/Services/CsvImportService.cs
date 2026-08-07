@@ -98,14 +98,14 @@ public class CsvImportService : ICsvImportService
                 {
                     if (row.TaxableAmount > 0 && row.VatAmount > 0)
                     {
-                        var expectedVat = row.TaxableAmount * AppConstants.VatRate;
+                        var expectedVat = Math.Round(row.TaxableAmount * AppConstants.VatRate, 2, MidpointRounding.AwayFromZero);
                         if (Math.Abs(row.VatAmount - expectedVat) > 1.0m)
                             row.IsVatMismatch = true;
                     }
 
                     if (row.TaxableAmount > 0 && row.VatAmount > 0 && row.TotalAmount > 0)
                     {
-                        var expectedTotal = row.TaxableAmount + row.VatAmount;
+                        var expectedTotal = Math.Round(row.TaxableAmount + row.VatAmount, 2, MidpointRounding.AwayFromZero);
                         if (Math.Abs(row.TotalAmount - expectedTotal) > 1.0m)
                             row.IsTotalMismatch = true;
                     }

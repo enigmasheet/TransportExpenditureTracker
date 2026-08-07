@@ -14,5 +14,6 @@ public interface IReportService
     Task<List<ReportRowViewModel>> GetPaymentMethodReportAsync(ReportFilterViewModel filters);
     Task<List<ReportRowViewModel>> GetLocationWiseReportAsync(ReportFilterViewModel filters);
     Task<List<ReportRowViewModel>> GetDetailedLedgerAsync(ReportFilterViewModel filters);
+    Task<List<ReportRowViewModel>> GetExportDataAsync(string reportType, ReportFilterViewModel filters);
     Task<int> GetTotalCountAsync(ReportFilterViewModel filters, string reportType);
 }

@@ -1,24 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Data;
+using TransportExpenditureTracker.Models;
 using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class DashboardService : IDashboardService
+public class DashboardService(ApplicationDbContext db, ICurrentUserService currentUser) : IDashboardService
 {
-    private readonly ApplicationDbContext _db;
-
-    public DashboardService(ApplicationDbContext db)
-    {
-        _db = db;
-    }
-
     public async Task<DashboardViewModel> GetDashboardAsync(string? fiscalYear = null)
     {
         var now = DateTime.UtcNow;
 
-        var fiscalYears = await _db.FiscalYears
+        var fiscalYears = await db.FiscalYears
             .OrderByDescending(f => f.Id)
             .Select(f => f.Name)
             .ToListAsync();
@@ -26,22 +20,26 @@ public class DashboardService : IDashboardService
         var latestFy = fiscalYears.FirstOrDefault();
         var selectedFy = fiscalYear ?? latestFy;
 
-        var query = _db.ExpenseHeaders.Where(h => h.FiscalYearNav.Name == selectedFy);
+        var headers = currentUser.IsAdmin
+            ? db.ExpenseHeaders
+            : db.ExpenseHeaders.Where(h => h.UserId == currentUser.UserId);
+
+        var query = headers.Where(h => h.FiscalYearNav.Name == selectedFy);
 
         var totalExpenditure = await query
-            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
+            .Join(db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
             .SumAsync();
         var totalVatPaid = await query
-            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.VatAmount)
+            .Join(db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.VatAmount)
             .SumAsync();
         var totalTaxableAmount = await query
-            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TaxableAmount)
+            .Join(db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TaxableAmount)
             .SumAsync();
         var totalInvoices = await query.CountAsync();
 
         var thisMonthExpenses = await query
             .Where(h => h.EnglishDate.Year == now.Year && h.EnglishDate.Month == now.Month)
-            .Join(_db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
+            .Join(db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
             .SumAsync();
 
         var topSupplierData = await query
@@ -53,7 +51,7 @@ public class DashboardService : IDashboardService
         string? topSupplierName = null;
         if (topSupplierData is not null)
         {
-            var supplier = await _db.Suppliers.FindAsync(topSupplierData.SupplierId);
+            var supplier = await db.Suppliers.FindAsync(topSupplierData.SupplierId);
             topSupplierName = supplier?.SupplierName;
         }
 

@@ -17,7 +17,11 @@ public class ReportService : IReportService
 
     private IQueryable<ReportRowViewModel> GetBaseQueryWithDetailFilters(ReportFilterViewModel filters)
     {
-        var query = from h in _db.ExpenseHeaders.AsNoTracking()
+        var headers = _db.ExpenseHeaders.AsNoTracking();
+        if (!string.IsNullOrEmpty(filters.UserId))
+            headers = headers.Where(h => h.UserId == filters.UserId);
+
+        var query = from h in headers
                     join d in _db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId
                     join s in _db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId
                     join c in _db.ExpenseCategories.AsNoTracking() on h.CategoryId equals c.CategoryId
@@ -72,10 +76,21 @@ public class ReportService : IReportService
         return query;
     }
 
-    private static async Task<List<ReportRowViewModel>> GetPagedAsync(IQueryable<ReportRowViewModel> query, ReportFilterViewModel filters)
+    private static async Task<List<ReportRowViewModel>> GetPagedAsync(IQueryable<ReportRowViewModel> query, ReportFilterViewModel filters, bool getAll = false)
     {
-        var skip = (filters.PageNumber - 1) * filters.PageSize;
-        var items = await query.Skip(skip).Take(filters.PageSize).ToListAsync();
+        var skip = 0;
+        IQueryable<ReportRowViewModel> paged;
+        if (getAll)
+        {
+            paged = query;
+        }
+        else
+        {
+            skip = (filters.PageNumber - 1) * filters.PageSize;
+            paged = query.Skip(skip).Take(filters.PageSize);
+        }
+
+        var items = await paged.ToListAsync();
 
         int idx = 0;
         foreach (var item in items)
@@ -85,6 +100,24 @@ public class ReportService : IReportService
         }
 
         return items;
+    }
+
+    public async Task<List<ReportRowViewModel>> GetExportDataAsync(string reportType, ReportFilterViewModel filters)
+    {
+        var query = reportType switch
+        {
+            "Daily" or "FiscalYear" or "DetailedLedger" => GetBaseQueryWithDetailFilters(filters).OrderBy(r => r.EnglishDate).ThenBy(r => r.InvoiceNo),
+            "Monthly" => GetBaseQueryWithDetailFilters(filters).OrderBy(r => r.NepaliMonth).ThenBy(r => r.EnglishDate).ThenBy(r => r.InvoiceNo),
+            "SupplierWise" => GetBaseQueryWithDetailFilters(filters).OrderBy(r => r.SupplierName).ThenBy(r => r.EnglishDate),
+            "CategoryWise" => GetBaseQueryWithDetailFilters(filters).OrderBy(r => r.CategoryName).ThenBy(r => r.EnglishDate),
+            "ItemWise" => GetBaseQueryWithDetailFilters(filters).OrderBy(r => r.ItemName).ThenBy(r => r.EnglishDate),
+            "VatPaid" => GetBaseQueryWithDetailFilters(filters).Where(r => r.VatAmount > 0).OrderByDescending(r => r.VatAmount),
+            "PaymentMethod" => GetBaseQueryWithDetailFilters(filters).OrderBy(r => r.PaymentMethod).ThenBy(r => r.EnglishDate),
+            "LocationWise" => GetBaseQueryWithDetailFilters(filters).OrderBy(r => r.Location).ThenBy(r => r.EnglishDate),
+            _ => throw new ArgumentOutOfRangeException(nameof(reportType), reportType, "Unknown report type")
+        };
+
+        return await GetPagedAsync(query, filters, getAll: true);
     }
 
     public async Task<List<ReportRowViewModel>> GetDailyReportAsync(ReportFilterViewModel filters)

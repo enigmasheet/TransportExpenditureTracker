@@ -38,7 +38,7 @@ public partial class ExportBackgroundJob : BackgroundService
                 try
                 {
                     var filters = string.IsNullOrEmpty(job.FilterJson) ? new ReportFilterViewModel() : JsonSerializer.Deserialize<ReportFilterViewModel>(job.FilterJson);
-                    var data = await reportService.GetDetailedLedgerAsync(filters ?? new ReportFilterViewModel());
+                    var data = await reportService.GetExportDataAsync(job.ReportType, filters ?? new ReportFilterViewModel());
 
                     byte[] fileBytes;
                     string fileName;
@@ -53,16 +53,23 @@ public partial class ExportBackgroundJob : BackgroundService
 
                     await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, null);
 
-                    var ccEmail = _configuration["ExportSettings:CcEmail"] ?? "";
-                    await emailSender.SendEmailWithAttachmentAsync(
-                        toEmail: job.RecipientEmail,
-                        ccEmail: ccEmail,
-                        subject: $"Your {job.ReportType} Export ({job.Format}) is ready",
-                        body: $"Dear user,\n\nPlease find attached your requested {job.Format} export of the {job.ReportType} report.\n\n- Expense Tracker",
-                        attachmentBytes: fileBytes,
-                        attachmentFileName: fileName
-                    );
-                    Logs.JobCompleted(_logger, job.ExportQueueId, job.RecipientEmail);
+                    try
+                    {
+                        var ccEmail = _configuration["ExportSettings:CcEmail"] ?? "";
+                        await emailSender.SendEmailWithAttachmentAsync(
+                            toEmail: job.RecipientEmail,
+                            ccEmail: ccEmail,
+                            subject: $"Your {job.ReportType} Export ({job.Format}) is ready",
+                            body: $"Dear user,\n\nPlease find attached your requested {job.Format} export of the {job.ReportType} report.\n\n- Expense Tracker",
+                            attachmentBytes: fileBytes,
+                            attachmentFileName: fileName
+                        );
+                        Logs.JobCompleted(_logger, job.ExportQueueId, job.RecipientEmail);
+                    }
+                    catch (Exception emailEx)
+                    {
+                        Logs.EmailSendFailed(_logger, job.ExportQueueId, job.RecipientEmail, emailEx.Message);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -85,6 +92,9 @@ public partial class ExportBackgroundJob : BackgroundService
 
         [LoggerMessage(LogLevel.Information, Message = "Export job {JobId} completed, email sent to {Email}")]
         public static partial void JobCompleted(ILogger logger, int jobId, string email);
+
+        [LoggerMessage(LogLevel.Warning, Message = "Export job {JobId} completed but email to {Email} failed: {Message}")]
+        public static partial void EmailSendFailed(ILogger logger, int jobId, string email, string message);
 
         [LoggerMessage(LogLevel.Error, Message = "Export job {JobId} failed: {Message}")]
         public static partial void JobFailed(ILogger logger, int jobId, string message, Exception exception);

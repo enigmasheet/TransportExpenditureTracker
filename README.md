@@ -97,6 +97,24 @@ Visit [http://localhost:5000](http://localhost:5000) (or the port shown in your 
 
 ---
 
+## 🔑 Configuration via Environment Variables
+
+Sensitive settings are **not** committed to source. Set them as environment
+variables (or .NET user-secrets) to enable optional features:
+
+| Feature | Variable | Purpose |
+|---|---|---|
+| SuperAdmin bootstrap | `SuperAdmin__Email`, `SuperAdmin__Password`, `SuperAdmin__FullName` | Seeds the first administrator on a fresh database |
+| Email / exports | `Resend__ApiKey` | Enables confirmation emails and emailed report exports |
+
+Without `Resend__ApiKey` the app runs fully offline; email features simply skip silently.
+
+> **Security note:** The previously committed Resend API key and SuperAdmin
+> password have been removed from `appsettings.json`. If you ever used the old
+> key, rotate it in Resend immediately.
+
+---
+
 ## 📂 Project Structure
 
 ```
