@@ -33,34 +33,42 @@ public partial class LogsController : Controller
     }
 
     [HttpGet]
-    public IActionResult GetData(string? date, string? level, string? search)
+    public IActionResult GetData(int draw, string? date, string? level, string? search)
     {
-        var entries = ParseLogFile(date ?? GetTodayFileName());
-
-        if (!string.IsNullOrWhiteSpace(level))
-            entries = entries.Where(e => e.Level == level).ToList();
-
-        if (!string.IsNullOrWhiteSpace(search))
+        try
         {
-            var s = search.ToLower(CultureInfo.InvariantCulture);
-            entries = entries.Where(e =>
-                e.Message.Contains(s, StringComparison.OrdinalIgnoreCase) ||
-                (e.Exception?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
-        }
+            var entries = ParseLogFile(date ?? GetTodayFileName());
 
-        return Json(new
-        {
-            recordsTotal = entries.Count,
-            recordsFiltered = entries.Count,
-            data = entries.Select(e => new
+            if (!string.IsNullOrWhiteSpace(level))
+                entries = [.. entries.Where(e => e.Level == level)];
+
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                timestamp = e.Timestamp.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture),
-                e.Level,
-                levelBadge = e.LevelBadge,
-                e.Message,
-                e.Exception
-            })
-        });
+                var s = search.ToLower(CultureInfo.InvariantCulture);
+                entries = [.. entries.Where(e =>
+                    e.Message.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    (e.Exception?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false))];
+            }
+
+            return Json(new
+            {
+                draw,
+                recordsTotal = entries.Count,
+                recordsFiltered = entries.Count,
+                data = entries.Select(e => new
+                {
+                    timestamp = e.Timestamp.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture),
+                    e.Level,
+                    levelBadge = e.LevelBadge,
+                    e.Message,
+                    e.Exception
+                })
+            });
+        }
+        catch
+        {
+            return Json(new { draw, recordsTotal = 0, recordsFiltered = 0, data = Array.Empty<object>() });
+        }
     }
 
     [HttpGet]
@@ -95,7 +103,10 @@ public partial class LogsController : Controller
         if (!System.IO.File.Exists(filePath))
             return [];
 
-        var lines = System.IO.File.ReadAllLines(filePath);
+        string[] lines;
+        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var sr = new StreamReader(fs))
+            lines = sr.ReadToEnd().Split(["\r\n", "\n", "\r"], StringSplitOptions.None);
         var entries = new List<LogEntry>();
         LogEntry? current = null;
 
