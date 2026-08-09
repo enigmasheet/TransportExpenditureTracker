@@ -14,6 +14,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<FiscalYear> FiscalYears => Set<FiscalYear>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ExportQueue> ExportQueues => Set<ExportQueue>();
+    public DbSet<Company> Companies => Set<Company>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -88,6 +89,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(d => d.TaxableAmount).HasColumnType("decimal(18,2)");
             entity.Property(d => d.VatAmount).HasColumnType("decimal(18,2)");
             entity.Property(d => d.TotalAmount).HasColumnType("decimal(18,2)");
+        });
+
+        builder.Entity<Company>(entity =>
+        {
+            entity.Property(c => c.DefaultVatRate).HasColumnType("decimal(18,4)");
         });
     }
 }

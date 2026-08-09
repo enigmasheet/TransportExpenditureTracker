@@ -83,11 +83,22 @@ public static class AppDbInitializer
         {
             context.ExpenseCategories.AddRange(
                 new ExpenseCategory { CategoryName = "Fuel" },
-                new ExpenseCategory { CategoryName = "Office Expense" },
+                new ExpenseCategory { CategoryName = "Vehicle Repair" },
                 new ExpenseCategory { CategoryName = "Maintenance" },
+                new ExpenseCategory { CategoryName = "Spare Parts" },
+                new ExpenseCategory { CategoryName = "Tyres" },
+                new ExpenseCategory { CategoryName = "Insurance" },
+                new ExpenseCategory { CategoryName = "Road/Toll" },
+                new ExpenseCategory { CategoryName = "Driver Salary" },
+                new ExpenseCategory { CategoryName = "Salary" },
+                new ExpenseCategory { CategoryName = "Rent" },
                 new ExpenseCategory { CategoryName = "Electricity" },
+                new ExpenseCategory { CategoryName = "Office" },
                 new ExpenseCategory { CategoryName = "Internet" },
-                new ExpenseCategory { CategoryName = "Miscellaneous" }
+                new ExpenseCategory { CategoryName = "Bank Charges" },
+                new ExpenseCategory { CategoryName = "Tax" },
+                new ExpenseCategory { CategoryName = "Miscellaneous" },
+                new ExpenseCategory { CategoryName = "Other" }
             );
             await context.SaveChangesAsync();
         }

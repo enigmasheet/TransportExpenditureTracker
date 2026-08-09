@@ -13,16 +13,19 @@ public class CsvImportService : ICsvImportService
 {
     private readonly ApplicationDbContext _db;
     private readonly IExpenseService _expenseService;
+    private readonly ICompanyService _companyService;
 
-    public CsvImportService(ApplicationDbContext db, IExpenseService expenseService)
+    public CsvImportService(ApplicationDbContext db, IExpenseService expenseService, ICompanyService companyService)
     {
         _db = db;
         _expenseService = expenseService;
+        _companyService = companyService;
     }
 
     public async Task<CsvPreviewViewModel> PreviewAsync(IFormFile file)
     {
         var preview = new CsvPreviewViewModel();
+        var vatRate = await _companyService.GetVatRateAsync();
 
         using var reader = new StreamReader(file.OpenReadStream());
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -98,7 +101,7 @@ public class CsvImportService : ICsvImportService
                 {
                     if (row.TaxableAmount > 0 && row.VatAmount > 0)
                     {
-                        var expectedVat = Math.Round(row.TaxableAmount * AppConstants.VatRate, 2, MidpointRounding.AwayFromZero);
+                        var expectedVat = Math.Round(row.TaxableAmount * vatRate, 2, MidpointRounding.AwayFromZero);
                         if (Math.Abs(row.VatAmount - expectedVat) > 1.0m)
                             row.IsVatMismatch = true;
                     }

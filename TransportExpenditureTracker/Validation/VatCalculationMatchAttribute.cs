@@ -35,13 +35,6 @@ public class VatCalculationMatchAttribute : ValidationAttribute
                 rowErrors.Add($"Taxable ({d.TaxableAmount}) ≠ Qty×Rate ({computedTaxable})");
         }
 
-        if (d.TaxableAmount > 0 && d.VatAmount > 0)
-        {
-            var computedVat = Math.Round(d.TaxableAmount * AppConstants.VatRate, 2, MidpointRounding.AwayFromZero);
-            if (Math.Abs(computedVat - d.VatAmount) > 1.0m)
-                rowErrors.Add($"VAT ({d.VatAmount}) ≠ 13% of taxable ({computedVat})");
-        }
-
         if (d.TaxableAmount > 0 && d.VatAmount > 0 && d.TotalAmount > 0)
         {
             var computedTotal = Math.Round(d.TaxableAmount + d.VatAmount, 2, MidpointRounding.AwayFromZero);

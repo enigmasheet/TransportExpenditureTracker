@@ -1,0 +1,123 @@
+@model Company
+@{
+    ViewData["Title"] = "Company Setup";
+    var isNew = ViewBag.IsNew as bool? ?? false;
+}
+
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-building"></i> Company Setup</h4>
+</div>
+
+@if (isNew)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-1"></i>
+        Please complete your company information before recording expenses.
+    </div>
+}
+
+<form asp-action="Setup" method="post" class="needs-validation" novalidate>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label asp-for="Name" class="form-label">Company Name</label>
+            <input asp-for="Name" class="form-control" placeholder="e.g. ABC Goods Transport Pvt. Ltd." />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label asp-for="ShortName" class="form-label">Short Name</label>
+            <input asp-for="ShortName" class="form-control" placeholder="e.g. ABC Transport" />
+            <span asp-validation-for="ShortName" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label asp-for="RegistrationNumber" class="form-label">Registration Number</label>
+            <input asp-for="RegistrationNumber" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label asp-for="PanNumber" class="form-label">PAN Number</label>
+            <input asp-for="PanNumber" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label asp-for="VatNumber" class="form-label">VAT Number</label>
+            <input asp-for="VatNumber" class="form-control" />
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-12">
+            <label asp-for="Address" class="form-label">Address</label>
+            <input asp-for="Address" class="form-control" placeholder="Street / tole" />
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Province" class="form-label">Province</label>
+            <input asp-for="Province" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label asp-for="District" class="form-label">District</label>
+            <input asp-for="District" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Municipality" class="form-label">Municipality</label>
+            <input asp-for="Municipality" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label asp-for="Ward" class="form-label">Ward</label>
+            <input asp-for="Ward" class="form-control" />
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label asp-for="Phone" class="form-label">Phone</label>
+            <input asp-for="Phone" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Email" class="form-label">Email</label>
+            <input asp-for="Email" class="form-control" type="email" />
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Website" class="form-label">Website</label>
+            <input asp-for="Website" class="form-control" />
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <label asp-for="DefaultVatRate" class="form-label">Default VAT Rate (0.13 = 13%)</label>
+            <input asp-for="DefaultVatRate" class="form-control" type="number" step="0.01" min="0" max="1" />
+            <span asp-validation-for="DefaultVatRate" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Fiscal Year Start Month (BS)</label>
+            <input class="form-control" value="Shrawan" disabled />
+        </div>
+        <div class="col-md-4">
+            <label asp-for="CurrencySymbol" class="form-label">Currency Symbol</label>
+            <input asp-for="CurrencySymbol" class="form-control" />
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3 d-none">
+        <div class="col-md-6">
+            <label asp-for="Currency" class="form-label">Currency Code</label>
+            <input asp-for="Currency" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label asp-for="LogoPath" class="form-label">Logo Path</label>
+            <input asp-for="LogoPath" class="form-control" />
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save Company</button>
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i> Cancel</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

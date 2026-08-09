@@ -65,6 +65,9 @@ public static class WebAppBuilder
             builder.Services.AddScoped<ICsvImportService, CsvImportService>();
             builder.Services.AddScoped<IAuditService, AuditService>();
             builder.Services.AddScoped<IExportJobService, ExportJobService>();
+            builder.Services.AddScoped<ICompanyService, CompanyService>();
+            builder.Services.AddScoped<IFiscalCalendarService, FiscalCalendarService>();
+            builder.Services.AddScoped<RequireCompanySetupFilter>();
 
             builder.Services.AddScoped<IItemDataManager, ItemDataManager>();
             builder.Services.AddScoped<IExpenseCategoryDataManager, ExpenseCategoryDataManager>();
@@ -83,7 +86,10 @@ public static class WebAppBuilder
             builder.Services.AddHostedService<ExportBackgroundJob>();
 
             builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
-            builder.Services.AddControllersWithViews()
+            builder.Services.AddControllersWithViews(options =>
+                {
+                    options.Filters.AddService<RequireCompanySetupFilter>();
+                })
                 .AddApplicationPart(typeof(WebAppBuilder).Assembly)
                 .AddSessionStateTempDataProvider();
             builder.Services.AddRazorPages();

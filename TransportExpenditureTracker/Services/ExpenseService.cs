@@ -10,8 +10,11 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit) : IExpenseService
+public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit, ICompanyService company) : IExpenseService
 {
+    private decimal? _vatRateCache;
+
+    private async Task<decimal> GetVatRateAsync() => _vatRateCache ??= await company.GetVatRateAsync();
     public async Task<List<ExpenseHeaderViewModel>> GetAllAsync()
     {
         var headers = await db.ExpenseHeaders
@@ -50,6 +53,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         if (existing is null) return false;
 
         var oldValues = JsonSerializer.Serialize(converter.ToEntryViewModel(existing));
+        var vatRate = await GetVatRateAsync();
 
         using var transaction = await db.Database.BeginTransactionAsync();
         try
@@ -72,7 +76,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
             {
                 foreach (var d in vm.Details)
                 {
-                    var detail = CreateDetail(existing.ExpenseId, d);
+                    var detail = CreateDetail(existing.ExpenseId, d, vatRate);
                     db.ExpenseDetails.Add(detail);
                 }
             }
@@ -120,6 +124,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
     public async Task<ImportSummaryViewModel> ImportCsvAsync(List<CsvRowViewModel> rows, string userId, bool autoCreate)
     {
         var summary = new ImportSummaryViewModel();
+        var vatRate = await GetVatRateAsync();
 
         foreach (var row in rows)
         {
@@ -155,7 +160,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                 db.ExpenseHeaders.Add(header);
                 await db.SaveChangesAsync();
 
-                var detail = CreateDetailFromRow(header.ExpenseId, item.ItemId, row);
+                var detail = CreateDetailFromRow(header.ExpenseId, item.ItemId, row, vatRate);
                 db.ExpenseDetails.Add(detail);
                 await db.SaveChangesAsync();
 
@@ -181,6 +186,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         var inserted = 0;
 
         var allFiscalYears = await db.FiscalYears.ToListAsync();
+        var vatRate = await GetVatRateAsync();
 
         try
         {
@@ -230,7 +236,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                     }
 
                     var taxableAmount = RoundMoney(row.Quantity * row.Rate);
-                    var vatAmount = RoundMoney(taxableAmount * AppConstants.VatRate);
+                    var vatAmount = RoundMoney(taxableAmount * vatRate);
                     var totalAmount = RoundMoney(taxableAmount + vatAmount);
 
                     var header = new ExpenseHeader
@@ -383,10 +389,10 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         }
     }
 
-    private static ExpenseDetail CreateDetail(int expenseId, ExpenseDetailViewModel d)
+    private static ExpenseDetail CreateDetail(int expenseId, ExpenseDetailViewModel d, decimal vatRate)
     {
         var taxable = d.TaxableAmount > 0 ? d.TaxableAmount : d.Quantity * d.Rate;
-        var vat = RoundMoney(taxable * AppConstants.VatRate);
+        var vat = RoundMoney(taxable * vatRate);
         var total = RoundMoney(taxable + vat);
 
         return new ExpenseDetail
@@ -401,10 +407,10 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         };
     }
 
-    private static ExpenseDetail CreateDetailFromRow(int expenseId, int itemId, CsvRowViewModel row)
+    private static ExpenseDetail CreateDetailFromRow(int expenseId, int itemId, CsvRowViewModel row, decimal vatRate)
     {
         var taxable = row.TaxableAmount > 0 ? row.TaxableAmount : row.Quantity * row.Rate;
-        var vat = RoundMoney(taxable * AppConstants.VatRate);
+        var vat = RoundMoney(taxable * vatRate);
         var total = RoundMoney(taxable + vat);
 
         return new ExpenseDetail

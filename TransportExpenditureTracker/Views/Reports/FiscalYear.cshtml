@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Fiscal Year Report";
 }
+
+<partial name="_ReportHeader" />
 @await Html.PartialAsync("_ReportView", new ReportPageViewModel
 {
     Title = "Fiscal Year Report",

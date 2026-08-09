@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using TransportExpenditureTracker.Services.Interfaces;
 using TransportExpenditureTracker.Validation;
 
 namespace TransportExpenditureTracker.ViewModels;
@@ -82,6 +83,9 @@ public class ExpenseEntryViewModel : IValidatableObject
                         .ToDictionary(i => i.ItemId, i => i.ItemName);
             }
 
+            var vatRate = (validationContext.GetService(typeof(ICompanyService)) as ICompanyService)
+                ?.GetVatRateAsync().GetAwaiter().GetResult() ?? AppConstants.VatRate;
+
             for (int i = 0; i < Details.Count; i++)
             {
                 var d = Details[i];
@@ -112,6 +116,17 @@ public class ExpenseEntryViewModel : IValidatableObject
                     yield return new ValidationResult(
                         $"Row {i + 1}: Taxable amount must be greater than 0.",
                         [nameof(Details)]);
+                }
+
+                if (d.TaxableAmount > 0 && d.VatAmount > 0)
+                {
+                    var computedVat = Math.Round(d.TaxableAmount * vatRate, 2, MidpointRounding.AwayFromZero);
+                    if (Math.Abs(computedVat - d.VatAmount) > 1.0m)
+                    {
+                        yield return new ValidationResult(
+                            $"Row {i + 1}: VAT ({d.VatAmount}) does not match {vatRate * 100:0.##}% of taxable ({computedVat}).",
+                            [nameof(Details)]);
+                    }
                 }
 
                 if (string.IsNullOrWhiteSpace(d.ItemName) && itemNames.TryGetValue(d.ItemId, out var name))

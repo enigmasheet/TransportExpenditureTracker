@@ -1,9 +1,16 @@
-﻿<!DOCTYPE html>
+﻿@inject TransportExpenditureTracker.Services.Interfaces.ICompanyService _companyService
+@inject TransportExpenditureTracker.Services.Interfaces.IFiscalCalendarService _fiscalService
+@{
+    var _company = await _companyService.GetAsync();
+    var _companyName = _company?.ShortName ?? _company?.Name ?? "Expense Tracker";
+    var _companySub = _company is null ? null : $"Fiscal Year {_fiscalService.GetFiscalYearName(DateTime.Today)} B.S.";
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Expense Tracker</title>
+    <title>@ViewData["Title"] - @_companyName</title>
     <link href="~/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/lib/select2/css/select2.min.css" rel="stylesheet" asp-append-version="true" />
     <link href="~/lib/nepali-date-picker/css/nepaliDatePicker.min.css" rel="stylesheet" asp-append-version="true" />
@@ -21,7 +28,13 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-controller="Dashboard" asp-action="Index">Expense Tracker</a>
+                <a class="navbar-brand" asp-controller="Dashboard" asp-action="Index">
+                    <span class="d-block fw-semibold">@_companyName</span>
+                    @if (!string.IsNullOrEmpty(_companySub))
+                    {
+                        <small class="d-block text-light-emphasis" style="font-size: 0.72rem">@_companySub</small>
+                    }
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>

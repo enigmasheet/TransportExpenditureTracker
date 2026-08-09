@@ -17,6 +17,8 @@
     </form>
 </div>
 
+<partial name="_ReportHeader" />
+
 <div class="row g-3 mb-4">
     <div class="col-md-4"><div class="kpi-card kpi-primary"><div class="kpi-label"><i class="bi bi-cash-stack me-1"></i>Total Expenditure</div><div class="kpi-value text-primary">Rs @Model.TotalExpenditure.ToString("N2")</div></div></div>
     <div class="col-md-4"><div class="kpi-card kpi-success"><div class="kpi-label"><i class="bi bi-receipt me-1"></i>Total VAT Paid</div><div class="kpi-value text-success">Rs @Model.TotalVatPaid.ToString("N2")</div></div></div>

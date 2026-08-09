@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Location-wise Report";
 }
+
+<partial name="_ReportHeader" />
 @await Html.PartialAsync("_ReportView", new ReportPageViewModel
 {
     Title = "Location-wise Report",
