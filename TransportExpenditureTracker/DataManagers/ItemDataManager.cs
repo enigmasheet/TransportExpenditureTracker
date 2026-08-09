@@ -5,56 +5,59 @@ using TransportExpenditureTracker.Models;
 
 namespace TransportExpenditureTracker.DataManagers;
 
-public class ItemDataManager : IItemDataManager
+public class ItemDataManager(ApplicationDbContext db) : IItemDataManager
 {
-    private readonly ApplicationDbContext _db;
-
-    public ItemDataManager(ApplicationDbContext db)
-    {
-        _db = db;
-    }
-
     public async Task<List<Item>> GetAllAsync()
     {
-        return await _db.Items.OrderBy(i => i.ItemName).ToListAsync();
+        return await db.Items.OrderBy(i => i.ItemName).ToListAsync();
     }
 
     public async Task<Item?> GetByIdAsync(int id)
     {
-        return await _db.Items.FindAsync(id);
+        return await db.Items.FindAsync(id);
     }
 
     public async Task<Item> AddAsync(Item item)
     {
-        _db.Items.Add(item);
-        await _db.SaveChangesAsync();
+        db.Items.Add(item);
+        await db.SaveChangesAsync();
         return item;
+    }
+
+    public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)
+    {
+        var query = db.Items.AsNoTracking().Where(i => string.Equals(i.ItemName, name, StringComparison.OrdinalIgnoreCase));
+        if (excludeId.HasValue)
+            query = query.Where(i => i.ItemId != excludeId.Value);
+        return await query.AnyAsync();
     }
 
     public async Task UpdateAsync(Item item)
     {
-        _db.Items.Update(item);
-        await _db.SaveChangesAsync();
+        db.Items.Update(item);
+        await db.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(int id)
     {
-        var item = await _db.Items.FindAsync(id);
+        var item = await db.Items.FindAsync(id);
         if (item is not null)
         {
-            _db.Items.Remove(item);
-            await _db.SaveChangesAsync();
+            db.Items.Remove(item);
+            await db.SaveChangesAsync();
         }
     }
 
     public async Task<bool> IsReferencedAsync(int id)
     {
-        return await _db.ExpenseDetails.AnyAsync(d => d.ItemId == id);
+        return await db.ExpenseDetails.AnyAsync(d => d.ItemId == id);
     }
 
     public async Task<Dictionary<int, int>> GetDetailCountsAsync()
     {
-        return await _db.ExpenseDetails
+        var query = db.ExpenseDetails.AsNoTracking();
+
+        return await query
             .GroupBy(d => d.ItemId)
             .Select(g => new { Id = g.Key, Count = g.Select(d => d.ExpenseId).Distinct().Count() })
             .ToDictionaryAsync(g => g.Id, g => g.Count);

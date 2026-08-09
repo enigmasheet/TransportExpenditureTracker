@@ -37,10 +37,4 @@ public class SupplierService(ISupplierDataManager supplierDataManager, SupplierC
     {
         await supplierDataManager.DeleteByIdAsync(id);
     }
-
-    public async Task<List<SupplierViewModel>> SearchAsync(string term)
-    {
-        var results = await supplierDataManager.SearchAsync(term);
-        return [.. results.Select(converter.ToViewModel)];
-    }
 }

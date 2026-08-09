@@ -24,9 +24,6 @@ public class ExpenseHeader
 
     public int CategoryId { get; set; }
 
-    [MaxLength(450)]
-    public string UserId { get; set; } = string.Empty;
-
     [MaxLength(30)]
     public string PaymentMethod { get; set; } = null!;
 

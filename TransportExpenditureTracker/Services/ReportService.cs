@@ -18,8 +18,6 @@ public class ReportService : IReportService
     private IQueryable<ReportRowViewModel> GetBaseQueryWithDetailFilters(ReportFilterViewModel filters)
     {
         var headers = _db.ExpenseHeaders.AsNoTracking();
-        if (!string.IsNullOrEmpty(filters.UserId))
-            headers = headers.Where(h => h.UserId == filters.UserId);
 
         var query = from h in headers
                     join d in _db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId

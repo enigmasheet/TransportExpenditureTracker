@@ -15,6 +15,4 @@ public class ReportFilterViewModel
     public string? PaymentMethod { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 50;
-
-    public string? UserId { get; set; }
 }

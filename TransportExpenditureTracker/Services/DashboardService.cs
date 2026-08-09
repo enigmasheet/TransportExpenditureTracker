@@ -6,7 +6,7 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class DashboardService(ApplicationDbContext db, ICurrentUserService currentUser) : IDashboardService
+public class DashboardService(ApplicationDbContext db) : IDashboardService
 {
     public async Task<DashboardViewModel> GetDashboardAsync(string? fiscalYear = null)
     {
@@ -20,11 +20,7 @@ public class DashboardService(ApplicationDbContext db, ICurrentUserService curre
         var latestFy = fiscalYears.FirstOrDefault();
         var selectedFy = fiscalYear ?? latestFy;
 
-        var headers = currentUser.IsAdmin
-            ? db.ExpenseHeaders
-            : db.ExpenseHeaders.Where(h => h.UserId == currentUser.UserId);
-
-        var query = headers.Where(h => h.FiscalYearNav.Name == selectedFy);
+        var query = db.ExpenseHeaders.Where(h => h.FiscalYearNav.Name == selectedFy);
 
         var totalExpenditure = await query
             .Join(db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)

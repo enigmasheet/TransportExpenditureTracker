@@ -17,6 +17,7 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
 {
     private const string DeleteAction = "Delete";
     private static readonly string[] ItemNameRequired = ["Item name is required."];
+    private static readonly string[] ItemNameDuplicate = ["An item with this name already exists."];
     private static readonly string[] ItemNotFound = ["Item not found."];
     private static readonly string[] ItemReferenced = ["Cannot delete: item is referenced in existing expense records."];
     public async Task<IActionResult> Index()
@@ -41,6 +42,10 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
     {
         if (ModelState.IsValid)
         {
+            if (await itemDataManager.ExistsByNameAsync(vm.ItemName))
+            {
+                return Json(new { success = false, errors = new { itemName = ItemNameDuplicate } });
+            }
             var item = new Item { ItemName = vm.ItemName, Unit = vm.Unit };
             await itemDataManager.AddAsync(item);
             return Json(new { success = true });
@@ -64,13 +69,20 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
         if (id != vm.ItemId) return NotFound();
         if (ModelState.IsValid)
         {
-            var item = await itemDataManager.GetByIdAsync(id);
-            if (item == null) return NotFound();
-            item.ItemName = vm.ItemName;
-            item.Unit = vm.Unit;
-            await itemDataManager.UpdateAsync(item);
-            TempData["Success"] = "Item updated successfully.";
-            return RedirectToAction(nameof(Index));
+            if (await itemDataManager.ExistsByNameAsync(vm.ItemName, vm.ItemId))
+            {
+                ModelState.AddModelError(nameof(vm.ItemName), "An item with this name already exists.");
+            }
+            else
+            {
+                var item = await itemDataManager.GetByIdAsync(id);
+                if (item == null) return NotFound();
+                item.ItemName = vm.ItemName;
+                item.Unit = vm.Unit;
+                await itemDataManager.UpdateAsync(item);
+                TempData["Success"] = "Item updated successfully.";
+                return RedirectToAction(nameof(Index));
+            }
         }
         return View(vm);
     }
@@ -87,6 +99,7 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
 
     [HttpPost, ActionName(DeleteAction)]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         if (!ModelState.IsValid)
@@ -118,9 +131,12 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         if (string.IsNullOrWhiteSpace(request.ItemName))
             return Json(new { success = false, errors = new { itemName = ItemNameRequired } });
+        if (await itemDataManager.ExistsByNameAsync(request.ItemName))
+            return Json(new { success = false, errors = new { itemName = ItemNameDuplicate } });
 
         var item = new Item { ItemName = request.ItemName, Unit = request.Unit };
         await itemDataManager.AddAsync(item);
+        await audit.LogAsync("Item", item.ItemId.ToString(CultureInfo.InvariantCulture), "Create", null, System.Text.Json.JsonSerializer.Serialize(item), User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         var displayText = item.ItemName + (string.IsNullOrEmpty(item.Unit) ? "" : $" ({item.Unit})");
         return Json(new { success = true, id = item.ItemId, text = displayText });
     }
@@ -143,6 +159,8 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         if (string.IsNullOrWhiteSpace(request.ItemName))
             return Json(new { success = false, errors = new { itemName = ItemNameRequired } });
+        if (await itemDataManager.ExistsByNameAsync(request.ItemName, request.ItemId))
+            return Json(new { success = false, errors = new { itemName = ItemNameDuplicate } });
 
         var item = await itemDataManager.GetByIdAsync(request.ItemId);
         if (item == null)
@@ -151,10 +169,12 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
         item.ItemName = request.ItemName;
         item.Unit = request.Unit;
         await itemDataManager.UpdateAsync(item);
+        await audit.LogAsync("Item", request.ItemId.ToString(CultureInfo.InvariantCulture), "Update", null, System.Text.Json.JsonSerializer.Serialize(item), User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         return Json(new { success = true });
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetDeleteInfo(int id)
     {
         if (!ModelState.IsValid) return NotFound();
@@ -166,19 +186,19 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> QuickDelete([FromBody] QuickDeleteRequest request)
     {
         if (!ModelState.IsValid)
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         var item = await itemDataManager.GetByIdAsync(request.Id);
-        if (item != null)
-        {
-            var inUse = await itemDataManager.IsReferencedAsync(request.Id);
-            if (inUse)
-                return Json(new { success = false, errors = new { general = ItemReferenced } });
-            await itemDataManager.DeleteAsync(request.Id);
-            await audit.LogAsync("Item", request.Id.ToString(CultureInfo.InvariantCulture), DeleteAction, item.ItemName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
-        }
+        if (item == null)
+            return Json(new { success = false, errors = new { general = ItemNotFound } });
+        var inUse = await itemDataManager.IsReferencedAsync(request.Id);
+        if (inUse)
+            return Json(new { success = false, errors = new { general = ItemReferenced } });
+        await itemDataManager.DeleteAsync(request.Id);
+        await audit.LogAsync("Item", request.Id.ToString(CultureInfo.InvariantCulture), DeleteAction, item.ItemName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         return Json(new { success = true });
     }
 }

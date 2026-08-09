@@ -17,6 +17,7 @@ public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDat
 {
     private const string DeleteAction = "Delete";
     private static readonly string[] CategoryNameRequired = ["Category name is required."];
+    private static readonly string[] CategoryNameDuplicate = ["A category with this name already exists."];
     private static readonly string[] CategoryNotFound = ["Category not found."];
     private static readonly string[] CategoryInUse = ["Cannot delete: category is referenced in existing expense records."];
 
@@ -42,8 +43,13 @@ public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDat
     {
         if (ModelState.IsValid)
         {
+            if (await categoryDataManager.ExistsByNameAsync(vm.CategoryName))
+            {
+                return Json(new { success = false, errors = new { categoryName = CategoryNameDuplicate } });
+            }
             var category = new ExpenseCategory { CategoryName = vm.CategoryName };
             await categoryDataManager.AddAsync(category);
+            await audit.LogAsync("ExpenseCategory", category.CategoryId.ToString(CultureInfo.InvariantCulture), "Create", null, System.Text.Json.JsonSerializer.Serialize(category), User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
             return Json(new { success = true });
         }
         return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
@@ -65,11 +71,18 @@ public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDat
         if (id != vm.CategoryId) return NotFound();
         if (ModelState.IsValid)
         {
-            var category = await categoryDataManager.GetByIdAsync(id);
-            if (category == null) return NotFound();
-            category.CategoryName = vm.CategoryName;
-            await categoryDataManager.UpdateAsync(category);
-            return RedirectToAction(nameof(Index));
+            if (await categoryDataManager.ExistsByNameAsync(vm.CategoryName, vm.CategoryId))
+            {
+                ModelState.AddModelError(nameof(vm.CategoryName), "A category with this name already exists.");
+            }
+            else
+            {
+                var category = await categoryDataManager.GetByIdAsync(id);
+                if (category == null) return NotFound();
+                category.CategoryName = vm.CategoryName;
+                await categoryDataManager.UpdateAsync(category);
+                return RedirectToAction(nameof(Index));
+            }
         }
         return View(vm);
     }
@@ -126,6 +139,8 @@ public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDat
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         if (string.IsNullOrWhiteSpace(request.CategoryName))
             return Json(new { success = false, errors = new { categoryName = CategoryNameRequired } });
+        if (await categoryDataManager.ExistsByNameAsync(request.CategoryName, request.CategoryId))
+            return Json(new { success = false, errors = new { categoryName = CategoryNameDuplicate } });
 
         var category = await categoryDataManager.GetByIdAsync(request.CategoryId);
         if (category == null)
@@ -133,6 +148,7 @@ public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDat
 
         category.CategoryName = request.CategoryName;
         await categoryDataManager.UpdateAsync(category);
+        await audit.LogAsync("ExpenseCategory", request.CategoryId.ToString(CultureInfo.InvariantCulture), "Update", null, System.Text.Json.JsonSerializer.Serialize(category), User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         return Json(new { success = true });
     }
 
@@ -153,14 +169,13 @@ public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDat
         if (!ModelState.IsValid)
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         var category = await categoryDataManager.GetByIdAsync(request.Id);
-        if (category != null)
-        {
-            var inUse = await categoryDataManager.IsReferencedAsync(request.Id);
-            if (inUse)
-                return Json(new { success = false, errors = new { general = CategoryInUse } });
-            await categoryDataManager.DeleteAsync(request.Id);
-            await audit.LogAsync("ExpenseCategory", request.Id.ToString(CultureInfo.InvariantCulture), DeleteAction, category.CategoryName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
-        }
+        if (category == null)
+            return Json(new { success = false, errors = new { general = CategoryNotFound } });
+        var inUse = await categoryDataManager.IsReferencedAsync(request.Id);
+        if (inUse)
+            return Json(new { success = false, errors = new { general = CategoryInUse } });
+        await categoryDataManager.DeleteAsync(request.Id);
+        await audit.LogAsync("ExpenseCategory", request.Id.ToString(CultureInfo.InvariantCulture), DeleteAction, category.CategoryName, null, User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
         return Json(new { success = true });
     }
 }

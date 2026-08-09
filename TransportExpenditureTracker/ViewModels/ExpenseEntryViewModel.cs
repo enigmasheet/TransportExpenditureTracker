@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using TransportExpenditureTracker.Validation;
 
 namespace TransportExpenditureTracker.ViewModels;
@@ -67,6 +68,20 @@ public class ExpenseEntryViewModel : IValidatableObject
 
         if (Details is not null)
         {
+            var itemIds = Details.Where(d => d.ItemId > 0).Select(d => d.ItemId).Distinct().ToList();
+            Dictionary<int, string> itemNames = [];
+            if (itemIds.Count > 0)
+            {
+                var db = validationContext.GetService(typeof(Data.ApplicationDbContext)) as Data.ApplicationDbContext;
+                itemNames = db is null
+                    ? []
+                    : db.Items.AsNoTracking()
+                        .Where(i => itemIds.Contains(i.ItemId))
+                        .Select(i => new { i.ItemId, i.ItemName })
+                        .ToList()
+                        .ToDictionary(i => i.ItemId, i => i.ItemName);
+            }
+
             for (int i = 0; i < Details.Count; i++)
             {
                 var d = Details[i];
@@ -99,13 +114,8 @@ public class ExpenseEntryViewModel : IValidatableObject
                         [nameof(Details)]);
                 }
 
-                if (string.IsNullOrWhiteSpace(d.ItemName))
-                {
-                    var db = validationContext.GetService(typeof(Data.ApplicationDbContext)) as Data.ApplicationDbContext;
-                    var item = db?.Items.Find(d.ItemId);
-                    if (item is not null)
-                        d.ItemName = item.ItemName;
-                }
+                if (string.IsNullOrWhiteSpace(d.ItemName) && itemNames.TryGetValue(d.ItemId, out var name))
+                    d.ItemName = name;
             }
         }
     }

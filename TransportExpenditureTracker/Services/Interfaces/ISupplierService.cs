@@ -9,5 +9,4 @@ public interface ISupplierService
     Task AddAsync(SupplierViewModel vm);
     Task UpdateAsync(SupplierViewModel vm);
     Task DeleteAsync(int id);
-    Task<List<SupplierViewModel>> SearchAsync(string term);
 }

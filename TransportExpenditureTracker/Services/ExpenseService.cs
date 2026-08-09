@@ -10,14 +10,11 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit, Interfaces.ICurrentUserService currentUser) : IExpenseService
+public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter, IAuditService audit) : IExpenseService
 {
-    private IQueryable<ExpenseHeader> ScopedQuery =>
-        currentUser.IsAdmin ? db.ExpenseHeaders : db.ExpenseHeaders.Where(h => h.UserId == currentUser.UserId);
-
     public async Task<List<ExpenseHeaderViewModel>> GetAllAsync()
     {
-        var headers = await ScopedQuery
+        var headers = await db.ExpenseHeaders
             .AsNoTracking()
             .Include(h => h.Supplier)
             .Include(h => h.Category)
@@ -32,7 +29,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
 
     public async Task<ExpenseEntryViewModel?> GetByIdAsync(int id)
     {
-        var header = await ScopedQuery
+        var header = await db.ExpenseHeaders
             .AsNoTracking()
             .Include(h => h.Supplier)
             .Include(h => h.Category)
@@ -44,50 +41,6 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
         return header is null ? null : converter.ToEntryViewModel(header);
     }
 
-    public async Task AddAsync(ExpenseEntryViewModel vm, string userId)
-    {
-        using var transaction = await db.Database.BeginTransactionAsync();
-        try
-        {
-            var header = new ExpenseHeader
-            {
-                InvoiceNo = vm.InvoiceNo,
-                Miti = vm.Miti,
-                EnglishDate = NepaliDateHelper.ParseNepaliDate(vm.Miti) ?? DateTime.UtcNow,
-                NepaliMonth = vm.NepaliMonth,
-                SupplierId = vm.SupplierId,
-                CategoryId = vm.CategoryId,
-                FiscalYearId = vm.FiscalYearId,
-                UserId = userId,
-                PaymentMethod = vm.PaymentMethod ?? string.Empty,
-                Remarks = vm.Remarks,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            db.ExpenseHeaders.Add(header);
-            await db.SaveChangesAsync();
-
-            if (vm.Details is not null)
-            {
-                foreach (var d in vm.Details)
-                {
-                    var detail = CreateDetail(header.ExpenseId, d);
-                    db.ExpenseDetails.Add(detail);
-                }
-            }
-
-            await db.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            await audit.LogAsync("ExpenseHeader", header.ExpenseId.ToString(CultureInfo.InvariantCulture), "Create", null, JsonSerializer.Serialize(vm), userId);
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-    }
-
     public async Task<bool> UpdateAsync(ExpenseEntryViewModel vm, string userId)
     {
         var existing = await db.ExpenseHeaders
@@ -95,8 +48,6 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
             .FirstOrDefaultAsync(h => h.ExpenseId == vm.ExpenseId);
 
         if (existing is null) return false;
-
-        if (!currentUser.IsAdmin && existing.UserId != userId) return false;
 
         var oldValues = JsonSerializer.Serialize(converter.ToEntryViewModel(existing));
 
@@ -148,8 +99,6 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
 
         if (existing is null) return false;
 
-        if (!currentUser.IsAdmin && existing.UserId != userId) return false;
-
         var oldValues = JsonSerializer.Serialize(converter.ToEntryViewModel(existing));
 
         db.ExpenseHeaders.Remove(existing);
@@ -161,7 +110,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
 
     public async Task<bool> IsDuplicateInvoiceAsync(string invoiceNo, int supplierId, int fiscalYearId, int? excludeId = null)
     {
-        var query = ScopedQuery
+        var query = db.ExpenseHeaders
             .Where(h => h.InvoiceNo == invoiceNo && h.SupplierId == supplierId && h.FiscalYearId == fiscalYearId);
         if (excludeId.HasValue)
             query = query.Where(h => h.ExpenseId != excludeId.Value);
@@ -201,7 +150,6 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                     SupplierId = supplier.SupplierId,
                     CategoryId = defaultCategoryId,
                     PaymentMethod = "Cash",
-                    UserId = userId,
                     CreatedAt = DateTime.UtcNow
                 };
                 db.ExpenseHeaders.Add(header);
@@ -230,6 +178,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
     {
         using var transaction = await db.Database.BeginTransactionAsync();
         var summary = new ImportSummaryViewModel();
+        var inserted = 0;
 
         var allFiscalYears = await db.FiscalYears.ToListAsync();
 
@@ -251,6 +200,14 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                     {
                         summary.Skipped++;
                         summary.SkippedReasons.Add($"Row {row.RowIndex}: Could not determine fiscal year from Miti");
+                        continue;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(row.InvoiceNo) &&
+                        await IsDuplicateInvoiceAsync(row.InvoiceNo, row.SupplierId, fiscalYear.Id))
+                    {
+                        summary.Skipped++;
+                        summary.SkippedReasons.Add($"Row {row.RowIndex}: Invoice '{row.InvoiceNo}' already exists for this supplier and fiscal year");
                         continue;
                     }
 
@@ -286,7 +243,6 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                         SupplierId = row.SupplierId,
                         CategoryId = row.CategoryId ?? await GetDefaultCategoryIdAsync(),
                         PaymentMethod = row.PaymentMethod ?? "Cash",
-                        UserId = userId,
                         CreatedAt = DateTime.UtcNow
                     };
                     db.ExpenseHeaders.Add(header);
@@ -305,7 +261,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
                     db.ExpenseDetails.Add(detail);
                     await db.SaveChangesAsync();
 
-                    summary.Inserted++;
+                    inserted++;
                 }
                 catch (Exception ex)
                 {
@@ -315,9 +271,18 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
             }
 
             if (summary.Errors == 0)
+            {
                 await transaction.CommitAsync();
+                summary.Inserted = inserted;
+            }
             else
+            {
                 await transaction.RollbackAsync();
+                summary.Inserted = 0;
+                summary.Skipped = 0;
+                summary.SkippedReasons.Clear();
+                summary.SkippedReasons.Add("No rows were saved because one or more rows had errors. Fix the errors and try again.");
+            }
         }
         catch
         {

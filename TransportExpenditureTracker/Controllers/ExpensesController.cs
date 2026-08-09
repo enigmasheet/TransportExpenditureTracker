@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using System.Text.Json;
-using TransportExpenditureTracker.Converters;
 using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Helper;
 using TransportExpenditureTracker.Services.Interfaces;
@@ -11,7 +10,7 @@ using TransportExpenditureTracker.ViewModels;
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize]
-public partial class ExpensesController(IExpenseService expenseService, ICsvImportService csvImportService, IExpenseDataManager expenseDataManager, ExpenseConverter expenseConverter, ILogger<ExpensesController> logger) : Controller
+public partial class ExpensesController(IExpenseService expenseService, ICsvImportService csvImportService, IExpenseDataManager expenseDataManager, ILogger<ExpensesController> logger) : Controller
 {
     private const string CtlDashboard = "Dashboard";
     private const string ExpensesLabel = "Expenses";
@@ -164,18 +163,6 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
     }
 
     [HttpGet]
-    public async Task<IActionResult> Search(string term)
-    {
-        if (string.IsNullOrWhiteSpace(term))
-        {
-            var all = await expenseService.GetAllAsync();
-            return PartialView("_SearchResults", all);
-        }
-        var results = await expenseDataManager.SearchAsync(term);
-        var vms = results.Select(e => expenseConverter.ToHeaderViewModel(e)).ToList();
-        return PartialView("_SearchResults", vms);
-    }
-
     public IActionResult Import()
     {
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ExpensesLabel, Url.Action(nameof(Index))), ("Import", null));

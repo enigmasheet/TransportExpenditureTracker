@@ -69,6 +69,10 @@ const ModalForm = {
             });
         });
 
+        $('#' + modalId).on('hidden.bs.modal', function () {
+            $('#' + formId)[0].reset();
+        });
+
         $(document).on('submit', '#' + formId, function (e) {
             e.preventDefault();
             const $form = $(this);

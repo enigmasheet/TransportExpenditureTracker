@@ -18,6 +18,7 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
     private const string EntityName = "Supplier";
     private const string LogLevelInfo = "Information";
     private static readonly string[] SupplierNameRequired = ["Supplier name is required."];
+    private static readonly string[] SupplierNameDuplicate = ["A supplier with this name already exists."];
     private static readonly string[] SupplierNotFound = ["Supplier not found."];
     private static readonly string[] SupplierReferenced = ["Cannot delete: supplier is referenced in existing expense records."];
 
@@ -44,6 +45,10 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
     {
         if (ModelState.IsValid)
         {
+            if (await supplierDataManager.ExistsByNameAsync(vm.SupplierName))
+            {
+                return Json(new { success = false, errors = new { supplierName = SupplierNameDuplicate } });
+            }
             await supplierService.AddAsync(vm);
             await audit.LogAsync(EntityName, "0", "Create", null, JsonSerializer.Serialize(vm), CurrentUserId, $"Created supplier '{vm.SupplierName}'", LogLevelInfo, null);
             return Json(new { success = true });
@@ -66,9 +71,16 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
         if (id != vm.SupplierId) return NotFound();
         if (ModelState.IsValid)
         {
-            await supplierService.UpdateAsync(vm);
-            await audit.LogAsync(EntityName, id.ToString(CultureInfo.InvariantCulture), "Update", null, JsonSerializer.Serialize(vm), CurrentUserId, $"Updated supplier '{vm.SupplierName}'", LogLevelInfo, null);
-            return RedirectToAction(nameof(Index));
+            if (await supplierDataManager.ExistsByNameAsync(vm.SupplierName, vm.SupplierId))
+            {
+                ModelState.AddModelError(nameof(vm.SupplierName), "A supplier with this name already exists.");
+            }
+            else
+            {
+                await supplierService.UpdateAsync(vm);
+                await audit.LogAsync(EntityName, id.ToString(CultureInfo.InvariantCulture), "Update", null, JsonSerializer.Serialize(vm), CurrentUserId, $"Updated supplier '{vm.SupplierName}'", LogLevelInfo, null);
+                return RedirectToAction(nameof(Index));
+            }
         }
         return View(vm);
     }
@@ -81,6 +93,7 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         if (!ModelState.IsValid)
@@ -105,25 +118,6 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
         return RedirectToAction(nameof(Index));
     }
 
-    [HttpGet]
-    public async Task<IActionResult> Search(string term)
-    {
-        var results = await supplierService.SearchAsync(term);
-        return PartialView("_SearchResults", results);
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> SearchJson(string term)
-    {
-        var results = await supplierService.SearchAsync(term);
-        var data = results.Select(s => new
-        {
-            id = s.SupplierId,
-            text = $"{s.SupplierName}{(string.IsNullOrEmpty(s.VatNo) ? "" : $" [{s.VatNo}]")}"
-        });
-        return Json(new { results = data });
-    }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuickCreate([FromBody] QuickSupplierRequest request)
@@ -132,6 +126,8 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         if (string.IsNullOrWhiteSpace(request.SupplierName))
             return Json(new { success = false, errors = new { supplierName = SupplierNameRequired } });
+        if (await supplierDataManager.ExistsByNameAsync(request.SupplierName))
+            return Json(new { success = false, errors = new { supplierName = SupplierNameDuplicate } });
 
         var supplier = new Supplier
         {
@@ -161,6 +157,8 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
             return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
         if (string.IsNullOrWhiteSpace(request.SupplierName))
             return Json(new { success = false, errors = new { supplierName = SupplierNameRequired } });
+        if (await supplierDataManager.ExistsByNameAsync(request.SupplierName, request.SupplierId))
+            return Json(new { success = false, errors = new { supplierName = SupplierNameDuplicate } });
 
         var supplier = await supplierDataManager.GetByIdAsync(request.SupplierId);
         if (supplier == null)
@@ -175,6 +173,7 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetDeleteInfo(int id)
     {
         if (!ModelState.IsValid) return NotFound();
@@ -185,6 +184,7 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> QuickDelete([FromBody] QuickDeleteRequest request)
     {
         if (!ModelState.IsValid)

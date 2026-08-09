@@ -7,9 +7,9 @@ using static TransportExpenditureTracker.Models.ExportJobStatus;
 
 namespace TransportExpenditureTracker.Services;
 
-public class ExportJobService(ApplicationDbContext db, TransportExpenditureTracker.Services.Interfaces.ICurrentUserService currentUser) : IExportJobService
+public class ExportJobService(ApplicationDbContext db) : IExportJobService
 {
-    public async Task<int> EnqueueAsync(string format, string reportType, string? filterJson, string recipientEmail, string userId)
+    public async Task<int> EnqueueAsync(string format, string reportType, string? filterJson, string recipientEmail)
     {
         var job = new ExportQueue
         {
@@ -17,7 +17,6 @@ public class ExportJobService(ApplicationDbContext db, TransportExpenditureTrack
             ReportType = reportType,
             FilterJson = filterJson,
             RecipientEmail = recipientEmail,
-            UserId = userId,
             Status = Pending,
             RequestedAt = DateTime.UtcNow
         };
@@ -50,11 +49,7 @@ public class ExportJobService(ApplicationDbContext db, TransportExpenditureTrack
 
     public async Task<List<ExportQueueViewModel>> GetAllAsync()
     {
-        var query = db.ExportQueues.AsNoTracking();
-        if (!currentUser.IsAdmin)
-            query = query.Where(j => j.UserId == currentUser.UserId);
-
-        return await query
+        return await db.ExportQueues.AsNoTracking()
             .OrderByDescending(j => j.RequestedAt)
             .Select(j => new ExportQueueViewModel
             {

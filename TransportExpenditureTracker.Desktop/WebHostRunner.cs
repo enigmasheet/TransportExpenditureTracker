@@ -11,32 +11,62 @@ public class WebHostRunner
 
     public async Task<int> StartAsync()
     {
-        var port = GetRandomPort();
-
-        var dbFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "TransportExpenditureTracker");
-
-        Directory.CreateDirectory(dbFolder);
-
-        var dbPath = Path.Combine(dbFolder, "ExpenseTracker.db");
-        var connectionString = $"Data Source={dbPath}";
-
-        _app = WebAppBuilder.Build([], connectionString);
-
-        _app.Urls.Clear();
-        _app.Urls.Add($"http://127.0.0.1:{port}");
-
-        await _app.StartAsync();
+        var port = await StartWithRetryAsync();
         return port;
+    }
+
+    private async Task<int> StartWithRetryAsync()
+    {
+        const int maxAttempts = 10;
+        Exception? lastError = null;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            var port = GetRandomPort();
+            var dbFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TransportExpenditureTracker");
+
+            Directory.CreateDirectory(dbFolder);
+
+            var dbPath = Path.Combine(dbFolder, "ExpenseTracker.db");
+            var connectionString = $"Data Source={dbPath}";
+
+            var app = WebAppBuilder.Build([], connectionString, localOnly: true);
+            app.Urls.Clear();
+            app.Urls.Add($"http://127.0.0.1:{port}");
+
+            try
+            {
+                await app.StartAsync();
+                _app = app;
+                return port;
+            }
+            catch (IOException ex)
+            {
+                lastError = ex;
+                await app.DisposeAsync();
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Failed to bind to a local port after {maxAttempts} attempts.",
+            lastError);
     }
 
     public async Task StopAsync()
     {
         if (_app is null) return;
-        await _app.StopAsync();
-        await _app.DisposeAsync();
-        await Log.CloseAndFlushAsync();
+        try
+        {
+            await _app.StopAsync();
+            await _app.DisposeAsync();
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
+            _app = null;
+        }
     }
 
     private static int GetRandomPort()

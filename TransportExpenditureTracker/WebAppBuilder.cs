@@ -15,7 +15,7 @@ namespace TransportExpenditureTracker;
 
 public static class WebAppBuilder
 {
-    public static WebApplication Build(string[] args, string? connectionString = null)
+    public static WebApplication Build(string[] args, string? connectionString = null, bool localOnly = false)
     {
         var logFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -57,7 +57,6 @@ public static class WebAppBuilder
             });
 
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
             builder.Services.AddScoped<ISupplierService, SupplierService>();
             builder.Services.AddScoped<IExpenseService, ExpenseService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -84,8 +83,18 @@ public static class WebAppBuilder
             builder.Services.AddHostedService<ExportBackgroundJob>();
 
             builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
-            builder.Services.AddControllersWithViews().AddApplicationPart(typeof(WebAppBuilder).Assembly);
+            builder.Services.AddControllersWithViews()
+                .AddApplicationPart(typeof(WebAppBuilder).Assembly)
+                .AddSessionStateTempDataProvider();
             builder.Services.AddRazorPages();
+
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
 
             builder.Services.AddAuthorizationBuilder()
                 .AddPolicy("RequireSuperAdminRole", policy => policy.RequireRole("SuperAdmin"));
@@ -108,8 +117,13 @@ public static class WebAppBuilder
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            if (!localOnly)
+            {
+                app.UseHttpsRedirection();
+            }
+
             app.UseRouting();
+            app.UseSession();
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapStaticAssets();

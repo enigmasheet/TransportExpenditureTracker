@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Globalization;
-using System.Security.Claims;
 using System.Text.Json;
 using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Helper;
@@ -21,12 +20,6 @@ public class ReportsController(
     private const string CtlDashboard = "Dashboard";
     private const string ReportsLabel = "Reports";
     private const string HomeLabel = "Home";
-
-    private void ApplyUserScope(ReportFilterViewModel filters)
-    {
-        if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
-            filters.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
-    }
 
     private async Task LoadDropdowns(ReportFilterViewModel? filters = null)
     {
@@ -52,7 +45,6 @@ public class ReportsController(
     public async Task<IActionResult> Daily(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Daily", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -63,7 +55,6 @@ public class ReportsController(
     public async Task<IActionResult> Monthly(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Monthly", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -74,7 +65,6 @@ public class ReportsController(
     public async Task<IActionResult> FiscalYear(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Fiscal Year", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -85,7 +75,6 @@ public class ReportsController(
     public async Task<IActionResult> SupplierWise(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Supplier-wise", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -96,7 +85,6 @@ public class ReportsController(
     public async Task<IActionResult> CategoryWise(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Category-wise", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -107,7 +95,6 @@ public class ReportsController(
     public async Task<IActionResult> ItemWise(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Item-wise", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -118,7 +105,6 @@ public class ReportsController(
     public async Task<IActionResult> VatPaid(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("VAT Paid", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -129,7 +115,6 @@ public class ReportsController(
     public async Task<IActionResult> PaymentMethod(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Payment Method", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -140,7 +125,6 @@ public class ReportsController(
     public async Task<IActionResult> LocationWise(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Location-wise", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -151,7 +135,6 @@ public class ReportsController(
     public async Task<IActionResult> DetailedLedger(ReportFilterViewModel filters)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
         this.SetBreadcrumbs((HomeLabel, Url.Action(nameof(Index), CtlDashboard)), (ReportsLabel, null), ("Detailed Ledger", null));
         await LoadDropdowns(filters);
         ViewBag.Filter = filters;
@@ -162,7 +145,6 @@ public class ReportsController(
     public async Task<IActionResult> Export(string format, string reportType, ReportFilterViewModel filters, string action)
     {
         if (!ModelState.IsValid) return BadRequest();
-        ApplyUserScope(filters);
 
         if (action == "Download")
         {
@@ -195,9 +177,8 @@ public class ReportsController(
 else
         {
             var email = User.Identity?.Name ?? "";
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
             var filterJson = JsonSerializer.Serialize(filters);
-            await exportJobService.EnqueueAsync(format, reportType, filterJson, email, userId);
+            await exportJobService.EnqueueAsync(format, reportType, filterJson, email);
             TempData["Message"] = "Export job has been queued. You will receive an email once completed.";
             return RedirectToAction(reportType, filters);
         }
