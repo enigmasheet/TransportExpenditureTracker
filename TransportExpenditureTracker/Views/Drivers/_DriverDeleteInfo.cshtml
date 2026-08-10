@@ -1,0 +1,6 @@
+@model DriverViewModel
+<input type="hidden" name="Id" value="@Model.DriverId" />
+<p><strong>Name:</strong> @Model.Name</p>
+<p><strong>License No:</strong> @(string.IsNullOrEmpty(Model.LicenseNumber) ? "—" : Model.LicenseNumber)</p>
+<p><strong>Phone:</strong> @(string.IsNullOrEmpty(Model.Phone) ? "—" : Model.Phone)</p>
+<p><strong>Assigned Vehicles:</strong> @Model.VehicleCount</p>

@@ -14,7 +14,15 @@ public class ExpenseDataManager(ApplicationDbContext db) : IExpenseDataManager
 
     public async Task<List<Supplier>> GetSuppliersAsync()
     {
-        return await db.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
+        return await db.Suppliers.AsNoTracking().Where(s => !s.IsDeleted).OrderBy(s => s.SupplierName).ToListAsync();
+    }
+
+    public async Task<List<PaymentMethod>> GetPaymentMethodsAsync()
+    {
+        return await db.PaymentMethods.AsNoTracking()
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.SortOrder).ThenBy(p => p.Name)
+            .ToListAsync();
     }
 
     public async Task<List<ExpenseCategory>> GetCategoriesAsync()

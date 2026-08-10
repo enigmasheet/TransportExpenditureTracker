@@ -12,7 +12,9 @@ public class SupplierConverter
             SupplierId = s.SupplierId,
             SupplierName = s.SupplierName,
             Location = s.Location,
-            VatNo = s.VatNo
+            VatNo = s.VatNo,
+            IsFuelSupplier = s.IsFuelSupplier,
+            IsActive = s.IsActive
         };
     }
 
@@ -22,7 +24,9 @@ public class SupplierConverter
         {
             SupplierName = vm.SupplierName,
             Location = vm.Location,
-            VatNo = vm.VatNo
+            VatNo = vm.VatNo,
+            IsFuelSupplier = vm.IsFuelSupplier,
+            IsActive = vm.IsActive
         };
     }
 
@@ -31,5 +35,7 @@ public class SupplierConverter
         existing.SupplierName = vm.SupplierName;
         existing.Location = vm.Location;
         existing.VatNo = vm.VatNo;
+        existing.IsFuelSupplier = vm.IsFuelSupplier;
+        existing.IsActive = vm.IsActive;
     }
 }

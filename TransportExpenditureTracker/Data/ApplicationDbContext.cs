@@ -15,6 +15,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ExportQueue> ExportQueues => Set<ExportQueue>();
     public DbSet<Company> Companies => Set<Company>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<Driver> Drivers => Set<Driver>();
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -95,5 +98,25 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.Property(c => c.DefaultVatRate).HasColumnType("decimal(18,4)");
         });
+
+        builder.Entity<Vehicle>()
+            .HasIndex(v => v.VehicleNumber)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        builder.Entity<Vehicle>()
+            .HasOne(v => v.AssignedDriver)
+            .WithMany()
+            .HasForeignKey(v => v.AssignedDriverId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Driver>()
+            .HasIndex(d => d.Name)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        builder.Entity<PaymentMethod>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
     }
 }

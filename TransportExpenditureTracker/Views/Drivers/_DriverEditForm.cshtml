@@ -1,0 +1,3 @@
+@model DriverViewModel
+<input type="hidden" asp-for="DriverId" />
+@await Html.PartialAsync("_DriverForm.cshtml", Model)

@@ -41,7 +41,7 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
         DropdownHelper.LoadSuppliers(suppliers, ViewData);
         var categories = await expenseDataManager.GetCategoriesAsync();
         DropdownHelper.LoadCategories(categories, ViewData);
-        DropdownHelper.LoadPaymentMethods(ViewData);
+        DropdownHelper.LoadPaymentMethods(await expenseDataManager.GetPaymentMethodsAsync(), ViewData);
         var items = await expenseDataManager.GetItemsAsync();
         DropdownHelper.LoadItems(items, ViewData);
 
@@ -96,7 +96,7 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
         DropdownHelper.LoadSuppliers(suppliers, ViewData, entryVm.SupplierId);
         var categories = await expenseDataManager.GetCategoriesAsync();
         DropdownHelper.LoadCategories(categories, ViewData, entryVm.CategoryId);
-        DropdownHelper.LoadPaymentMethods(ViewData);
+        DropdownHelper.LoadPaymentMethods(await expenseDataManager.GetPaymentMethodsAsync(), ViewData);
         var items = await expenseDataManager.GetItemsAsync();
         DropdownHelper.LoadItems(items, ViewData);
         return View(entryVm);
@@ -131,7 +131,7 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
         DropdownHelper.LoadSuppliers(suppliers, ViewData, vm.SupplierId);
         var categories = await expenseDataManager.GetCategoriesAsync();
         DropdownHelper.LoadCategories(categories, ViewData, vm.CategoryId);
-        DropdownHelper.LoadPaymentMethods(ViewData);
+        DropdownHelper.LoadPaymentMethods(await expenseDataManager.GetPaymentMethodsAsync(), ViewData);
         var items = await expenseDataManager.GetItemsAsync();
         DropdownHelper.LoadItems(items, ViewData);
         return View(vm);

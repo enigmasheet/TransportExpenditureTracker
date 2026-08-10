@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TransportExpenditureTracker.Models;
+using TransportExpenditureTracker.Options;
 
 namespace TransportExpenditureTracker.Data.Seed;
 
@@ -12,9 +14,6 @@ public static class AppDbInitializer
     private static readonly Action<ILogger, string, string, Exception?> LogSuperAdminFailed =
         LoggerMessage.Define<string, string>(LogLevel.Warning, EventIds.SuperAdminFailed, "Failed to create SuperAdmin user '{Email}': {Errors}");
 
-    private static readonly Action<ILogger, Exception?> LogSuperAdminNotConfigured =
-        LoggerMessage.Define(LogLevel.Warning, EventIds.SuperAdminNotConfigured, "SuperAdmin credentials not configured. Set SuperAdmin:Email and SuperAdmin:Password in configuration (appsettings, user secrets, or env vars).");
-
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
@@ -22,7 +21,7 @@ public static class AppDbInitializer
         var context = sp.GetRequiredService<ApplicationDbContext>();
         var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = sp.GetRequiredService<RoleManager<IdentityRole>>();
-        var config = sp.GetRequiredService<IConfiguration>();
+        var options = sp.GetRequiredService<IOptions<SuperAdminOptions>>().Value;
         var logger = sp.GetRequiredService<ILogger<ApplicationDbContext>>();
 
         await context.Database.MigrateAsync();
@@ -36,37 +35,26 @@ public static class AppDbInitializer
             }
         }
 
-        var adminSection = config.GetSection("SuperAdmin");
-        var adminEmail = adminSection["Email"];
-        var adminPassword = adminSection["Password"];
-
-        if (!string.IsNullOrEmpty(adminEmail) && !string.IsNullOrEmpty(adminPassword))
+        if (await userManager.FindByEmailAsync(options.Email) == null)
         {
-            if (await userManager.FindByEmailAsync(adminEmail) == null)
+            var appUser = new ApplicationUser
             {
-                var appUser = new ApplicationUser
-                {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    FullName = adminSection["FullName"] ?? "Super Admin",
-                    EmailConfirmed = true
-                };
-                var result = await userManager.CreateAsync(appUser, adminPassword);
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(appUser, "SuperAdmin");
-                    await userManager.AddToRoleAsync(appUser, "Admin");
-                    LogSuperAdminCreated(logger, adminEmail, null);
-                }
-                else
-                {
-                    LogSuperAdminFailed(logger, adminEmail, string.Join(", ", result.Errors.Select(e => e.Description)), null);
-                }
+                UserName = options.Email,
+                Email = options.Email,
+                FullName = options.FullName,
+                EmailConfirmed = true
+            };
+            var result = await userManager.CreateAsync(appUser, options.Password);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(appUser, "SuperAdmin");
+                await userManager.AddToRoleAsync(appUser, "Admin");
+                LogSuperAdminCreated(logger, options.Email, null);
             }
-        }
-        else
-        {
-            LogSuperAdminNotConfigured(logger, null);
+            else
+            {
+                LogSuperAdminFailed(logger, options.Email, string.Join(", ", result.Errors.Select(e => e.Description)), null);
+            }
         }
 
         if (!await context.FiscalYears.AnyAsync())
@@ -121,6 +109,20 @@ public static class AppDbInitializer
                 new Item { ItemName = "Cleaning", Unit = "" },
                 new Item { ItemName = "Servicing", Unit = "" },
                 new Item { ItemName = "Maintenance", Unit = "" }
+            );
+            await context.SaveChangesAsync();
+        }
+
+        if (!await context.PaymentMethods.AnyAsync())
+        {
+            context.PaymentMethods.AddRange(
+                new PaymentMethod { Name = "Cash", SortOrder = 1 },
+                new PaymentMethod { Name = "Bank", SortOrder = 2 },
+                new PaymentMethod { Name = "Cheque", SortOrder = 3 },
+                new PaymentMethod { Name = "eSewa", SortOrder = 4 },
+                new PaymentMethod { Name = "Khalti", SortOrder = 5 },
+                new PaymentMethod { Name = "Mobile Banking", SortOrder = 6 },
+                new PaymentMethod { Name = "Other", SortOrder = 7 }
             );
             await context.SaveChangesAsync();
         }

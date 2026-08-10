@@ -23,15 +23,14 @@ public static class DropdownHelper
         vd["NepaliMonths"] = new SelectList(NepaliDateHelper.NepaliMonthNames);
     }
 
-    public static void LoadPaymentMethods(ViewDataDictionary vd)
+    public static void LoadPaymentMethods(List<PaymentMethod> paymentMethods, ViewDataDictionary vd, int? selected = null)
     {
-        var methods = new List<string> { "Cash", "Bank", "Cheque", "eSewa", "Khalti" };
-        vd["PaymentMethods"] = new SelectList(methods);
+        vd["PaymentMethods"] = new SelectList(paymentMethods, "Name", "Name", selected);
     }
 
     public static void LoadSuppliers(ApplicationDbContext ctx, ViewDataDictionary vd, int? selected = null)
     {
-        var suppliers = ctx.Suppliers.OrderBy(s => s.SupplierName).ToList();
+        var suppliers = ctx.Suppliers.Where(s => !s.IsDeleted).OrderBy(s => s.SupplierName).ToList();
         vd["Suppliers"] = new SelectList(suppliers, "SupplierId", "SupplierName", selected);
     }
 

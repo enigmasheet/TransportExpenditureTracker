@@ -1,0 +1,45 @@
+@model DriverViewModel
+
+<div class="row g-2">
+    <div class="col-md-6">
+        <div class="mb-2">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" required />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-2">
+            <label asp-for="LicenseNumber" class="form-label"></label>
+            <input asp-for="LicenseNumber" class="form-control" />
+            <span asp-validation-for="LicenseNumber" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-2">
+            <label asp-for="Phone" class="form-label"></label>
+            <input asp-for="Phone" class="form-control" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-2">
+            <label asp-for="HireDate" class="form-label"></label>
+            <input asp-for="HireDate" class="form-control" type="date" />
+            <span asp-validation-for="HireDate" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="mb-2">
+            <label asp-for="Address" class="form-label"></label>
+            <input asp-for="Address" class="form-control" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <div class="form-check mb-2">
+            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+        </div>
+    </div>
+</div>

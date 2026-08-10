@@ -313,7 +313,7 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
 
     private async Task<Supplier?> ResolveSupplierAsync(CsvRowViewModel row, bool autoCreate, ImportSummaryViewModel summary)
     {
-        var supplier = await db.Suppliers.FirstOrDefaultAsync(s => s.SupplierName == row.SupplierName);
+        var supplier = await db.Suppliers.FirstOrDefaultAsync(s => s.SupplierName == row.SupplierName && !s.IsDeleted);
         if (supplier is null)
         {
             if (autoCreate)

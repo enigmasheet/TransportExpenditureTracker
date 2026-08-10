@@ -1,0 +1,105 @@
+@model List<DriverViewModel>
+@{
+    ViewData["Title"] = "Drivers";
+}
+
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-person-badge"></i> @ViewData["Title"]</h4>
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createDriverModal"><i class="bi bi-plus-lg"></i> Add Driver</button>
+</div>
+
+<div class="table-container">
+    <table class="table table-sm table-bordered" id="drivers-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>License No</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Hire Date</th>
+                <th class="text-center">Vehicles</th>
+                <th class="text-center">Status</th>
+                <th style="width:120px">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Name</td>
+                    <td>@(string.IsNullOrEmpty(item.LicenseNumber) ? "—" : item.LicenseNumber)</td>
+                    <td>@(string.IsNullOrEmpty(item.Phone) ? "—" : item.Phone)</td>
+                    <td>@(string.IsNullOrEmpty(item.Address) ? "—" : item.Address)</td>
+                    <td>@(item.HireDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                    <td class="text-center">@item.VehicleCount</td>
+                    <td class="text-center">
+                        @if (item.IsActive)
+                        {
+                            <span class="badge text-bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-outline-primary btn-icon" title="Edit" data-bs-toggle="modal" data-bs-target="#editDriverModal" data-id="@item.DriverId"><i class="bi bi-pencil"></i></button>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <button type="button" class="btn btn-outline-danger btn-icon" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteDriverModal" data-id="@item.DriverId"><i class="bi bi-trash"></i></button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <i class="bi bi-person-badge"></i>
+            <h6>No drivers found</h6>
+            <p>Add a driver to get started.</p>
+        </div>
+    }
+</div>
+
+@{
+    Func<object, object> createBody = @<text>@await Html.PartialAsync("~/Views/Drivers/_DriverForm.cshtml", new DriverViewModel())</text>;
+    Func<object, object> spinnerBody = @<text><div class="text-center py-3"><output class="spinner-border"></output></div></text>;
+}
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "createDriverModal", FormId = "createDriverForm", Title = "<i class='bi bi-plus-lg text-primary'></i> Add Driver", BodyContent = createBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "editDriverModal", FormId = "editDriverForm", Title = "<i class='bi bi-pencil text-warning'></i> Edit Driver", SubmitText = "Update", BodyContent = spinnerBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "deleteDriverModal", FormId = "deleteDriverForm", Title = "<i class='bi bi-trash text-danger'></i> Delete Driver", SubmitText = "Delete", SubmitIcon = "bi-trash", SubmitClass = "btn-danger", BodyContent = spinnerBody })
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#drivers-table').DataTable({
+                ordering: true,
+                pageLength: 25,
+                language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
+            });
+
+            ModalForm.initCreate({
+                modalId: 'createDriverModal',
+                formId: 'createDriverForm',
+                submitUrl: '@Url.Action("QuickCreate", "Drivers")'
+            });
+
+            ModalForm.initDynamic({
+                modalId: 'editDriverModal',
+                formId: 'editDriverForm',
+                loadUrl: '@Url.Action("GetForEdit", "Drivers")',
+                submitUrl: '@Url.Action("QuickUpdate", "Drivers")'
+            });
+
+            ModalForm.initDynamic({
+                modalId: 'deleteDriverModal',
+                formId: 'deleteDriverForm',
+                loadUrl: '@Url.Action("GetDeleteInfo", "Drivers")',
+                submitUrl: '@Url.Action("QuickDelete", "Drivers")'
+            });
+        });
+    </script>
+    <partial name="_ValidationScriptsPartial" />
+}

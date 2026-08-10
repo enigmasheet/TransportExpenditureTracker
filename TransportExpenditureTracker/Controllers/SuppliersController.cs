@@ -107,12 +107,6 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
             TempData["Error"] = "Supplier not found.";
             return RedirectToAction(nameof(Index));
         }
-        var inUse = await supplierDataManager.IsReferencedAsync(id);
-        if (inUse)
-        {
-            TempData["Error"] = "Cannot delete: supplier is referenced in existing expense records.";
-            return RedirectToAction(nameof(Index));
-        }
         await supplierService.DeleteAsync(id);
         await audit.LogAsync(EntityName, id.ToString(CultureInfo.InvariantCulture), "Delete", supplier.SupplierName, null, CurrentUserId, $"Deleted supplier '{supplier.SupplierName}'", "Warning", null);
         return RedirectToAction(nameof(Index));
@@ -133,7 +127,8 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
         {
             SupplierName = request.SupplierName,
             Location = request.Location,
-            VatNo = request.VatNo
+            VatNo = request.VatNo,
+            IsFuelSupplier = request.IsFuelSupplier
         };
         await supplierDataManager.AddAsync(supplier);
         await audit.LogAsync(EntityName, supplier.SupplierId.ToString(CultureInfo.InvariantCulture), "Create", null, JsonSerializer.Serialize(supplier), CurrentUserId, $"Quick-created supplier '{supplier.SupplierName}'", LogLevelInfo, null);
@@ -167,6 +162,7 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
         supplier.SupplierName = request.SupplierName;
         supplier.Location = request.Location;
         supplier.VatNo = request.VatNo;
+        supplier.IsFuelSupplier = request.IsFuelSupplier;
         await supplierDataManager.UpdateAsync(supplier);
         await audit.LogAsync(EntityName, request.SupplierId.ToString(CultureInfo.InvariantCulture), "Update", null, JsonSerializer.Serialize(supplier), CurrentUserId, $"Updated supplier '{supplier.SupplierName}'", LogLevelInfo, null);
         return Json(new { success = true });
@@ -192,9 +188,6 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
         var supplier = await supplierDataManager.GetByIdAsync(request.Id);
         if (supplier == null)
             return Json(new { success = false, errors = new { general = SupplierNotFound } });
-        var inUse = await supplierDataManager.IsReferencedAsync(request.Id);
-        if (inUse)
-            return Json(new { success = false, errors = new { general = SupplierReferenced } });
         await supplierDataManager.DeleteByIdAsync(request.Id);
         await audit.LogAsync(EntityName, request.Id.ToString(CultureInfo.InvariantCulture), "Delete", supplier.SupplierName, null, CurrentUserId, $"Quick-deleted supplier '{supplier.SupplierName}'", "Warning", null);
         return Json(new { success = true });

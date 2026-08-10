@@ -9,12 +9,20 @@ public class SupplierDataManager(ApplicationDbContext db) : ISupplierDataManager
 {
     public async Task<List<Supplier>> GetAllAsync()
     {
-        return await db.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
+        return await db.Suppliers.AsNoTracking().Where(s => !s.IsDeleted).OrderBy(s => s.SupplierName).ToListAsync();
+    }
+
+    public async Task<List<Supplier>> GetFuelSuppliersAsync()
+    {
+        return await db.Suppliers.AsNoTracking()
+            .Where(s => !s.IsDeleted && s.IsFuelSupplier)
+            .OrderBy(s => s.SupplierName)
+            .ToListAsync();
     }
 
     public async Task<Supplier?> GetByIdAsync(int id)
     {
-        return await db.Suppliers.FindAsync(id);
+        return await db.Suppliers.AsNoTracking().Where(s => !s.IsDeleted).SingleOrDefaultAsync(s => s.SupplierId == id);
     }
 
     public async Task<Supplier> AddAsync(Supplier supplier)
@@ -26,7 +34,7 @@ public class SupplierDataManager(ApplicationDbContext db) : ISupplierDataManager
 
     public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)
     {
-        var query = db.Suppliers.AsNoTracking().Where(s => string.Equals(s.SupplierName, name, StringComparison.OrdinalIgnoreCase));
+        var query = db.Suppliers.AsNoTracking().Where(s => !s.IsDeleted && string.Equals(s.SupplierName, name, StringComparison.OrdinalIgnoreCase));
         if (excludeId.HasValue)
             query = query.Where(s => s.SupplierId != excludeId.Value);
         return await query.AnyAsync();
@@ -34,6 +42,7 @@ public class SupplierDataManager(ApplicationDbContext db) : ISupplierDataManager
 
     public async Task UpdateAsync(Supplier supplier)
     {
+        supplier.UpdatedAt = DateTime.Now;
         db.Suppliers.Update(supplier);
         await db.SaveChangesAsync();
     }
@@ -43,14 +52,10 @@ public class SupplierDataManager(ApplicationDbContext db) : ISupplierDataManager
         var supplier = await db.Suppliers.FindAsync(id);
         if (supplier is not null)
         {
-            db.Suppliers.Remove(supplier);
+            supplier.IsDeleted = true;
+            supplier.UpdatedAt = DateTime.Now;
             await db.SaveChangesAsync();
         }
-    }
-
-    public async Task<bool> IsReferencedAsync(int id)
-    {
-        return await db.ExpenseHeaders.AnyAsync(h => h.SupplierId == id);
     }
 
     public async Task<Dictionary<int, int>> GetHeaderCountsAsync()

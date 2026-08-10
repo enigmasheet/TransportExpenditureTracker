@@ -2,22 +2,25 @@ using System.ComponentModel.DataAnnotations;
 
 namespace TransportExpenditureTracker.Models;
 
-public class Supplier
+public class Driver
 {
     [Key]
-    public int SupplierId { get; set; }
+    public int DriverId { get; set; }
 
     [Required]
     [MaxLength(100)]
-    public string SupplierName { get; set; } = null!;
-
-    [MaxLength(200)]
-    public string? Location { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     [MaxLength(50)]
-    public string? VatNo { get; set; }
+    public string? LicenseNumber { get; set; }
 
-    public bool IsFuelSupplier { get; set; }
+    [MaxLength(50)]
+    public string? Phone { get; set; }
+
+    [MaxLength(200)]
+    public string? Address { get; set; }
+
+    public DateTime? HireDate { get; set; }
 
     public bool IsActive { get; set; } = true;
 

@@ -6,6 +6,7 @@ public interface IExpenseDataManager
 {
     Task<List<FiscalYear>> GetFiscalYearsAsync();
     Task<List<Supplier>> GetSuppliersAsync();
+    Task<List<PaymentMethod>> GetPaymentMethodsAsync();
     Task<List<ExpenseCategory>> GetCategoriesAsync();
     Task<List<Item>> GetItemsAsync();
 }

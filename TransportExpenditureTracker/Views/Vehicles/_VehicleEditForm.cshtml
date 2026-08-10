@@ -1,0 +1,3 @@
+@model VehicleViewModel
+<input type="hidden" asp-for="VehicleId" />
+@await Html.PartialAsync("_VehicleForm.cshtml", Model)

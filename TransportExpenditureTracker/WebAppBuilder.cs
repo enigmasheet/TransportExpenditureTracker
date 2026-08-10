@@ -8,6 +8,7 @@ using TransportExpenditureTracker.Data.Seed;
 using TransportExpenditureTracker.DataManagers;
 using TransportExpenditureTracker.DataManagers.Interfaces;
 using TransportExpenditureTracker.Models;
+using TransportExpenditureTracker.Options;
 using TransportExpenditureTracker.Services;
 using TransportExpenditureTracker.Services.Interfaces;
 
@@ -56,8 +57,16 @@ public static class WebAppBuilder
                 options.AccessDeniedPath = "/Identity/Account/AccessDenied";
             });
 
+            builder.Services.AddOptions<SuperAdminOptions>()
+                .Bind(builder.Configuration.GetSection("SuperAdmin"))
+                .Validate(o => !string.IsNullOrWhiteSpace(o.Email) && !string.IsNullOrWhiteSpace(o.Password),
+                    "SuperAdmin:Email and SuperAdmin:Password must be configured.")
+                .ValidateOnStart();
+
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ISupplierService, SupplierService>();
+            builder.Services.AddScoped<IVehicleService, VehicleService>();
+            builder.Services.AddScoped<IDriverService, DriverService>();
             builder.Services.AddScoped<IExpenseService, ExpenseService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddScoped<IReportService, ReportService>();
@@ -72,11 +81,15 @@ public static class WebAppBuilder
             builder.Services.AddScoped<IItemDataManager, ItemDataManager>();
             builder.Services.AddScoped<IExpenseCategoryDataManager, ExpenseCategoryDataManager>();
             builder.Services.AddScoped<ISupplierDataManager, SupplierDataManager>();
+            builder.Services.AddScoped<IVehicleDataManager, VehicleDataManager>();
+            builder.Services.AddScoped<IDriverDataManager, DriverDataManager>();
             builder.Services.AddScoped<IExpenseDataManager, ExpenseDataManager>();
             builder.Services.AddScoped<IDashboardDataManager, DashboardDataManager>();
             builder.Services.AddScoped<IReportDataManager, ReportDataManager>();
 
             builder.Services.AddScoped<SupplierConverter>();
+            builder.Services.AddScoped<VehicleConverter>();
+            builder.Services.AddScoped<DriverConverter>();
             builder.Services.AddScoped<ExpenseConverter>();
             builder.Services.AddScoped<ItemConverter>();
             builder.Services.AddScoped<ExpenseCategoryConverter>();

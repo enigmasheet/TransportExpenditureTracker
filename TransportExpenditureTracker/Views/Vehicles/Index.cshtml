@@ -1,0 +1,103 @@
+@model List<VehicleViewModel>
+@{
+    ViewData["Title"] = "Vehicles";
+}
+
+<div class="section-title">
+    <h4 class="page-heading"><i class="bi bi-truck"></i> @ViewData["Title"]</h4>
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createVehicleModal"><i class="bi bi-plus-lg"></i> Add Vehicle</button>
+</div>
+
+<div class="table-container">
+    <table class="table table-sm table-bordered" id="vehicles-table">
+        <thead>
+            <tr>
+                <th>Vehicle No</th>
+                <th>Type</th>
+                <th>Make / Model</th>
+                <th>Year</th>
+                <th>Assigned Driver</th>
+                <th class="text-center">Status</th>
+                <th style="width:120px">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.VehicleNumber</td>
+                    <td>@item.Type</td>
+                    <td>@(string.IsNullOrEmpty(item.Make) ? "" : item.Make + " ")@item.Model</td>
+                    <td>@item.Year</td>
+                    <td>@(string.IsNullOrEmpty(item.DriverName) ? "—" : item.DriverName)</td>
+                    <td class="text-center">
+                        @if (item.IsActive)
+                        {
+                            <span class="badge text-bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-outline-primary btn-icon" title="Edit" data-bs-toggle="modal" data-bs-target="#editVehicleModal" data-id="@item.VehicleId"><i class="bi bi-pencil"></i></button>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <button type="button" class="btn btn-outline-danger btn-icon" title="Delete" data-bs-toggle="modal" data-bs-target="#deleteVehicleModal" data-id="@item.VehicleId"><i class="bi bi-trash"></i></button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <i class="bi bi-truck"></i>
+            <h6>No vehicles found</h6>
+            <p>Add a vehicle to get started.</p>
+        </div>
+    }
+</div>
+
+@{
+    Func<object, object> createBody = @<text>@await Html.PartialAsync("~/Views/Vehicles/_VehicleForm.cshtml", new VehicleViewModel())</text>;
+    Func<object, object> spinnerBody = @<text><div class="text-center py-3"><output class="spinner-border"></output></div></text>;
+}
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "createVehicleModal", FormId = "createVehicleForm", Title = "<i class='bi bi-plus-lg text-primary'></i> Add Vehicle", BodyContent = createBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "editVehicleModal", FormId = "editVehicleForm", Title = "<i class='bi bi-pencil text-warning'></i> Edit Vehicle", SubmitText = "Update", BodyContent = spinnerBody })
+@await Html.PartialAsync("_ModalForm", new ModalFormConfig { ModalId = "deleteVehicleModal", FormId = "deleteVehicleForm", Title = "<i class='bi bi-trash text-danger'></i> Delete Vehicle", SubmitText = "Delete", SubmitIcon = "bi-trash", SubmitClass = "btn-danger", BodyContent = spinnerBody })
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#vehicles-table').DataTable({
+                ordering: true,
+                pageLength: 25,
+                language: { search: "<i class='bi bi-search'></i> _INPUT_", searchPlaceholder: "Search..." }
+            });
+
+            ModalForm.initCreate({
+                modalId: 'createVehicleModal',
+                formId: 'createVehicleForm',
+                submitUrl: '@Url.Action("QuickCreate", "Vehicles")'
+            });
+
+            ModalForm.initDynamic({
+                modalId: 'editVehicleModal',
+                formId: 'editVehicleForm',
+                loadUrl: '@Url.Action("GetForEdit", "Vehicles")',
+                submitUrl: '@Url.Action("QuickUpdate", "Vehicles")'
+            });
+
+            ModalForm.initDynamic({
+                modalId: 'deleteVehicleModal',
+                formId: 'deleteVehicleForm',
+                loadUrl: '@Url.Action("GetDeleteInfo", "Vehicles")',
+                submitUrl: '@Url.Action("QuickDelete", "Vehicles")'
+            });
+        });
+    </script>
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,6 @@
+@model VehicleViewModel
+<input type="hidden" name="Id" value="@Model.VehicleId" />
+<p><strong>Vehicle No:</strong> @Model.VehicleNumber</p>
+<p><strong>Type:</strong> @(string.IsNullOrEmpty(Model.Type) ? "—" : Model.Type)</p>
+<p><strong>Make / Model:</strong> @(string.IsNullOrEmpty(Model.Make) ? "—" : Model.Make + " " + Model.Model)</p>
+<p><strong>Assigned Driver:</strong> @(string.IsNullOrEmpty(Model.DriverName) ? "—" : Model.DriverName)</p>
