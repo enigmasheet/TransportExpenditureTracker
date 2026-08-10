@@ -132,6 +132,5 @@ public static class AppDbInitializer
     {
         public static readonly EventId SuperAdminCreated = new(1, nameof(SuperAdminCreated));
         public static readonly EventId SuperAdminFailed = new(2, nameof(SuperAdminFailed));
-        public static readonly EventId SuperAdminNotConfigured = new(3, nameof(SuperAdminNotConfigured));
     }
 }
