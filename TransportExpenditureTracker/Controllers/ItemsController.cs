@@ -48,6 +48,7 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
             }
             var item = new Item { ItemName = vm.ItemName, Unit = vm.Unit };
             await itemDataManager.AddAsync(item);
+            await audit.LogAsync("Item", item.ItemId.ToString(CultureInfo.InvariantCulture), "Create", null, System.Text.Json.JsonSerializer.Serialize(item), User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
             return Json(new { success = true });
         }
         return Json(new { success = false, errors = GetModelStateErrors(ModelState) });
@@ -80,6 +81,7 @@ public class ItemsController(IItemDataManager itemDataManager, ItemConverter con
                 item.ItemName = vm.ItemName;
                 item.Unit = vm.Unit;
                 await itemDataManager.UpdateAsync(item);
+                await audit.LogAsync("Item", id.ToString(CultureInfo.InvariantCulture), "Update", null, System.Text.Json.JsonSerializer.Serialize(item), User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
                 TempData["Success"] = "Item updated successfully.";
                 return RedirectToAction(nameof(Index));
             }

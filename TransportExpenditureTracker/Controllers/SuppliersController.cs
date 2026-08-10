@@ -49,8 +49,8 @@ public class SuppliersController(ISupplierService supplierService, ISupplierData
             {
                 return Json(new { success = false, errors = new { supplierName = SupplierNameDuplicate } });
             }
-            await supplierService.AddAsync(vm);
-            await audit.LogAsync(EntityName, "0", "Create", null, JsonSerializer.Serialize(vm), CurrentUserId, $"Created supplier '{vm.SupplierName}'", LogLevelInfo, null);
+            var supplierId = await supplierService.AddAsync(vm);
+            await audit.LogAsync(EntityName, supplierId.ToString(CultureInfo.InvariantCulture), "Create", null, JsonSerializer.Serialize(vm), CurrentUserId, $"Created supplier '{vm.SupplierName}'", LogLevelInfo, null);
             return Json(new { success = true });
         }
         return Json(new { success = false, errors = GetModelStateErrors(ModelState) });

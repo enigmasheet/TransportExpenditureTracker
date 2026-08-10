@@ -19,10 +19,11 @@ public class SupplierService(ISupplierDataManager supplierDataManager, SupplierC
         return supplier is null ? null : converter.ToViewModel(supplier);
     }
 
-    public async Task AddAsync(SupplierViewModel vm)
+    public async Task<int> AddAsync(SupplierViewModel vm)
     {
         var model = converter.ToModel(vm);
         await supplierDataManager.AddAsync(model);
+        return model.SupplierId;
     }
 
     public async Task UpdateAsync(SupplierViewModel vm)

@@ -5,11 +5,16 @@ function showToast(type, message) {
     const iconMap = { success: 'bi-check-circle-fill text-success', error: 'bi-exclamation-circle-fill text-danger', warning: 'bi-exclamation-triangle-fill text-warning', info: 'bi-info-circle-fill text-primary' };
     const icon = iconMap[type] || iconMap.info;
     const delay = type === 'error' ? 8000 : type === 'warning' ? 6000 : 3000;
-    const toastHtml = '<div class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="' + delay + '">'
-        + '<div class="d-flex"><div class="toast-body"><i class="bi ' + icon + ' fs-5"></i> '
-        + message
-        + '</div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';
-    const $toast = $(toastHtml).appendTo('#toastContainer');
+    const $toast = $('<div class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="' + delay + '">'
+        + '<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button></div></div>');
+    const $body = $toast.find('.toast-body');
+    $('<i class="bi ' + icon + ' fs-5 me-1"></i>').appendTo($body);
+    const segments = String(message).split('<br>');
+    for (let i = 0; i < segments.length; i++) {
+        if (i > 0) $body.append('<br>');
+        $body.append(document.createTextNode(segments[i]));
+    }
+    $toast.appendTo('#toastContainer');
     new bootstrap.Toast($toast[0]).show();
     $toast.on('hidden.bs.toast', function () { $(this).remove(); });
 }

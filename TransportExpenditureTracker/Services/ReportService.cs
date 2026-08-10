@@ -21,7 +21,8 @@ public class ReportService : IReportService
 
         var query = from h in headers
                     join d in _db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId
-                    join s in _db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId
+                    join s in _db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId into sg
+                    from s in sg.DefaultIfEmpty()
                     join c in _db.ExpenseCategories.AsNoTracking() on h.CategoryId equals c.CategoryId
                     join i in _db.Items.AsNoTracking() on d.ItemId equals i.ItemId
                     select new ReportRowViewModel
@@ -31,9 +32,9 @@ public class ReportService : IReportService
                         FiscalYear = h.FiscalYearNav.Name,
                         NepaliMonth = h.NepaliMonth,
                         EnglishDate = h.EnglishDate,
-                        SupplierName = s.SupplierName,
-                        Location = s.Location ?? "",
-                        VatNo = s.VatNo ?? "",
+                        SupplierName = s != null ? s.SupplierName : "",
+                        Location = s != null ? (s.Location ?? "") : "",
+                        VatNo = s != null ? (s.VatNo ?? "") : "",
                         CategoryName = c.CategoryName,
                         ItemName = i.ItemName,
                         Unit = i.Unit ?? "",

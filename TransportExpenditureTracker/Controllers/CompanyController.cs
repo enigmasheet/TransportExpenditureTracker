@@ -36,6 +36,13 @@ public class CompanyController(ICompanyService companyService, IAuditService aud
         }
 
         var isNew = await companyService.IsSetupCompleteAsync() == false;
+
+        if (!isNew && !(User.IsInRole("Admin") || User.IsInRole("SuperAdmin")))
+        {
+            TempData["Error"] = "Only admins can modify company settings after the initial setup.";
+            return RedirectToAction(nameof(Index), "Dashboard");
+        }
+
         var before = isNew ? null : JsonSerializer.Serialize(await companyService.GetAsync());
         var saved = await companyService.SaveAsync(model);
 

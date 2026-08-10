@@ -6,7 +6,7 @@ public interface ISupplierService
 {
     Task<List<SupplierViewModel>> GetAllAsync();
     Task<SupplierViewModel?> GetByIdAsync(int id);
-    Task AddAsync(SupplierViewModel vm);
+    Task<int> AddAsync(SupplierViewModel vm);
     Task UpdateAsync(SupplierViewModel vm);
     Task DeleteAsync(int id);
 }

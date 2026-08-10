@@ -137,6 +137,7 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
         return View(vm);
     }
 
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         if (!ModelState.IsValid) return NotFound();
@@ -148,6 +149,7 @@ public partial class ExpensesController(IExpenseService expenseService, ICsvImpo
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         if (!ModelState.IsValid)

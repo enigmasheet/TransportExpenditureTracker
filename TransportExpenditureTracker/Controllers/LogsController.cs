@@ -7,7 +7,7 @@ using TransportExpenditureTracker.Models;
 
 namespace TransportExpenditureTracker.Controllers;
 
-[Authorize]
+[Authorize(Policy = "RequireSuperAdminRole")]
 public partial class LogsController(ILogger<LogsController> logger) : Controller
 {
     private static readonly string LogFolder = Path.Combine(
@@ -95,7 +95,7 @@ public partial class LogsController(ILogger<LogsController> logger) : Controller
 
     private static string GetTodayFileName()
     {
-        return $"app-{DateTime.UtcNow:yyyy-MM-dd}";
+        return $"app-{DateTime.Now:yyyyMMdd}";
     }
 
     private static List<LogEntry> ParseLogFile(string fileName)
@@ -122,7 +122,7 @@ public partial class LogsController(ILogger<LogsController> logger) : Controller
                 current = new LogEntry
                 {
                     Timestamp = DateTime.ParseExact(match.Groups[1].Value, "yyyy-MM-dd HH:mm:ss.fff",
-                        CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal),
+                        CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal),
                     Level = match.Groups[2].Value,
                     Message = match.Groups[3].Value
                 };

@@ -81,6 +81,7 @@ public class ExpenseCategoriesController(IExpenseCategoryDataManager categoryDat
                 if (category == null) return NotFound();
                 category.CategoryName = vm.CategoryName;
                 await categoryDataManager.UpdateAsync(category);
+                await audit.LogAsync("ExpenseCategory", id.ToString(CultureInfo.InvariantCulture), "Update", null, System.Text.Json.JsonSerializer.Serialize(category), User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier) ?? "");
                 return RedirectToAction(nameof(Index));
             }
         }

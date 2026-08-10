@@ -114,8 +114,13 @@ public class ExpenseService(ApplicationDbContext db, ExpenseConverter converter,
 
     public async Task<bool> IsDuplicateInvoiceAsync(string invoiceNo, int supplierId, int fiscalYearId, int? excludeId = null)
     {
+        if (string.IsNullOrWhiteSpace(invoiceNo))
+            return false;
+
         var query = db.ExpenseHeaders
-            .Where(h => h.InvoiceNo == invoiceNo && h.SupplierId == supplierId && h.FiscalYearId == fiscalYearId);
+            .Where(h => h.InvoiceNo.ToLower() == invoiceNo.ToLower()
+                && h.SupplierId == supplierId
+                && h.FiscalYearId == fiscalYearId);
         if (excludeId.HasValue)
             query = query.Where(h => h.ExpenseId != excludeId.Value);
         return await query.AnyAsync();

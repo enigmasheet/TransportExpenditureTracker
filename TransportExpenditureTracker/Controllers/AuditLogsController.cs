@@ -9,7 +9,7 @@ using TransportExpenditureTracker.Services.Interfaces;
 
 namespace TransportExpenditureTracker.Controllers;
 
-[Authorize]
+[Authorize(Policy = "RequireSuperAdminRole")]
 public class AuditLogsController(IAuditService auditService) : Controller
 {
     public async Task<IActionResult> Index(AuditLogFilter filter)

@@ -14,8 +14,8 @@ public static class FiscalYearHelper
         var nepaliMonth = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(parts[1]), CultureInfo.InvariantCulture);
 
         string fyName = nepaliMonth >= 4
-            ? $"{nepaliYear}/{nepaliYear % 100 + 1:D2}"
-            : $"{nepaliYear - 1}/{nepaliYear % 100:D2}";
+            ? $"{nepaliYear}/{GetEndingYearSuffix(nepaliYear)}"
+            : $"{nepaliYear - 1}/{GetEndingYearSuffix(nepaliYear - 1)}";
 
         return fiscalYears.FirstOrDefault(f => f.Name == fyName);
     }
@@ -29,7 +29,13 @@ public static class FiscalYearHelper
         var nepaliMonth = int.Parse(NepaliDateHelper.ConvertToEnglishDigits(parts[1]), CultureInfo.InvariantCulture);
 
         return nepaliMonth >= 4
-            ? $"{nepaliYear}/{nepaliYear % 100 + 1:D2}"
-            : $"{nepaliYear - 1}/{nepaliYear % 100:D2}";
+            ? $"{nepaliYear}/{GetEndingYearSuffix(nepaliYear)}"
+            : $"{nepaliYear - 1}/{GetEndingYearSuffix(nepaliYear - 1)}";
+    }
+
+    private static string GetEndingYearSuffix(int startingYear)
+    {
+        var lastTwoDigits = startingYear % 100 + 1;
+        return lastTwoDigits >= 100 ? "00" : lastTwoDigits.ToString("D2", CultureInfo.InvariantCulture);
     }
 }

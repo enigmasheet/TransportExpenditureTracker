@@ -26,6 +26,8 @@ public class EmailSender : IEmailSender
         _logger = logger;
     }
 
+    public bool IsConfigured => !string.IsNullOrEmpty(_smtpPassword);
+
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
         if (string.IsNullOrEmpty(_smtpPassword))

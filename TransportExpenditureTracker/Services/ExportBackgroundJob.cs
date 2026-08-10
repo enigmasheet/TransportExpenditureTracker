@@ -8,6 +8,9 @@ namespace TransportExpenditureTracker.Services;
 
 public partial class ExportBackgroundJob : BackgroundService
 {
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan RetentionPeriod = TimeSpan.FromDays(7);
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ExportBackgroundJob> _logger;
     private readonly IConfiguration _configuration;
@@ -23,62 +26,121 @@ public partial class ExportBackgroundJob : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var jobService = scope.ServiceProvider.GetRequiredService<IExportJobService>();
-            var exportService = scope.ServiceProvider.GetRequiredService<IReportExportService>();
-            var reportService = scope.ServiceProvider.GetRequiredService<IReportService>();
-            var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
-
-            var pendingJobs = await jobService.GetPendingJobsAsync();
-            Logs.PendingJobsCount(_logger, pendingJobs.Count);
-            foreach (var job in pendingJobs)
+            try
             {
-                Logs.ProcessingJob(_logger, job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
-                await jobService.UpdateStatusAsync(job.ExportQueueId, Processing, null, null);
-                try
-                {
-                    var filters = string.IsNullOrEmpty(job.FilterJson) ? new ReportFilterViewModel() : JsonSerializer.Deserialize<ReportFilterViewModel>(job.FilterJson);
-                    var data = await reportService.GetExportDataAsync(job.ReportType, filters ?? new ReportFilterViewModel());
-
-                    byte[] fileBytes;
-                    string fileName;
-                    if (job.Format == "Excel") { fileBytes = exportService.GenerateExcel(data, job.ReportType); fileName = $"{job.ReportType}_{DateTime.Now:yyyyMMdd}.xlsx"; }
-                    else if (job.Format == "CSV") { fileBytes = exportService.GenerateCsv(data); fileName = $"{job.ReportType}_{DateTime.Now:yyyyMMdd}.csv"; }
-                    else { fileBytes = exportService.GeneratePdf(data, job.ReportType); fileName = $"{job.ReportType}_{DateTime.Now:yyyyMMdd}.pdf"; }
-
-                    var tempDir = Path.Combine(Path.GetTempPath(), "ExpenseExports");
-                    Directory.CreateDirectory(tempDir);
-                    var filePath = Path.Combine(tempDir, fileName);
-                    await File.WriteAllBytesAsync(filePath, fileBytes, stoppingToken);
-
-                    await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, null);
-
-                    try
-                    {
-                        var ccEmail = _configuration["ExportSettings:CcEmail"] ?? "";
-                        await emailSender.SendEmailWithAttachmentAsync(
-                            toEmail: job.RecipientEmail,
-                            ccEmail: ccEmail,
-                            subject: $"Your {job.ReportType} Export ({job.Format}) is ready",
-                            body: $"Dear user,\n\nPlease find attached your requested {job.Format} export of the {job.ReportType} report.\n\n- Expense Tracker",
-                            attachmentBytes: fileBytes,
-                            attachmentFileName: fileName
-                        );
-                        Logs.JobCompleted(_logger, job.ExportQueueId, job.RecipientEmail);
-                    }
-                    catch (Exception emailEx)
-                    {
-                        Logs.EmailSendFailed(_logger, job.ExportQueueId, job.RecipientEmail, emailEx.Message);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logs.JobFailed(_logger, job.ExportQueueId, ex.Message, ex);
-                    await jobService.UpdateStatusAsync(job.ExportQueueId, Failed, null, ex.Message);
-                }
+                await PollOnceAsync(stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                // A transient DB/IO error must never stop the background service or kill the host.
+                Logs.PollFailed(_logger, ex.Message, ex);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            try
+            {
+                await Task.Delay(PollInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
+    private async Task PollOnceAsync(CancellationToken stoppingToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var jobService = scope.ServiceProvider.GetRequiredService<IExportJobService>();
+        var exportService = scope.ServiceProvider.GetRequiredService<IReportExportService>();
+        var reportService = scope.ServiceProvider.GetRequiredService<IReportService>();
+        var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
+
+        var pendingJobs = await jobService.GetPendingJobsAsync();
+        Logs.PendingJobsCount(_logger, pendingJobs.Count);
+        foreach (var job in pendingJobs)
+        {
+            Logs.ProcessingJob(_logger, job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
+            await jobService.UpdateStatusAsync(job.ExportQueueId, Processing, null, null);
+            try
+            {
+                var filters = string.IsNullOrEmpty(job.FilterJson) ? new ReportFilterViewModel() : JsonSerializer.Deserialize<ReportFilterViewModel>(job.FilterJson);
+                var data = await reportService.GetExportDataAsync(job.ReportType, filters ?? new ReportFilterViewModel());
+
+                byte[] fileBytes;
+                string fileName;
+                if (job.Format == "Excel") { fileBytes = exportService.GenerateExcel(data, job.ReportType); fileName = $"{job.ReportType}_{job.ExportQueueId}_{DateTime.Now:yyyyMMdd}.xlsx"; }
+                else if (job.Format == "CSV") { fileBytes = exportService.GenerateCsv(data); fileName = $"{job.ReportType}_{job.ExportQueueId}_{DateTime.Now:yyyyMMdd}.csv"; }
+                else { fileBytes = exportService.GeneratePdf(data, job.ReportType); fileName = $"{job.ReportType}_{job.ExportQueueId}_{DateTime.Now:yyyyMMdd}.pdf"; }
+
+                var tempDir = Path.Combine(Path.GetTempPath(), "ExpenseExports");
+                Directory.CreateDirectory(tempDir);
+                var filePath = Path.Combine(tempDir, fileName);
+                await File.WriteAllBytesAsync(filePath, fileBytes, stoppingToken);
+
+                CleanupStaleFiles(tempDir);
+
+                if (!emailSender.IsConfigured)
+                {
+                    var message = "Export file was generated but the email was not sent because SMTP is not configured (Resend:ApiKey is missing).";
+                    await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, message);
+                    Logs.EmailNotConfigured(_logger, job.ExportQueueId, job.RecipientEmail);
+                    continue;
+                }
+
+                try
+                {
+                    var ccEmail = _configuration["ExportSettings:CcEmail"] ?? "";
+                    await emailSender.SendEmailWithAttachmentAsync(
+                        toEmail: job.RecipientEmail,
+                        ccEmail: ccEmail,
+                        subject: $"Your {job.ReportType} Export ({job.Format}) is ready",
+                        body: $"Dear user,\n\nPlease find attached your requested {job.Format} export of the {job.ReportType} report.\n\n- Expense Tracker",
+                        attachmentBytes: fileBytes,
+                        attachmentFileName: fileName
+                    );
+                    await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, null, DateTime.UtcNow);
+                    Logs.JobCompleted(_logger, job.ExportQueueId, job.RecipientEmail);
+                }
+                catch (Exception emailEx)
+                {
+                    await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, $"Email send failed: {emailEx.Message}");
+                    Logs.EmailSendFailed(_logger, job.ExportQueueId, job.RecipientEmail, emailEx.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logs.JobFailed(_logger, job.ExportQueueId, ex.Message, ex);
+                await jobService.UpdateStatusAsync(job.ExportQueueId, Failed, null, ex.Message);
+            }
+        }
+    }
+
+    private void CleanupStaleFiles(string tempDir)
+    {
+        try
+        {
+            var cutoff = DateTime.UtcNow - RetentionPeriod;
+            var deleted = 0;
+            foreach (var file in Directory.GetFiles(tempDir, "*.*"))
+            {
+                if (File.GetLastWriteTimeUtc(file) < cutoff)
+                {
+                    try
+                    {
+                        File.Delete(file);
+                        deleted++;
+                    }
+                    catch (IOException)
+                    {
+                    }
+                }
+            }
+            if (deleted > 0)
+                Logs.StaleFilesRemoved(_logger, deleted);
+        }
+        catch (Exception ex)
+        {
+            Logs.StaleFilesCleanupFailed(_logger, ex.Message, ex);
         }
     }
 
@@ -96,7 +158,19 @@ public partial class ExportBackgroundJob : BackgroundService
         [LoggerMessage(LogLevel.Warning, Message = "Export job {JobId} completed but email to {Email} failed: {Message}")]
         public static partial void EmailSendFailed(ILogger logger, int jobId, string email, string message);
 
+        [LoggerMessage(LogLevel.Warning, Message = "Export job {JobId} completed but email to {Email} was not sent (SMTP not configured)")]
+        public static partial void EmailNotConfigured(ILogger logger, int jobId, string email);
+
         [LoggerMessage(LogLevel.Error, Message = "Export job {JobId} failed: {Message}")]
         public static partial void JobFailed(ILogger logger, int jobId, string message, Exception exception);
+
+        [LoggerMessage(LogLevel.Error, Message = "Export polling pass failed: {Message}")]
+        public static partial void PollFailed(ILogger logger, string message, Exception exception);
+
+        [LoggerMessage(LogLevel.Information, Message = "Cleaned up {Count} stale export file(s)")]
+        public static partial void StaleFilesRemoved(ILogger logger, int count);
+
+        [LoggerMessage(LogLevel.Warning, Message = "Failed to clean up stale export files: {Message}")]
+        public static partial void StaleFilesCleanupFailed(ILogger logger, string message, Exception exception);
     }
 }
