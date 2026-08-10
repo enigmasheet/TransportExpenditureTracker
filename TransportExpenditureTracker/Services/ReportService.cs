@@ -6,25 +6,18 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class ReportService : IReportService
+public class ReportService(ApplicationDbContext db) : IReportService
 {
-    private readonly ApplicationDbContext _db;
-
-    public ReportService(ApplicationDbContext db)
-    {
-        _db = db;
-    }
-
     private IQueryable<ReportRowViewModel> GetBaseQueryWithDetailFilters(ReportFilterViewModel filters)
     {
-        var headers = _db.ExpenseHeaders.AsNoTracking();
+        var headers = db.ExpenseHeaders.AsNoTracking();
 
         var query = from h in headers
-                    join d in _db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId
-                    join s in _db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId into sg
+                    join d in db.ExpenseDetails.AsNoTracking() on h.ExpenseId equals d.ExpenseId
+                    join s in db.Suppliers.AsNoTracking() on h.SupplierId equals s.SupplierId into sg
                     from s in sg.DefaultIfEmpty()
-                    join c in _db.ExpenseCategories.AsNoTracking() on h.CategoryId equals c.CategoryId
-                    join i in _db.Items.AsNoTracking() on d.ItemId equals i.ItemId
+                    join c in db.ExpenseCategories.AsNoTracking() on h.CategoryId equals c.CategoryId
+                    join i in db.Items.AsNoTracking() on d.ItemId equals i.ItemId
                     select new ReportRowViewModel
                     {
                         Miti = h.Miti,
@@ -75,26 +68,14 @@ public class ReportService : IReportService
         return query;
     }
 
-    private static async Task<List<ReportRowViewModel>> GetPagedAsync(IQueryable<ReportRowViewModel> query, ReportFilterViewModel filters, bool getAll = false)
+    private static async Task<List<ReportRowViewModel>> GetPagedAsync(IQueryable<ReportRowViewModel> query, ReportFilterViewModel filters)
     {
-        var skip = 0;
-        IQueryable<ReportRowViewModel> paged;
-        if (getAll)
-        {
-            paged = query;
-        }
-        else
-        {
-            skip = (filters.PageNumber - 1) * filters.PageSize;
-            paged = query.Skip(skip).Take(filters.PageSize);
-        }
-
-        var items = await paged.ToListAsync();
+        var items = await query.ToListAsync();
 
         int idx = 0;
         foreach (var item in items)
         {
-            item.Sno = idx + 1 + skip;
+            item.Sno = idx + 1;
             idx++;
         }
 
@@ -116,7 +97,7 @@ public class ReportService : IReportService
             _ => throw new ArgumentOutOfRangeException(nameof(reportType), reportType, "Unknown report type")
         };
 
-        return await GetPagedAsync(query, filters, getAll: true);
+        return await GetPagedAsync(query, filters);
     }
 
     public async Task<List<ReportRowViewModel>> GetDailyReportAsync(ReportFilterViewModel filters)

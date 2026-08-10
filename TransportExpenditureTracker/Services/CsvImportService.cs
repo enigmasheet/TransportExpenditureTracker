@@ -9,23 +9,12 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class CsvImportService : ICsvImportService
+public class CsvImportService(ApplicationDbContext db, IExpenseService expenseService, ICompanyService companyService) : ICsvImportService
 {
-    private readonly ApplicationDbContext _db;
-    private readonly IExpenseService _expenseService;
-    private readonly ICompanyService _companyService;
-
-    public CsvImportService(ApplicationDbContext db, IExpenseService expenseService, ICompanyService companyService)
-    {
-        _db = db;
-        _expenseService = expenseService;
-        _companyService = companyService;
-    }
-
     public async Task<CsvPreviewViewModel> PreviewAsync(IFormFile file)
     {
         var preview = new CsvPreviewViewModel();
-        var vatRate = await _companyService.GetVatRateAsync();
+        var vatRate = await companyService.GetVatRateAsync();
 
         using var reader = new StreamReader(file.OpenReadStream());
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -76,7 +65,7 @@ public class CsvImportService : ICsvImportService
                 }
                 else
                 {
-                    var fiscalYear = await _db.FiscalYears.FirstOrDefaultAsync(f => f.Name == fiscalYearName);
+                    var fiscalYear = await db.FiscalYears.FirstOrDefaultAsync(f => f.Name == fiscalYearName);
                     if (fiscalYear is null)
                         row.ValidationError = $"Fiscal year '{fiscalYearName}' not found in system";
                     else
@@ -84,9 +73,9 @@ public class CsvImportService : ICsvImportService
                         row.FiscalYearId = fiscalYear.Id;
                         row.FiscalYearName = fiscalYear.Name;
 
-                        var supplier = await _db.Suppliers.FirstOrDefaultAsync(s => s.SupplierName == row.SupplierName);
+                        var supplier = await db.Suppliers.FirstOrDefaultAsync(s => s.SupplierName == row.SupplierName);
                         if (supplier is not null)
-                            row.IsDuplicate = await _expenseService.IsDuplicateInvoiceAsync(row.InvoiceNo, supplier.SupplierId, fiscalYear.Id);
+                            row.IsDuplicate = await expenseService.IsDuplicateInvoiceAsync(row.InvoiceNo, supplier.SupplierId, fiscalYear.Id);
                     }
                 }
 
@@ -148,7 +137,7 @@ public class CsvImportService : ICsvImportService
             .Where(r => !r.IsDuplicate && !r.IsCrossRowDuplicate && string.IsNullOrEmpty(r.ValidationError))
             .ToList();
 
-        return await _expenseService.ImportCsvAsync(validRows, userId, autoCreate);
+        return await expenseService.ImportCsvAsync(validRows, userId, autoCreate);
     }
 
     private static string? GetStringValue(dynamic record, string key)

@@ -5,26 +5,14 @@ using MimeKit;
 
 namespace TransportExpenditureTracker.Services;
 
-public class EmailSender : IEmailSender
+public class EmailSender(IConfiguration configuration, ILogger<EmailSender> logger) : IEmailSender
 {
-    private readonly string _smtpHost;
-    private readonly int _smtpPort;
-    private readonly string _smtpUser;
-    private readonly string _smtpPassword;
-    private readonly string _fromEmail;
-    private readonly string _fromName;
-    private readonly ILogger<EmailSender> _logger;
-
-    public EmailSender(IConfiguration configuration, ILogger<EmailSender> logger)
-    {
-        _smtpHost = configuration["Resend:SmtpHost"] ?? "smtp.resend.com";
-        _smtpPort = int.TryParse(configuration["Resend:SmtpPort"], out var port) ? port : 587;
-        _smtpUser = configuration["Resend:SmtpUser"] ?? "resend";
-        _smtpPassword = configuration["Resend:ApiKey"] ?? string.Empty;
-        _fromEmail = configuration["Resend:FromEmail"] ?? "noreply@expensetracker.com";
-        _fromName = configuration["Resend:FromName"] ?? "Expense Tracker";
-        _logger = logger;
-    }
+    private readonly string _smtpHost = configuration["Resend:SmtpHost"] ?? "smtp.resend.com";
+    private readonly int _smtpPort = int.TryParse(configuration["Resend:SmtpPort"], out var port) ? port : 587;
+    private readonly string _smtpUser = configuration["Resend:SmtpUser"] ?? "resend";
+    private readonly string _smtpPassword = configuration["Resend:ApiKey"] ?? string.Empty;
+    private readonly string _fromEmail = configuration["Resend:FromEmail"] ?? "noreply@expensetracker.com";
+    private readonly string _fromName = configuration["Resend:FromName"] ?? "Expense Tracker";
 
     public bool IsConfigured => !string.IsNullOrEmpty(_smtpPassword);
 

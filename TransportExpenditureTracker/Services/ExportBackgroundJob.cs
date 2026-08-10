@@ -6,21 +6,10 @@ using static TransportExpenditureTracker.Models.ExportJobStatus;
 
 namespace TransportExpenditureTracker.Services;
 
-public partial class ExportBackgroundJob : BackgroundService
+public partial class ExportBackgroundJob(IServiceScopeFactory scopeFactory, ILogger<ExportBackgroundJob> logger, IConfiguration configuration) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RetentionPeriod = TimeSpan.FromDays(7);
-
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<ExportBackgroundJob> _logger;
-    private readonly IConfiguration _configuration;
-
-    public ExportBackgroundJob(IServiceScopeFactory scopeFactory, ILogger<ExportBackgroundJob> logger, IConfiguration configuration)
-    {
-        _scopeFactory = scopeFactory;
-        _logger = logger;
-        _configuration = configuration;
-    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -33,7 +22,7 @@ public partial class ExportBackgroundJob : BackgroundService
             catch (Exception ex)
             {
                 // A transient DB/IO error must never stop the background service or kill the host.
-                Logs.PollFailed(_logger, ex.Message, ex);
+                Logs.PollFailed(logger, ex.Message, ex);
             }
 
             try
@@ -49,17 +38,17 @@ public partial class ExportBackgroundJob : BackgroundService
 
     private async Task PollOnceAsync(CancellationToken stoppingToken)
     {
-        using var scope = _scopeFactory.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var jobService = scope.ServiceProvider.GetRequiredService<IExportJobService>();
         var exportService = scope.ServiceProvider.GetRequiredService<IReportExportService>();
         var reportService = scope.ServiceProvider.GetRequiredService<IReportService>();
         var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
 
         var pendingJobs = await jobService.GetPendingJobsAsync();
-        Logs.PendingJobsCount(_logger, pendingJobs.Count);
+        Logs.PendingJobsCount(logger, pendingJobs.Count);
         foreach (var job in pendingJobs)
         {
-            Logs.ProcessingJob(_logger, job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
+            Logs.ProcessingJob(logger, job.ExportQueueId, job.ReportType, job.Format, job.RecipientEmail);
             await jobService.UpdateStatusAsync(job.ExportQueueId, Processing, null, null);
             try
             {
@@ -83,13 +72,13 @@ public partial class ExportBackgroundJob : BackgroundService
                 {
                     var message = "Export file was generated but the email was not sent because SMTP is not configured (Resend:ApiKey is missing).";
                     await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, message);
-                    Logs.EmailNotConfigured(_logger, job.ExportQueueId, job.RecipientEmail);
+                    Logs.EmailNotConfigured(logger, job.ExportQueueId, job.RecipientEmail);
                     continue;
                 }
 
                 try
                 {
-                    var ccEmail = _configuration["ExportSettings:CcEmail"] ?? "";
+                    var ccEmail = configuration["ExportSettings:CcEmail"] ?? "";
                     await emailSender.SendEmailWithAttachmentAsync(
                         toEmail: job.RecipientEmail,
                         ccEmail: ccEmail,
@@ -99,17 +88,17 @@ public partial class ExportBackgroundJob : BackgroundService
                         attachmentFileName: fileName
                     );
                     await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, null, DateTime.UtcNow);
-                    Logs.JobCompleted(_logger, job.ExportQueueId, job.RecipientEmail);
+                    Logs.JobCompleted(logger, job.ExportQueueId, job.RecipientEmail);
                 }
                 catch (Exception emailEx)
                 {
                     await jobService.UpdateStatusAsync(job.ExportQueueId, Completed, filePath, $"Email send failed: {emailEx.Message}");
-                    Logs.EmailSendFailed(_logger, job.ExportQueueId, job.RecipientEmail, emailEx.Message);
+                    Logs.EmailSendFailed(logger, job.ExportQueueId, job.RecipientEmail, emailEx.Message);
                 }
             }
             catch (Exception ex)
             {
-                Logs.JobFailed(_logger, job.ExportQueueId, ex.Message, ex);
+                Logs.JobFailed(logger, job.ExportQueueId, ex.Message, ex);
                 await jobService.UpdateStatusAsync(job.ExportQueueId, Failed, null, ex.Message);
             }
         }
@@ -136,11 +125,11 @@ public partial class ExportBackgroundJob : BackgroundService
                 }
             }
             if (deleted > 0)
-                Logs.StaleFilesRemoved(_logger, deleted);
+                Logs.StaleFilesRemoved(logger, deleted);
         }
         catch (Exception ex)
         {
-            Logs.StaleFilesCleanupFailed(_logger, ex.Message, ex);
+            Logs.StaleFilesCleanupFailed(logger, ex.Message, ex);
         }
     }
 
