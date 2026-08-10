@@ -22,9 +22,16 @@ $.fn.transportLoading = function (state) {
 
 $(document).ready(function () {
     const currentPath = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+    const currentSection = currentPath.split('/').filter(Boolean)[0] || 'dashboard';
+
     $('.navbar-nav a').each(function () {
         const href = $(this).attr('href');
-        if (href && href !== '#' && currentPath === href.toLowerCase().split('?')[0].replace(/\/+$/, '')) {
+        if (!href || href === '#') return;
+
+        const hrefPath = href.toLowerCase().split('?')[0].replace(/\/+$/, '');
+        const hrefSection = hrefPath === '/' ? 'dashboard' : hrefPath.split('/').filter(Boolean)[0];
+
+        if (hrefSection === currentSection) {
             $(this).addClass('active');
             if ($(this).closest('.dropdown-menu').length) {
                 $(this).closest('.dropdown').find('.dropdown-toggle').addClass('active');

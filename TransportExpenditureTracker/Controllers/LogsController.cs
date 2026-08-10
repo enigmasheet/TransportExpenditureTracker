@@ -8,7 +8,7 @@ using TransportExpenditureTracker.Models;
 namespace TransportExpenditureTracker.Controllers;
 
 [Authorize]
-public partial class LogsController : Controller
+public partial class LogsController(ILogger<LogsController> logger) : Controller
 {
     private static readonly string LogFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -65,8 +65,9 @@ public partial class LogsController : Controller
                 })
             });
         }
-        catch
+        catch (Exception ex)
         {
+            Logs.ReadFailed(logger, ex, date ?? GetTodayFileName());
             return Json(new { draw, recordsTotal = 0, recordsFiltered = 0, data = Array.Empty<object>() });
         }
     }
@@ -138,5 +139,11 @@ public partial class LogsController : Controller
             entries.Add(current);
 
         return entries;
+    }
+
+    private static partial class Logs
+    {
+        [LoggerMessage(LogLevel.Error, Message = "Failed to read log file {FileName}")]
+        public static partial void ReadFailed(ILogger logger, Exception exception, string fileName);
     }
 }

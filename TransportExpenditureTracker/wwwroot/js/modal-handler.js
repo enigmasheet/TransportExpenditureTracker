@@ -113,6 +113,9 @@ const ModalForm = {
         $.each($form.serializeArray(), function (_, item) {
             data[item.name] = item.value;
         });
+        $form.find('input[type="checkbox"]').each(function () {
+            data[this.name] = this.checked;
+        });
         return data;
     }
 };

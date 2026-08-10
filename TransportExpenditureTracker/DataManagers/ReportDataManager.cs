@@ -21,7 +21,7 @@ public class ReportDataManager : IReportDataManager
 
     public async Task<List<Supplier>> GetSuppliersAsync()
     {
-        return await _db.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
+        return await _db.Suppliers.Where(s => !s.IsDeleted).OrderBy(s => s.SupplierName).ToListAsync();
     }
 
     public async Task<List<ExpenseCategory>> GetCategoriesAsync()

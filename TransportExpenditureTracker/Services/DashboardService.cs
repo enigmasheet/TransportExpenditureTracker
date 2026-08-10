@@ -6,7 +6,7 @@ using TransportExpenditureTracker.ViewModels;
 
 namespace TransportExpenditureTracker.Services;
 
-public class DashboardService(ApplicationDbContext db) : IDashboardService
+public class DashboardService(ApplicationDbContext db, IFiscalCalendarService fiscalCalendarService) : IDashboardService
 {
     public async Task<DashboardViewModel> GetDashboardAsync(string? fiscalYear = null)
     {
@@ -38,6 +38,12 @@ public class DashboardService(ApplicationDbContext db) : IDashboardService
             .Join(db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
             .SumAsync();
 
+        var currentFyName = fiscalCalendarService.GetFiscalYearName(now);
+        var thisFiscalYearExpenses = currentFyName is null ? 0 : await db.ExpenseHeaders
+            .Where(h => h.FiscalYearNav.Name == currentFyName)
+            .Join(db.ExpenseDetails, h => h.ExpenseId, d => d.ExpenseId, (h, d) => d.TotalAmount)
+            .SumAsync();
+
         var topSupplierData = await query
             .GroupBy(h => h.SupplierId)
             .Select(g => new { SupplierId = g.Key, Total = g.SelectMany(h => h.Details).Sum(d => d.TotalAmount) })
@@ -58,7 +64,7 @@ public class DashboardService(ApplicationDbContext db) : IDashboardService
             TotalTaxableAmount = totalTaxableAmount,
             TotalInvoices = totalInvoices,
             ThisMonthExpenses = thisMonthExpenses,
-            ThisFiscalYearExpenses = totalExpenditure,
+            ThisFiscalYearExpenses = thisFiscalYearExpenses,
             TopSupplier = topSupplierName,
             FiscalYears = fiscalYears,
             SelectedFiscalYear = selectedFy

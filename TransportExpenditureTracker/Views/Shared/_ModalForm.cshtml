@@ -1,13 +1,13 @@
 @model ModalFormConfig
 
-<div class="modal fade" id="@Model.ModalId" tabindex="-1">
+<div class="modal fade" id="@Model.ModalId" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@Model.ModalId-title">
     <div class="modal-dialog @Model.DialogClass">
         <div class="modal-content">
             <form id="@Model.FormId">
                 @if (Model.IncludeAntiforgery) { @Html.AntiForgeryToken() }
                 <div class="modal-header">
-                    <h5 class="modal-title">@Model.Title</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title" id="@Model.ModalId-title">@Html.Raw(Model.Title)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     @if (Model.BodyContent != null) { @Model.BodyContent(null!) }

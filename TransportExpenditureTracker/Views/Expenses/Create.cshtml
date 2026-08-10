@@ -1,5 +1,9 @@
 @model ExpenseBatchViewModel
-@{ ViewData["Title"] = "Batch Expense Entry"; }
+@inject TransportExpenditureTracker.Services.Interfaces.ICompanyService _companyService
+@{
+    ViewData["Title"] = "Batch Expense Entry";
+    var vatRate = await _companyService.GetVatRateAsync();
+}
 
 <div class="section-title">
     <h4 class="page-heading"><i class="bi bi-plus-circle"></i> Batch Expense Entry</h4>
@@ -65,10 +69,10 @@
                                 <span asp-validation-for="Rows[i].ItemId" class="text-danger small"></span>
                             </td>
                             <td>
-                                <input asp-for="Rows[i].Quantity" class="form-control form-control-sm qty" />
+                                <input asp-for="Rows[i].Quantity" type="number" min="0" step="0.01" class="form-control form-control-sm qty" />
                             </td>
                             <td>
-                                <input asp-for="Rows[i].Rate" class="form-control form-control-sm rate" />
+                                <input asp-for="Rows[i].Rate" type="number" min="0" step="0.01" class="form-control form-control-sm rate" />
                             </td>
                             <td class="align-middle text-end computed-taxable">—</td>
                             <td class="align-middle text-end computed-vat">—</td>
@@ -109,6 +113,15 @@
     <partial name="_ValidationScriptsPartial" />
 
     <script>
+        BatchEntry.init({
+            table: '#batch-table',
+            form: '#batch-form',
+            addBtn: '#add-rows-btn',
+            removeBtn: '#remove-row-btn',
+            addCount: 5,
+            vatRate: @(vatRate.ToString(System.Globalization.CultureInfo.InvariantCulture))
+        });
+
         $(document).ready(function () {
             ModalForm.initCreate({
                 modalId: 'quickSupplierModal',

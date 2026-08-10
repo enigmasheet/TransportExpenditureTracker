@@ -1,5 +1,9 @@
 @model List<ExpenseHeaderViewModel>
-@{ ViewData["Title"] = "Expenses"; }
+@inject TransportExpenditureTracker.Services.Interfaces.ICompanyService _companyService
+@{
+    ViewData["Title"] = "Expenses";
+    var currency = (await _companyService.GetAsync())?.CurrencySymbol?.Trim() ?? "Rs.";
+}
 
 <div class="section-title">
     <h4 class="page-heading"><i class="bi bi-receipt"></i> @ViewData["Title"]</h4>
@@ -24,7 +28,7 @@
                     <td>@item.SupplierName</td>
                     <td>@item.CategoryName</td>
                     <td>@item.PaymentMethod</td>
-                    <td class="text-end">Rs @item.TotalAmount.ToString("N2")</td>
+                    <td class="text-end">@currency @item.TotalAmount.ToString("N2")</td>
                     <td>@item.CreatedAt.ToString("yyyy-MM-dd")</td>
                     <td>
                         <a asp-action="Details" asp-route-id="@item.ExpenseId" class="btn btn-sm btn-outline-info btn-icon" title="View"><i class="bi bi-eye"></i></a>
@@ -42,7 +46,7 @@
             <tfoot>
                 <tr class="fw-bold">
                     <td colspan="5" class="text-end">Total:</td>
-                    <td class="text-end text-primary">Rs @Model.Sum(m => m.TotalAmount).ToString("N2")</td>
+                    <td class="text-end text-primary">@currency @Model.Sum(m => m.TotalAmount).ToString("N2")</td>
                     <td colspan="2"></td>
                 </tr>
             </tfoot>

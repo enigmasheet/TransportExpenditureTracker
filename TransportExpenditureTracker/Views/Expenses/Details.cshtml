@@ -1,5 +1,9 @@
 @model ExpenseEntryViewModel
-@{ ViewData["Title"] = "Expense Details"; }
+@inject TransportExpenditureTracker.Services.Interfaces.ICompanyService _companyService
+@{
+    ViewData["Title"] = "Expense Details";
+    var currency = (await _companyService.GetAsync())?.CurrencySymbol?.Trim() ?? "Rs.";
+}
 
 <div class="section-title">
     <h4 class="page-heading"><i class="bi bi-eye"></i> Expense Details</h4>
@@ -48,7 +52,7 @@
                 <tfoot>
                     <tr class="fw-bold">
                         <td colspan="6" class="text-end">Grand Total:</td>
-                        <td class="text-end text-primary">Rs @grandTotal.ToString("N2")</td>
+                        <td class="text-end text-primary">@currency @grandTotal.ToString("N2")</td>
                     </tr>
                 </tfoot>
             }
